@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.vite/
+.venv/
+*.pyc
+__pycache__
+.DS_Store
+.git/
+QM1_syllabus-2.pdf
