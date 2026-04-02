@@ -15,22 +15,64 @@ export default function GuidedExercise({ exercise }) {
     setRevealedHints(prev => ({ ...prev, [key]: !prev[key] }));
   }
 
-  function handleAnswer(stepIdx, value) {
-    setAnswers(prev => ({ ...prev, [stepIdx]: value }));
+  function handleAnswer(stepIdx, value, subIdx) {
+    if (subIdx !== undefined) {
+      setAnswers(prev => {
+        const current = prev[stepIdx] || {};
+        return { ...prev, [stepIdx]: { ...current, [subIdx]: value } };
+      });
+    } else {
+      setAnswers(prev => ({ ...prev, [stepIdx]: value }));
+    }
   }
 
   function checkAnswer(stepIdx) {
     setChecked(prev => ({ ...prev, [stepIdx]: true }));
   }
 
+  function normalizeLaTeX(str) {
+    return str
+      .replace(/\s+/g, '')          // strip all whitespace
+      .replace(/\{,\}/g, '.')        // {,} (LaTeX decimal comma) → .
+      .replace(/\\,/g, '')           // strip \,
+      .replace(/\\;/g, '')           // strip \;
+      .replace(/\\:/g, '')           // strip \:
+      .replace(/\\!/g, '')           // strip \!
+      .replace(/\\quad/g, '')        // strip \quad
+      .replace(/\\qquad/g, '')       // strip \qquad
+      .replace(/\$/g, '')            // strip $ delimiters
+      .replace(/\\text\{([^}]*)\}/g, '$1') // \text{eV} → eV
+      .replace(/\\left/g, '')        // strip \left
+      .replace(/\\right/g, '')       // strip \right
+      .replace(/\\cdot/g, '*')       // treat \cdot as *
+      .replace(/\\times/g, '*')      // treat \times as *
+      .replace(/,/g, '.')             // decimal comma → decimal point
+      .replace(/\\approx/g, '=')     // treat ≈ as =
+      .toLowerCase();
+  }
+
+  function matchesAnswer(given, answer) {
+    const normAnswer = normalizeLaTeX(answer);
+    if (given === normAnswer) return true;
+    // Also accept just the right-hand side of an equation
+    const eqParts = normAnswer.split('=');
+    if (eqParts.length >= 2) {
+      const rhs = eqParts.slice(1).join('=');
+      if (given === rhs) return true;
+    }
+    return false;
+  }
+
   function isCorrect(stepIdx) {
     const s = exercise.steps[stepIdx];
     if (!s.answer) return null;
-    const given = (answers[stepIdx] || '').trim().toLowerCase();
     if (Array.isArray(s.answer)) {
-      return s.answer.some(a => given === a.toLowerCase());
+      // Multiple answers: each must match its corresponding input
+      const givenObj = answers[stepIdx] || {};
+      return s.answer.every((a, i) => matchesAnswer(normalizeLaTeX(givenObj[i] || ''), a));
     }
-    return given === s.answer.toLowerCase();
+    const given = normalizeLaTeX(answers[stepIdx] || '');
+    return matchesAnswer(given, s.answer);
   }
 
   return (
@@ -80,7 +122,7 @@ export default function GuidedExercise({ exercise }) {
           </div>
         )}
 
-        {step.answer && (
+        {step.answer && !Array.isArray(step.answer) && (
           <div className="step-answer-input">
             <input
               type="text"
@@ -90,6 +132,11 @@ export default function GuidedExercise({ exercise }) {
               disabled={checked[currentStep]}
               className={checked[currentStep] ? (isCorrect(currentStep) ? 'correct' : 'incorrect') : ''}
             />
+            {answers[currentStep] && (
+              <div className="latex-preview">
+                <MathText text={`$${answers[currentStep]}$`} />
+              </div>
+            )}
             {!checked[currentStep] && (
               <button className="btn-check" onClick={() => checkAnswer(currentStep)}>
                 Controleer
@@ -99,15 +146,54 @@ export default function GuidedExercise({ exercise }) {
               <div className={`answer-feedback ${isCorrect(currentStep) ? 'correct' : 'incorrect'}`}>
                 {isCorrect(currentStep)
                   ? '✓ Correct!'
-                  : `✗ Het juiste antwoord is: ${Array.isArray(step.answer) ? step.answer[0] : step.answer}`
+                  : <span>✗ Het juiste antwoord is: <MathText text={step.answer} /></span>
                 }
               </div>
             )}
           </div>
         )}
 
+        {step.answer && Array.isArray(step.answer) && (
+          <div className="step-answer-input">
+            {step.answer.map((ans, ai) => {
+              const givenObj = answers[currentStep] || {};
+              const subCorrect = checked[currentStep] ? matchesAnswer(normalizeLaTeX(givenObj[ai] || ''), ans) : null;
+              return (
+                <div key={ai} className="multi-answer-row">
+                  <input
+                    type="text"
+                    placeholder={`Antwoord ${ai + 1}...`}
+                    value={givenObj[ai] || ''}
+                    onChange={e => handleAnswer(currentStep, e.target.value, ai)}
+                    disabled={checked[currentStep]}
+                    className={checked[currentStep] ? (subCorrect ? 'correct' : 'incorrect') : ''}
+                  />
+                  {givenObj[ai] && (
+                    <div className="latex-preview">
+                      <MathText text={`$${givenObj[ai]}$`} />
+                    </div>
+                  )}
+                  {checked[currentStep] && !subCorrect && (
+                    <div className="answer-feedback incorrect">
+                      <span>✗ <MathText text={ans} /></span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {!checked[currentStep] && (
+              <button className="btn-check" onClick={() => checkAnswer(currentStep)}>
+                Controleer
+              </button>
+            )}
+            {checked[currentStep] && isCorrect(currentStep) && (
+              <div className="answer-feedback correct">✓ Correct!</div>
+            )}
+          </div>
+        )}
+
         {step.solution && (
-          <SolutionReveal solution={step.solution} />
+          <SolutionReveal key={currentStep} solution={step.solution} />
         )}
 
         <div className="step-nav">

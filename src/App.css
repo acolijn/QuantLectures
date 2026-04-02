@@ -307,7 +307,6 @@ body {
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--color-primary);
-  text-transform: uppercase;
   letter-spacing: 0.03em;
 }
 
@@ -713,10 +712,16 @@ body {
 
 .step-answer-input {
   display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.multi-answer-row {
+  display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-  margin-bottom: 16px;
 }
 
 .step-answer-input input {
@@ -770,6 +775,17 @@ body {
 
 .answer-feedback.correct { color: var(--color-correct); }
 .answer-feedback.incorrect { color: var(--color-incorrect); }
+
+.latex-preview {
+  width: 100%;
+  padding: 6px 10px;
+  margin-top: 4px;
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  min-height: 24px;
+}
 
 .solution-wrapper {
   margin-bottom: 16px;

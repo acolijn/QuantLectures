@@ -63,7 +63,7 @@ export default function ChapterView({ chapter, progress, onProgressUpdate }) {
           <div className="formulas-list">
             {chapter.formulas.map((formula, i) => (
               <div key={i} className="formula-card">
-                <div className="formula-name">{formula.name}</div>
+                <div className="formula-name"><MathText text={formula.name} /></div>
                 <MathBlock latex={formula.latex} />
               </div>
             ))}
