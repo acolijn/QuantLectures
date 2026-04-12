@@ -9,8 +9,8 @@ const chapter7 = {
       { name: "Golffuncties", latex: "\\psi_n(x) = \\sqrt{\\frac{2}{a}} \\sin\\left(\\frac{n\\pi x}{a}\\right), \\quad n = 1, 2, 3, \\ldots" },
       { name: "Energieniveaus", latex: "E_n = \\frac{n^2 \\pi^2 \\hbar^2}{2ma^2} = n^2 E_1" },
       { name: "Nulpuntsenergie", latex: "E_1 = \\frac{\\pi^2 \\hbar^2}{2ma^2} > 0" },
-      { name: "Orthonormaliteit", latex: "\\int_0^a \\psi_m(x)\\,\\psi_n(x)\\,dx = \\delta_{mn}" },
-      { name: "Volledigheid (Fourier-sinusreeks)", latex: "f(x) = \\sum_{n=1}^{\\infty} c_n\\,\\psi_n(x), \\quad c_n = \\int_0^a \\psi_n(x)\\,f(x)\\,dx" },
+      { name: "Orthonormaliteit", latex: "\\int_0^a \\psi_m^*(x)\\,\\psi_n(x)\\,dx = \\delta_{mn}" },
+      { name: "Volledigheid (Fourier-sinusreeks)", latex: "f(x) = \\sum_{n=1}^{\\infty} c_n\\,\\psi_n(x), \\quad c_n = \\int_0^a \\psi_n^*(x)\\,f(x)\\,dx" },
     ],
     concepts: [
       {
@@ -35,7 +35,7 @@ const chapter7 = {
       },
       {
         title: "Orthonormaliteit en volledigheid",
-        content: "De golffuncties zijn orthonormaal:\n\n$$\\int_0^a \\psi_m(x)\\,\\psi_n(x)\\,dx = \\delta_{mn}$$\n\nDit is te bewijzen met de standaardintegraal $\\int_0^a \\sin(m\\pi x/a)\\sin(n\\pi x/a)\\,dx$, die nul is voor $m \\neq n$ en $a/2$ voor $m = n$. De factor $\\sqrt{2/a}$ in de normering is precies zo gekozen dat de integraal 1 geeft.\n\nBovendien vormen de $\\psi_n$ een volledige set: elke (stuksgewijs gladde) functie $f(x)$ op $[0, a]$ kan worden geschreven als:\n\n$$f(x) = \\sum_{n=1}^{\\infty} c_n\\,\\psi_n(x) = \\sqrt{\\frac{2}{a}}\\sum_{n=1}^{\\infty} c_n\\sin\\left(\\frac{n\\pi x}{a}\\right)$$\n\nDit is precies de Fourier-sinusreeks. De coëfficiënten worden bepaald door de Fourier-truc: $c_n = \\int_0^a \\psi_n(x)\\,f(x)\\,dx$."
+        content: "De golffuncties zijn orthonormaal:\n\n$$\\int_0^a \\psi_m^*(x)\\,\\psi_n(x)\\,dx = \\delta_{mn}$$\n\nVoor de oneindig diepe put zijn de golffuncties reëel, dus $\\psi_m^* = \\psi_m$, maar we schrijven de complex geconjugeerde altijd expliciet — dat is de algemene conventie. Dit is te bewijzen met de standaardintegraal $\\int_0^a \\sin(m\\pi x/a)\\sin(n\\pi x/a)\\,dx$, die nul is voor $m \\neq n$ en $a/2$ voor $m = n$. De factor $\\sqrt{2/a}$ in de normering is precies zo gekozen dat de integraal 1 geeft.\n\nBovendien vormen de $\\psi_n$ een volledige set: elke (stuksgewijs gladde) functie $f(x)$ op $[0, a]$ kan worden geschreven als:\n\n$$f(x) = \\sum_{n=1}^{\\infty} c_n\\,\\psi_n(x) = \\sqrt{\\frac{2}{a}}\\sum_{n=1}^{\\infty} c_n\\sin\\left(\\frac{n\\pi x}{a}\\right)$$\n\nDit is precies de Fourier-sinusreeks. De coëfficiënten worden bepaald door de Fourier-truc: $c_n = \\int_0^a \\psi_n^*(x)\\,f(x)\\,dx$."
       },
       {
         title: "De volledige tijdsafhankelijke oplossing",
