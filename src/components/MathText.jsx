@@ -67,17 +67,75 @@ export default function MathText({ text }) {
         }
         containerRef.current.appendChild(span);
       } else {
-        // Process text: handle \n, **bold**
-        const span = document.createElement('span');
-        let html = token.value
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/\n\n/g, '<br/><br/>')
-          .replace(/\n/g, '<br/>')
-          .replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>');
-        span.innerHTML = html;
-        containerRef.current.appendChild(span);
+        // Process text: handle tables, \n, **bold**, - lists
+        const lines = token.value.split('\n');
+        // Detect markdown tables (consecutive lines starting with |)
+        let i = 0;
+        while (i < lines.length) {
+          // Check if this starts a table block
+          if (lines[i].trim().startsWith('|') && lines[i].trim().endsWith('|')) {
+            const tableLines = [];
+            while (i < lines.length && lines[i].trim().startsWith('|') && lines[i].trim().endsWith('|')) {
+              tableLines.push(lines[i].trim());
+              i++;
+            }
+            if (tableLines.length >= 2) {
+              const table = document.createElement('table');
+              table.className = 'math-table';
+              // Check if second line is separator (|---|---|)
+              const hasSeparator = /^\|[\s\-:]+(\|[\s\-:]+)+\|$/.test(tableLines[1]);
+              const dataRows = hasSeparator ? [tableLines[0], ...tableLines.slice(2)] : tableLines;
+              dataRows.forEach((row, ri) => {
+                const tr = document.createElement('tr');
+                const cells = row.split('|').filter((_, ci, arr) => ci > 0 && ci < arr.length - 1);
+                cells.forEach(cell => {
+                  const td = document.createElement(ri === 0 && hasSeparator ? 'th' : 'td');
+                  td.innerHTML = cell.trim()
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>');
+                  // Render inline math in table cells
+                  const mathParts = td.innerHTML.split(/(\$[^$]+?\$)/);
+                  if (mathParts.length > 1) {
+                    td.innerHTML = '';
+                    mathParts.forEach(part => {
+                      const m = part.match(/^\$([^$]+)\$$/);
+                      if (m) {
+                        const mathSpan = document.createElement('span');
+                        try { katex.render(m[1], mathSpan, { throwOnError: false, displayMode: false }); }
+                        catch(e) { mathSpan.textContent = m[1]; }
+                        td.appendChild(mathSpan);
+                      } else {
+                        const textNode = document.createElement('span');
+                        textNode.innerHTML = part;
+                        td.appendChild(textNode);
+                      }
+                    });
+                  }
+                  tr.appendChild(td);
+                });
+                (ri === 0 && hasSeparator ? (table.createTHead ? table.createTHead() : table) : table).appendChild(tr);
+              });
+              containerRef.current.appendChild(table);
+            }
+            continue;
+          }
+          // Non-table line
+          const span = document.createElement('span');
+          let html = lines[i]
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>');
+          if (i < lines.length - 1 || lines[i] !== '') {
+            html += '<br/>';
+          }
+          // Collapse double <br/>
+          span.innerHTML = html;
+          containerRef.current.appendChild(span);
+          i++;
+        }
       }
     });
   }, [text]);
