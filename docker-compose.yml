@@ -3,5 +3,5 @@ services:
     build: .
     container_name: quantlectures
     ports:
-      - "8081:80"
+      - "3010:80"
     restart: unless-stopped
