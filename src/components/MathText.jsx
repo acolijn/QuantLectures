@@ -24,26 +24,37 @@ export default function MathText({ text }) {
       tokens.push({ type: 'text', value: text.slice(lastIndex) });
     }
 
-    // Further split text tokens on inline math ($...$)
+    // Further split text tokens: first extract tables, then inline math
     const allTokens = [];
     tokens.forEach(token => {
       if (token.type !== 'text') {
         allTokens.push(token);
         return;
       }
-      const inlineRegex = /\$([^$]+?)\$/g;
-      let last = 0;
-      let m;
-      while ((m = inlineRegex.exec(token.value)) !== null) {
-        if (m.index > last) {
-          allTokens.push({ type: 'text', value: token.value.slice(last, m.index) });
+      // Extract markdown tables before inline math splitting
+      const tableRegex = /((?:^|\n)\|.+\|(?:\n\|.+\|)+)/g;
+      const tableParts = token.value.split(tableRegex);
+      tableParts.forEach(part => {
+        const tableLines = part.trim().split('\n').filter(l => l.trim().startsWith('|') && l.trim().endsWith('|'));
+        if (tableLines.length >= 2) {
+          allTokens.push({ type: 'table', value: tableLines });
+          return;
         }
-        allTokens.push({ type: 'inlinemath', value: m[1] });
-        last = inlineRegex.lastIndex;
-      }
-      if (last < token.value.length) {
-        allTokens.push({ type: 'text', value: token.value.slice(last) });
-      }
+        // Split non-table text on inline math ($...$)
+        const inlineRegex = /\$([^$]+?)\$/g;
+        let last = 0;
+        let m;
+        while ((m = inlineRegex.exec(part)) !== null) {
+          if (m.index > last) {
+            allTokens.push({ type: 'text', value: part.slice(last, m.index) });
+          }
+          allTokens.push({ type: 'inlinemath', value: m[1] });
+          last = inlineRegex.lastIndex;
+        }
+        if (last < part.length) {
+          allTokens.push({ type: 'text', value: part.slice(last) });
+        }
+      });
     });
 
     // Render tokens
