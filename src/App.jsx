@@ -61,6 +61,7 @@ export default function App() {
             setSidebarOpen(false);
           }}
           progress={progress}
+          onResetProgress={() => setProgress({})}
         />
       </div>
       {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}

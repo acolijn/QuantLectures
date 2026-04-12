@@ -161,9 +161,30 @@ body {
   border-top: 1px solid rgba(255,255,255,0.08);
 }
 
+.progress-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
 .progress-label {
   font-size: 0.75rem;
-  margin-bottom: 6px;
+}
+
+.reset-progress-btn {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.5);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.reset-progress-btn:hover {
+  color: #ff6b6b;
 }
 
 .progress-bar-track {

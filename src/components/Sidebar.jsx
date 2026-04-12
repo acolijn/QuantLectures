@@ -1,6 +1,6 @@
 import MathText from './MathText';
 
-export default function Sidebar({ chapters, activeChapter, onSelectChapter, progress }) {
+export default function Sidebar({ chapters, activeChapter, onSelectChapter, progress, onResetProgress }) {
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
@@ -35,8 +35,23 @@ export default function Sidebar({ chapters, activeChapter, onSelectChapter, prog
       </nav>
       <div className="sidebar-footer">
         <div className="overall-progress">
-          <div className="progress-label">
-            Voortgang: {Object.values(progress).filter(p => p.quizCompleted).length}/{chapters.length}
+          <div className="progress-header">
+            <span className="progress-label">
+              Voortgang: {Object.values(progress).filter(p => p.quizCompleted).length}/{chapters.length}
+            </span>
+            {Object.keys(progress).length > 0 && (
+              <button
+                className="reset-progress-btn"
+                onClick={() => {
+                  if (window.confirm('Weet je zeker dat je alle voortgang wilt resetten?')) {
+                    onResetProgress();
+                  }
+                }}
+                title="Reset voortgang"
+              >
+                ↺
+              </button>
+            )}
           </div>
           <div className="progress-bar-track">
             <div
