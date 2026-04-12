@@ -8,8 +8,8 @@ import chapter7 from './chapter7';
 import chapter8 from './chapter8';
 import chapter9 from './chapter9';
 import chapter10 from './chapter10';
-import chapter11 from './chapter11';
+// import chapter11 from './chapter11';
 
-const chapters = [chapter1, chapter2, chapter3, chapter4, chapter5, chapter6, chapter7, chapter8, chapter9, chapter10, chapter11];
+const chapters = [chapter1, chapter2, chapter3, chapter4, chapter5, chapter6, chapter7, chapter8, chapter9, chapter10/*, chapter11*/];
 
 export default chapters;
