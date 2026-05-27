@@ -1,79 +1,124 @@
 const chapter11 = {
-    id: 11,
-    title: "Quantumtoestanden en hun Betekenis",
-    subtitle: "Qubits, verstrengeling, Bell toestanden, teleportatie, neutrino-oscillaties",
-    formulas: [
-      { name: "Qubit", latex: "|\\psi\\rangle = \\alpha|1\\rangle + \\beta|0\\rangle, \\quad |\\alpha|^2 + |\\beta|^2 = 1" },
-      { name: "Tensorproduct", latex: "|\\psi_{AB}\\rangle = |\\psi_A\\rangle \\otimes |\\psi_B\\rangle" },
-      { name: "Bell toestanden", latex: "\\Phi^{(\\pm)} = \\frac{1}{\\sqrt{2}}(|11\\rangle \\pm |00\\rangle)" },
-      { name: "Pauli-matrices", latex: "\\hat{\\sigma}_x = \\begin{pmatrix}0&1\\\\1&0\\end{pmatrix}, \\; \\hat{\\sigma}_y = \\begin{pmatrix}0&-i\\\\i&0\\end{pmatrix}, \\; \\hat{\\sigma}_z = \\begin{pmatrix}1&0\\\\0&-1\\end{pmatrix}" },
-      { name: "Neutrino-oscillaties", latex: "P(\\nu_\\mu \\to \\nu_e) = \\sin^2(2\\theta)\\sin^2\\!\\left(\\frac{(E_1-E_2)t}{2\\hbar}\\right)" },
-    ],
-    concepts: [
-      {
-        title: "Qubits",
-        content: "Een qubit is een twee-toestandssysteem met toestand $|\\psi\\rangle = \\alpha|1\\rangle + \\beta|0\\rangle$. Voorbeelden zijn de spin van een elektron (up/down) of de polarisatie van een foton."
-      },
-      {
-        title: "Verstrengeling (Entanglement)",
-        content: "Twee qubits zijn verstrengeld als hun gezamenlijke toestand NIET als een tensorproduct geschreven kan worden. Een meting aan één qubit beïnvloedt instantaan de toestand van de andere, ongeacht de afstand. Dit schendt echter niet de speciale relativiteitstheorie."
-      },
-      {
-        title: "Quantumteleportatie",
-        content: "Met behulp van een verstrengeld paar en twee bits klassieke communicatie kan de toestand van een qubit van Alice naar Charlie worden geteleporteerd. De originele qubit wordt vernietigd en exact gereconstrueerd."
-      },
-      {
-        title: "Neutrino-oscillaties",
-        content: "Neutrino's ($\\nu_e, \\nu_\\mu, \\nu_\\tau$) zijn geen eigentoestanden van de Hamiltoniaan. Een geproduceerde $\\nu_e$ kan na verloop van tijd als $\\nu_\\mu$ worden waargenomen. Dit bewijst dat neutrino's massa hebben."
-      },
-    ],
-    quiz: [
-      {
-        question: "Een toestand $|\\psi\\rangle = \\frac{1}{\\sqrt{2}}(|11\\rangle + |00\\rangle)$ is:",
-        options: [
-          "Scheidbaar (separabel)",
-          "Verstrengeld",
-          "Niet genormeerd",
-          "Een eigentoestand van $\\hat{\\sigma}_z$"
-        ],
-        correct: 1,
-        explanation: "Deze toestand kan niet geschreven worden als $|a\\rangle \\otimes |b\\rangle$, dus is verstrengeld."
-      },
-      {
-        question: "Bij quantumteleportatie, hoeveel bits klassieke informatie moet Alice naar Charlie sturen?",
-        options: ["$0$", "$1$", "$2$", "$3$"],
-        correct: 2,
-        explanation: "Alice stuurt het resultaat van haar Bell-meting: 4 mogelijke uitkomsten = 2 bits."
-      },
-      {
-        question: "Neutrino-oscillaties bewijzen dat:",
-        options: [
-          "Neutrino's sneller dan het licht reizen",
-          "Neutrino's massa hebben",
-          "Er meer dan drie soorten neutrino's bestaan",
-          "De speciale relativiteitstheorie onjuist is"
-        ],
-        correct: 1,
-        explanation: "Neutrino-oscillaties zijn alleen mogelijk als neutrino's massa hebben, zodat de energie-eigenwaarden verschillen."
-      },
-      {
-        question: "De EPR-paradox en Bell-experimenten tonen aan dat:",
-        options: [
-          "De quantummechanica incompleet is",
-          "Verborgen variabelen de quantummechanica verklaren",
-          "Lokaal-realistische theorieën niet kloppen",
-          "Informatie sneller dan het licht kan reizen"
-        ],
-        correct: 2,
-        explanation: "Bell-experimenten hebben de Bell-ongelijkheden geschonden, wat lokale verborgen-variabele theorieën uitsluit."
-      },
-      {
-        question: "De eigenwaarden van de Pauli-matrix $\\hat{\\sigma}_z$ zijn:",
-        options: ["$0$ en $1$", "$+1$ en $-1$", "$+i$ en $-i$", "$+\\hbar/2$ en $-\\hbar/2$"],
-        correct: 1,
-        explanation: "$\\hat{\\sigma}_z = \\begin{pmatrix}1&0\\\\0&-1\\end{pmatrix}$ heeft eigenwaarden $+1$ en $-1$."
-      },
-    ],
+  "id": 11,
+  "title": "Quantum Entanglement",
+  "subtitle": "Basisconcepten van quantumverstrengeling, superpositie, metingen en niet-lokale correlaties op eerstejaars natuurkunde niveau.",
+  "formulas": [
+    {
+      "latex": "|\\psi\\rangle = \\alpha |0\\rangle + \\beta |1\\rangle",
+      "name": "Toestand van een qubit"
+    },
+    {
+      "latex": "|\\alpha|^{2} + |\\beta|^{2} = 1",
+      "name": "Normalisatievoorwaarde"
+    },
+    {
+      "latex": "|\\Phi^{+}\\rangle = \\frac{1}{\\sqrt{2}}\\left(|00\\rangle + |11\\rangle\\right)",
+      "name": "Bell-toestand"
+    },
+    {
+      "latex": "|\\Psi^{-}\\rangle = \\frac{1}{\\sqrt{2}}\\left(|01\\rangle - |10\\rangle\\right)",
+      "name": "Singlet-toestand"
+    },
+    {
+      "latex": "|\\psi\\rangle = |a\\rangle \\otimes |b\\rangle",
+      "name": "Tensorproduct"
+    },
+    {
+      "latex": "P(i) = |\\langle i|\\psi\\rangle|^{2}",
+      "name": "Meetkans"
+    },
+    {
+      "latex": "\\langle \\psi|\\hat{A}|\\psi\\rangle",
+      "name": "Verwachtingswaarde"
+    },
+    {
+      "latex": "i\\hbar \\frac{\\partial}{\\partial t}|\\psi\\rangle = \\hat{H}|\\psi\\rangle",
+      "name": "Schrödingervergelijking"
+    }
+  ],
+  "concepts": [
+    {
+      "content": "Quantum entanglement, of quantumverstrengeling, is een fenomeen waarbij twee of meer quantumdeeltjes een gezamenlijke toestand delen die niet opgesplitst kan worden in afzonderlijke toestanden. Een bekend voorbeeld is de Bell-toestand $$|\\Phi^{+}\\rangle = \\frac{1}{\\sqrt{2}}\\left(|00\\rangle + |11\\rangle\\right).$$ Wanneer een meting wordt uitgevoerd aan één van de deeltjes, ligt de toestand van het andere deeltje onmiddellijk vast, ongeacht de afstand tussen beide deeltjes.",
+      "title": "Wat is quantum entanglement?"
+    },
+    {
+      "content": "In de quantummechanica kan een systeem zich in meerdere toestanden tegelijk bevinden. Een qubit wordt beschreven door $$|\\psi\\rangle = \\alpha |0\\rangle + \\beta |1\\rangle.$$ De complexe coëfficiënten $\\alpha$ en $\\beta$ bepalen de kans om respectievelijk $|0\\rangle$ of $|1\\rangle$ te meten. De totale kans moet gelijk zijn aan $1$, dus geldt $$|\\alpha|^{2} + |\\beta|^{2} = 1.$$ Superpositie vormt de basis voor quantumverstrengeling.",
+      "title": "Superpositie van toestanden"
+    },
+    {
+      "content": "Wanneer twee quantumsystemen gecombineerd worden, gebruiken we een tensorproduct om de gezamenlijke toestand te beschrijven: $$|\\psi\\rangle = |a\\rangle \\otimes |b\\rangle.$$ Sommige samengestelde toestanden kunnen niet geschreven worden als een product van afzonderlijke toestanden. Zulke toestanden noemen we verstrengeld. In dat geval is de informatie verdeeld over het volledige systeem.",
+      "title": "Tensorproducten en samengestelde systemen"
+    },
+    {
+      "content": "Een quantumtoestand bevat kansen voor verschillende meetuitkomsten. De kans om toestand $|i\\rangle$ te meten wordt gegeven door $$P(i) = |\\langle i|\\psi\\rangle|^{2}.$$ Wanneer een meting wordt uitgevoerd, stort de golffunctie in naar één specifieke toestand. Bij verstrengelde systemen zijn meetresultaten sterk gecorreleerd.",
+      "title": "Metingen in de quantummechanica"
+    },
+    {
+      "content": "Einstein, Podolsky en Rosen stelden in 1935 de EPR-paradox voor om te laten zien dat quantummechanica volgens hen onvolledig was. Einstein vond het vreemd dat verstrengelde systemen directe correlaties vertonen over grote afstanden. Later bewees John Bell dat lokale verborgen variabelen niet alle voorspellingen van quantummechanica kunnen verklaren. Experimenten bevestigen de voorspellingen van quantummechanica.",
+      "title": "EPR-paradox en Bell"
+    },
+    {
+      "content": "Bell-toestanden zijn maximaal verstrengelde toestanden van twee qubits. Een voorbeeld is $$|\\Psi^{-}\\rangle = \\frac{1}{\\sqrt{2}}\\left(|01\\rangle - |10\\rangle\\right).$$ Deze toestanden spelen een belangrijke rol in quantumcommunicatie, quantumcryptografie en quantumcomputers.",
+      "title": "Bell-toestanden"
+    },
+    {
+      "content": "Quantumverstrengeling wordt gebruikt in moderne technologieën zoals quantumcomputers en quantumcryptografie. In quantumcomputers kunnen verstrengelde qubits parallel informatie verwerken. In quantumcryptografie maakt entanglement veilige communicatie mogelijk, omdat afluisteren de quantumtoestand verandert.",
+      "title": "Toepassingen van entanglement"
+    }
+  ],
+  "exercises": [],
+  "quiz": [
+    {
+      "answer": 1,
+      "options": [
+        "Twee deeltjes met volledig onafhankelijke toestanden",
+        "Een gezamenlijke quantumtoestand van meerdere deeltjes",
+        "Een klassiek mechanisch systeem",
+        "Een deeltje zonder energie"
+      ],
+      "question": "Wat beschrijft quantum entanglement het beste?"
+    },
+    {
+      "answer": 1,
+      "options": [
+        "E = mc^{2}",
+        "|\\psi\\rangle = \\alpha |0\\rangle + \\beta |1\\rangle",
+        "F = ma",
+        "pV = nRT"
+      ],
+      "question": "Welke vergelijking beschrijft een qubit in superpositie?"
+    },
+    {
+      "answer": 0,
+      "options": [
+        "De golffunctie stort in naar één toestand",
+        "De massa van het deeltje verdubbelt",
+        "Het deeltje verdwijnt",
+        "De energie wordt altijd nul"
+      ],
+      "question": "Wat gebeurt er bij een quantummeting?"
+    },
+    {
+      "answer": 2,
+      "options": [
+        "|0\\rangle",
+        "|1\\rangle",
+        "|\\Phi^{+}\\rangle = \\frac{1}{\\sqrt{2}}\\left(|00\\rangle + |11\\rangle\\right)",
+        "|a\\rangle \\otimes |b\\rangle"
+      ],
+      "question": "Welke toestand is een Bell-toestand?"
+    },
+    {
+      "answer": 1,
+      "options": [
+        "Omdat het zwaartekracht uitschakelt",
+        "Omdat verstrengelde qubits gezamenlijk informatie verwerken",
+        "Omdat klassieke bits sneller worden",
+        "Omdat het temperatuur verlaagt"
+      ],
+      "question": "Waarom is quantum entanglement belangrijk voor quantumcomputers?"
+    }
+  ]
 };
 
 export default chapter11;

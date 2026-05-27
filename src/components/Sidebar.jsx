@@ -1,6 +1,8 @@
 import MathText from './MathText';
+import { useAuth } from '../contexts/AuthContext';
 
-export default function Sidebar({ chapters, activeChapter, onSelectChapter, progress, onResetProgress }) {
+export default function Sidebar({ chapters, activeChapter, onSelectChapter, progress, onResetProgress, onLoginClick }) {
+  const { user, isTeacher, signOut } = useAuth();
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
@@ -34,6 +36,21 @@ export default function Sidebar({ chapters, activeChapter, onSelectChapter, prog
         })}
       </nav>
       <div className="sidebar-footer">
+        {/* Auth section */}
+        <div className="sidebar-auth">
+          {user ? (
+            <div className="sidebar-auth-user">
+              <span className="sidebar-auth-role">{isTeacher ? '🎓 Docent' : '📚 Student'}</span>
+              <span className="sidebar-auth-email">{user.email}</span>
+              <button className="sidebar-auth-btn" onClick={signOut}>Uitloggen</button>
+            </div>
+          ) : (
+            <button className="sidebar-auth-btn sidebar-auth-btn--login" onClick={onLoginClick}>
+              Inloggen
+            </button>
+          )}
+        </div>
+
         <div className="overall-progress">
           <div className="progress-header">
             <span className="progress-label">

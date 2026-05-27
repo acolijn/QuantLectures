@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import ChapterView from './components/ChapterView';
-import chapters from './data/chapters';
+import ChapterEditor from './components/admin/ChapterEditor';
+import ImportChapter from './components/admin/ImportChapter';
+import Login from './components/Login';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { fetchChapters, createChapter, deleteChapter } from './lib/api';
 
 const STORAGE_KEY = 'qm1-progress';
 
@@ -18,10 +22,23 @@ function saveProgress(progress) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
 }
 
-export default function App() {
+function AppContent() {
+  const { isTeacher } = useAuth();
   const [activeChapter, setActiveChapter] = useState(1);
   const [progress, setProgress] = useState(loadProgress);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [chapters, setChapters] = useState([]);
+  const [loadingChapters, setLoadingChapters] = useState(true);
+  const [editMode, setEditMode] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
+  const [showImport, setShowImport] = useState(false);
+
+  useEffect(() => {
+    fetchChapters()
+      .then(setChapters)
+      .catch(err => console.error('Failed to load chapters:', err))
+      .finally(() => setLoadingChapters(false));
+  }, []);
 
   useEffect(() => {
     saveProgress(progress);
@@ -41,10 +58,58 @@ export default function App() {
     });
   }
 
+  function handleChapterSaved(updatedChapter) {
+    setChapters(prev => prev.map(c => c.id === updatedChapter.id ? updatedChapter : c));
+    setEditMode(false);
+  }
+
+  async function handleNewChapter() {
+    const nextId = chapters.length > 0 ? Math.max(...chapters.map(c => c.id)) + 1 : 1;
+    const newChapter = await createChapter(nextId);
+    setChapters(prev => [...prev, newChapter]);
+    setActiveChapter(newChapter.id);
+    setEditMode(true);
+  }
+
+  async function handleDeleteChapter() {
+    if (!chapter) return;
+    if (!window.confirm(`Hoofdstuk ${chapter.id} "${chapter.title}" verwijderen? Dit kan niet ongedaan worden gemaakt.`)) return;
+    await deleteChapter(chapter.id);
+    const remaining = chapters.filter(c => c.id !== chapter.id);
+    setChapters(remaining);
+    setActiveChapter(remaining.length > 0 ? remaining[0].id : null);
+  }
+
+  function handleImported(savedChapter) {
+    setChapters(prev => {
+      const exists = prev.some(c => c.id === savedChapter.id);
+      return exists
+        ? prev.map(c => c.id === savedChapter.id ? savedChapter : c)
+        : [...prev, savedChapter].sort((a, b) => a.id - b.id);
+    });
+    setActiveChapter(savedChapter.id);
+    setShowImport(false);
+  }
+
+  function handleSelectChapter(id) {
+    setActiveChapter(id);
+    setEditMode(false);
+    setSidebarOpen(false);
+  }
+
   const chapter = chapters.find(c => c.id === activeChapter);
 
   return (
     <div className="app">
+      {showLogin && <Login onClose={() => setShowLogin(false)} />}
+      {showImport && (
+        <ImportChapter
+          existingChapters={chapters}
+          onClose={() => setShowImport(false)}
+          onImported={handleImported}
+        />
+      )}
+
       <button
         className="mobile-menu-btn"
         onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -56,23 +121,58 @@ export default function App() {
         <Sidebar
           chapters={chapters}
           activeChapter={activeChapter}
-          onSelectChapter={(id) => {
-            setActiveChapter(id);
-            setSidebarOpen(false);
-          }}
+          onSelectChapter={handleSelectChapter}
           progress={progress}
           onResetProgress={() => setProgress({})}
+          onLoginClick={() => setShowLogin(true)}
         />
       </div>
       {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
-      {chapter && (
-        <ChapterView
-          key={chapter.id}
-          chapter={chapter}
-          progress={progress[chapter.id]}
-          onProgressUpdate={handleProgressUpdate}
-        />
-      )}
+
+      {loadingChapters ? (
+        <div className="chapter-loading">Laden…</div>
+      ) : chapter ? (
+        editMode && isTeacher ? (
+          <ChapterEditor
+            chapter={chapter}
+            onClose={() => setEditMode(false)}
+            onSaved={handleChapterSaved}
+          />
+        ) : (
+          <div className="chapter-view-wrapper">
+            {isTeacher && (
+              <div className="teacher-toolbar">
+                <button className="btn-edit-chapter" onClick={() => setEditMode(true)}>
+                  ✏️ Hoofdstuk bewerken
+                </button>
+                <button className="btn-new-chapter" onClick={handleNewChapter}>
+                  ➕ Nieuw hoofdstuk
+                </button>
+                <button className="btn-import-chapter" onClick={() => setShowImport(true)}>
+                  ⬆️ Importeer via Claude
+                </button>
+                <button className="btn-delete-chapter" onClick={handleDeleteChapter}>
+                  🗑️ Verwijder hoofdstuk
+                </button>
+              </div>
+            )}
+            <ChapterView
+              key={chapter.id}
+              chapter={chapter}
+              progress={progress[chapter.id]}
+              onProgressUpdate={handleProgressUpdate}
+            />
+          </div>
+        )
+      ) : null}
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }

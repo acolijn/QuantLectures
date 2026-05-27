@@ -1,7 +1,21 @@
 services:
   quantlectures:
-    build: .
+    build:
+      context: .
+      args:
+        VITE_POCKETBASE_URL: ${VITE_POCKETBASE_URL:-http://localhost:8090}
     container_name: quantlectures
     ports:
       - "3010:80"
+    restart: unless-stopped
+    depends_on:
+      - pocketbase
+
+  pocketbase:
+    image: ghcr.io/muchobien/pocketbase:latest
+    container_name: pocketbase
+    ports:
+      - "8090:8090"
+    volumes:
+      - ./pb_data:/pb/pb_data
     restart: unless-stopped

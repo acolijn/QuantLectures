@@ -9,7 +9,7 @@ export default function Quiz({ questions, chapterId, onComplete, bestScore }) {
   const [finished, setFinished] = useState(false);
 
   const question = questions[currentQ];
-  const score = answers.filter((a, i) => a === questions[i].correct).length;
+  const score = answers.filter((a, i) => a === (questions[i].correct ?? questions[i].answer)).length;
   const percentage = (score / questions.length) * 100;
 
   function handleSelect(optionIndex) {
@@ -81,8 +81,9 @@ export default function Quiz({ questions, chapterId, onComplete, bestScore }) {
       <div className="quiz-options">
         {question.options.map((option, i) => {
           let className = 'quiz-option';
+          const correctIdx = question.correct ?? question.answer;
           if (showExplanation) {
-            if (i === question.correct) className += ' correct';
+            if (i === correctIdx) className += ' correct';
             else if (i === selected) className += ' incorrect';
             else className += ' dimmed';
           } else if (i === selected) {
@@ -103,7 +104,7 @@ export default function Quiz({ questions, chapterId, onComplete, bestScore }) {
       </div>
 
       {showExplanation && (
-        <div className={`quiz-explanation ${selected === question.correct ? 'correct' : 'incorrect'}`}>
+        <div className={`quiz-explanation ${selected === (question.correct ?? question.answer) ? 'correct' : 'incorrect'}`}>
           <div className="explanation-header">
             {selected === question.correct ? '✓ Correct!' : '✗ Helaas, dat is niet juist.'}
           </div>
