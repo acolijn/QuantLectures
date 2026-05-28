@@ -19,6 +19,7 @@ function AppContent() {
     loadingCourses,
     setActiveCourseId,
     createNewCourse,
+    updateExistingCourse,
   } = useCourses(isTeacher);
   const {
     chapters,
@@ -110,6 +111,11 @@ function AppContent() {
     setSidebarOpen(false);
   }
 
+  async function handleUpdateCourse(updates) {
+    if (!activeCourseId) return;
+    await updateExistingCourse(activeCourseId, updates);
+  }
+
   return (
     <div className="app">
       <AppOverlays
@@ -136,6 +142,7 @@ function AppContent() {
           activeCourseId={activeCourseId}
           onSelectCourse={handleSelectCourse}
           onCreateCourse={handleCreateCourse}
+          onUpdateCourse={handleUpdateCourse}
           chapters={chapters}
           activeChapter={activeChapter}
           onSelectChapter={handleSelectChapter}

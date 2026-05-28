@@ -1,6 +1,17 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import MathText from './MathText';
 import { useAuth } from '../contexts/AuthContext';
+
+const LANGUAGE_OPTIONS = [
+  { value: 'nl', label: 'Nederlands (NL)' },
+  { value: 'en', label: 'English (EN)' },
+  { value: 'de', label: 'Deutsch (DE)' },
+  { value: 'fr', label: 'Français (FR)' },
+  { value: 'es', label: 'Español (ES)' },
+  { value: 'it', label: 'Italiano (IT)' },
+  { value: 'pt', label: 'Português (PT)' },
+  { value: 'pl', label: 'Polski (PL)' },
+];
 
 export default function Sidebar({
   course,
@@ -8,6 +19,7 @@ export default function Sidebar({
   activeCourseId,
   onSelectCourse,
   onCreateCourse,
+  onUpdateCourse,
   chapters,
   activeChapter,
   onSelectChapter,
@@ -19,6 +31,40 @@ export default function Sidebar({
   const { user, isTeacher, signOut } = useAuth();
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [overIndex, setOverIndex]       = useState(null);
+  const [showCourseSettings, setShowCourseSettings] = useState(false);
+  const [savingCourse, setSavingCourse] = useState(false);
+  const [saveMessage, setSaveMessage] = useState('');
+  const [courseForm, setCourseForm] = useState({
+    name: '',
+    subtitle: '',
+    language: 'nl',
+    published: false,
+    subjectPrompt: '',
+  });
+
+  useEffect(() => {
+    if (!course) {
+      setCourseForm({
+        name: '',
+        subtitle: '',
+        language: 'nl',
+        published: false,
+        subjectPrompt: '',
+      });
+      setShowCourseSettings(false);
+      setSaveMessage('');
+      return;
+    }
+
+    setCourseForm({
+      name: course.name ?? '',
+      subtitle: course.subtitle ?? '',
+      language: course.language ?? 'nl',
+      published: !!course.published,
+      subjectPrompt: course.subjectPrompt ?? '',
+    });
+    setSaveMessage('');
+  }, [course]);
 
   function handleDragStart(e, index) {
     setDraggedIndex(index);
@@ -49,6 +95,29 @@ export default function Sidebar({
   function handleDragEnd() {
     setDraggedIndex(null);
     setOverIndex(null);
+  }
+
+  async function handleSaveCourseSettings(e) {
+    e.preventDefault();
+    if (!course || !onUpdateCourse) return;
+
+    setSavingCourse(true);
+    setSaveMessage('');
+    try {
+      await onUpdateCourse({
+        name: courseForm.name.trim() || course.name,
+        subtitle: courseForm.subtitle.trim(),
+        language: courseForm.language,
+        published: courseForm.published,
+        subjectPrompt: courseForm.subjectPrompt.trim(),
+      });
+      setSaveMessage('Opgeslagen');
+    } catch (err) {
+      console.error('Saving course settings failed:', err);
+      setSaveMessage('Opslaan mislukt');
+    } finally {
+      setSavingCourse(false);
+    }
   }
 
   return (
@@ -112,6 +181,83 @@ export default function Sidebar({
             <button className="sidebar-auth-btn sidebar-course-create" onClick={onCreateCourse}>
               + Nieuwe cursus
             </button>
+            {course && (
+              <>
+                <button
+                  className="sidebar-auth-btn sidebar-course-settings-toggle"
+                  onClick={() => setShowCourseSettings(prev => !prev)}
+                >
+                  {showCourseSettings ? '− Sluit cursusinstellingen' : '⚙️ Cursusinstellingen'}
+                </button>
+
+                {showCourseSettings && (
+                  <form className="sidebar-course-settings" onSubmit={handleSaveCourseSettings}>
+                    <label className="sidebar-course-label">
+                      Naam
+                      <input
+                        className="sidebar-course-input"
+                        type="text"
+                        value={courseForm.name}
+                        onChange={e => setCourseForm(prev => ({ ...prev, name: e.target.value }))}
+                      />
+                    </label>
+
+                    <label className="sidebar-course-label">
+                      Subtitel
+                      <input
+                        className="sidebar-course-input"
+                        type="text"
+                        value={courseForm.subtitle}
+                        onChange={e => setCourseForm(prev => ({ ...prev, subtitle: e.target.value }))}
+                      />
+                    </label>
+
+                    <label className="sidebar-course-label">
+                      Taal
+                      <select
+                        className="sidebar-course-select"
+                        value={courseForm.language}
+                        onChange={e => setCourseForm(prev => ({ ...prev, language: e.target.value }))}
+                      >
+                        {LANGUAGE_OPTIONS.map(option => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="sidebar-course-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={courseForm.published}
+                        onChange={e => setCourseForm(prev => ({ ...prev, published: e.target.checked }))}
+                      />
+                      Gepubliceerd (zichtbaar voor studenten)
+                    </label>
+
+                    <label className="sidebar-course-label">
+                      Subject prompt
+                      <textarea
+                        className="sidebar-course-textarea"
+                        rows={5}
+                        placeholder="Bijv. Write in English. The subject is classical mechanics..."
+                        value={courseForm.subjectPrompt}
+                        onChange={e => setCourseForm(prev => ({ ...prev, subjectPrompt: e.target.value }))}
+                      />
+                    </label>
+
+                    <p className="sidebar-course-hint">
+                      De vaste JSON- en formatteringsregels worden automatisch toegevoegd aan de prompt.
+                    </p>
+
+                    <button className="sidebar-auth-btn sidebar-course-save" type="submit" disabled={savingCourse}>
+                      {savingCourse ? 'Opslaan…' : 'Opslaan'}
+                    </button>
+
+                    {saveMessage && <p className="sidebar-course-save-message">{saveMessage}</p>}
+                  </form>
+                )}
+              </>
+            )}
           </div>
         )}
 
