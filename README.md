@@ -30,9 +30,6 @@ QuantLectures/
 │   │   └── Sidebar.jsx
 │   ├── contexts/
 │   │   └── AuthContext.jsx         # PocketBase auth (teacher / student / guest)
-│   ├── data/
-│   │   ├── chapter1.js … chapter11.js  # Local seed files (source of truth for seeding)
-│   │   └── chapters.js             # Re-exports all chapters for the seed script
 │   ├── lib/
 │   │   ├── api.js                  # PocketBase CRUD helpers
 │   │   └── pocketbase.js           # PocketBase singleton
@@ -40,8 +37,7 @@ QuantLectures/
 │   └── App.css
 ├── scripts/
 │   ├── setup-pocketbase.js         # Create collections + add role field to users
-│   ├── seed.js                     # Write chapter JS files → PocketBase
-│   └── export-chapter.js           # Pull chapter from PocketBase → local JS file
+│   └── (no seed/export scripts; content is managed in-app)
 ├── docker-compose.yml
 ├── Dockerfile
 ├── .env                            # Not committed — see below
@@ -61,7 +57,7 @@ VITE_POCKETBASE_URL=http://localhost:8090
 # URL the Node scripts use to reach PocketBase (server-side only)
 POCKETBASE_URL=http://localhost:8090
 
-# PocketBase superuser credentials (for setup / seed / export scripts)
+# PocketBase superuser credentials (for setup script)
 PB_ADMIN_EMAIL=admin@example.com
 PB_ADMIN_PASSWORD=yourpassword
 ```
@@ -97,15 +93,7 @@ npm run setup
 
 This creates the `chapters` collection and adds a `role` select field (`student` / `teacher`) to the built-in `users` collection.
 
-### 4. Seed all chapters from local JS files
-
-```bash
-npm run seed
-```
-
-Safe to run multiple times — it upserts by `chapter_number`.
-
-### 5. Start the dev server
+### 4. Start the dev server
 
 ```bash
 npm run dev
@@ -123,30 +111,10 @@ App is at **http://localhost:5173/quantlectures/**.
 | `npm run build` | Production build to `dist/` |
 | `npm run preview` | Preview the production build locally |
 | `npm run setup` | Create PocketBase collections and schema |
-| `npm run seed` | Seed **all** chapters from `src/data/chapter*.js` → PocketBase |
-| `npm run seed <N>` | Seed only chapter **N** (e.g. `npm run seed 3`) |
-| `npm run export-chapter <N>` | Pull chapter **N** from PocketBase → overwrite `src/data/chapter<N>.js` |
 
 ---
 
 ## Database Commands
-
-### Seed all chapters
-```bash
-npm run seed
-```
-
-### Seed a single chapter
-```bash
-npm run seed 3
-```
-
-### Export a chapter from PocketBase to a local JS file
-Useful before editing with Claude, or to inspect the stored data.
-```bash
-npm run export-chapter 11
-# → writes src/data/chapter11.js
-```
 
 ### Inspect a chapter directly via the PocketBase API
 ```bash
@@ -160,6 +128,9 @@ curl -s "http://localhost:8090/api/collections/chapters/records?filter=chapter_n
   | python3 -m json.tool > /tmp/chapter11.json
 ```
 
+### Export a chapter from the web UI
+Teachers can export the currently open chapter as JSON directly from the toolbar via **⬇️ Exporteer**.
+
 ---
 
 ## User Roles
@@ -168,7 +139,7 @@ curl -s "http://localhost:8090/api/collections/chapters/records?filter=chapter_n
 |---|---|
 | **Guest** (not logged in) | Read all chapters, concepts, exercises, quiz |
 | **Student** | Same as guest + login |
-| **Teacher** | All of the above + teacher toolbar (edit, new chapter, import via Claude, delete) |
+| **Teacher** | All of the above + teacher toolbar (edit, new chapter, import, export, delete) |
 
 Assign the `teacher` role to a user in the PocketBase admin UI:
 **http://localhost:8090/_/** → Collections → users → edit a record → set `role` = `teacher`.
@@ -180,16 +151,10 @@ Assign the `teacher` role to a user in the PocketBase admin UI:
 ### Option A: Teacher web UI (recommended)
 
 1. Log in as a teacher
-2. Click **⬆️ Importeer via Claude** in the toolbar
+2. Click **⬆️ Importeer** in the toolbar
 3. Copy the generated prompt and paste it into Claude along with your lecture notes
 4. Copy Claude's JSON response and paste it into the import modal
 5. Set the chapter number and click **Importeer**
-
-### Option B: Manual seed file
-
-1. Create `src/data/chapter<N>.js` following the structure of an existing chapter
-2. Import and add it to `src/data/chapters.js`
-3. Run `npm run seed <N>`
 
 ---
 
@@ -247,14 +212,12 @@ docker compose up -d
 - PocketBase at **http://localhost:8090**
 - PocketBase data persisted in `./pb_data/` (not committed to git)
 
-After deploying, run setup and seed once:
+After deploying, run setup once:
 ```bash
 POCKETBASE_URL=http://localhost:8090 \
 PB_ADMIN_EMAIL=admin@example.com \
 PB_ADMIN_PASSWORD=yourpassword \
 npm run setup
-
-npm run seed
 ```
 
 ---
@@ -296,13 +259,12 @@ docker compose up -d --build
 
 The `--build` flag rebuilds the React app with the correct `VITE_POCKETBASE_URL` from `.env`.
 
-### 4. First-time: create schema and seed chapters
+### 4. First-time: create schema
 
 Run these once after the containers are up:
 
 ```bash
 npm run setup
-npm run seed
 ```
 
 Or, if Node is not installed on the server, run the scripts inside the pocketbase container or from a machine that has network access to the server's PocketBase port with the correct `.env`.

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { updateChapter } from '../../lib/api';
 import { MathBlock } from '../MathText';
 
-export default function ChapterEditor({ chapter, onClose, onSaved }) {
+export default function ChapterEditor({ chapter, courseId, onClose, onSaved }) {
   const [title, setTitle] = useState(chapter.title);
   const [subtitle, setSubtitle] = useState(chapter.subtitle);
   const [concepts, setConcepts] = useState(chapter.concepts ?? []);
@@ -16,7 +16,7 @@ export default function ChapterEditor({ chapter, onClose, onSaved }) {
     setSaving(true);
     setError(null);
     try {
-      const updated = await updateChapter(chapter.id, { title, subtitle, concepts, formulas, quiz });
+      const updated = await updateChapter(chapter.id, { title, subtitle, concepts, formulas, quiz }, courseId);
       onSaved(updated);
     } catch (err) {
       setError(err.message);

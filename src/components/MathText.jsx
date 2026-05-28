@@ -1,11 +1,23 @@
 import { useEffect, useRef } from 'react';
 import katex from 'katex';
 
+function decodeEscapedUnicode(input) {
+  if (typeof input !== 'string') return '';
+  return input.replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => {
+    try {
+      return String.fromCharCode(parseInt(hex, 16));
+    } catch {
+      return `\\u${hex}`;
+    }
+  });
+}
+
 export default function MathText({ text }) {
   const containerRef = useRef(null);
 
   useEffect(() => {
     if (!containerRef.current || !text) return;
+    const normalizedText = decodeEscapedUnicode(text);
 
     // Split on display math ($$...$$) first, then inline math ($...$)
     const tokens = [];
@@ -13,15 +25,15 @@ export default function MathText({ text }) {
     let lastIndex = 0;
     let match;
 
-    while ((match = displayRegex.exec(text)) !== null) {
+    while ((match = displayRegex.exec(normalizedText)) !== null) {
       if (match.index > lastIndex) {
-        tokens.push({ type: 'text', value: text.slice(lastIndex, match.index) });
+        tokens.push({ type: 'text', value: normalizedText.slice(lastIndex, match.index) });
       }
       tokens.push({ type: 'displaymath', value: match[1] });
       lastIndex = displayRegex.lastIndex;
     }
-    if (lastIndex < text.length) {
-      tokens.push({ type: 'text', value: text.slice(lastIndex) });
+    if (lastIndex < normalizedText.length) {
+      tokens.push({ type: 'text', value: normalizedText.slice(lastIndex) });
     }
 
     // Further split text tokens: first extract tables, then inline math

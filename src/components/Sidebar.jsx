@@ -2,7 +2,20 @@ import { useState } from 'react';
 import MathText from './MathText';
 import { useAuth } from '../contexts/AuthContext';
 
-export default function Sidebar({ chapters, activeChapter, onSelectChapter, progress, onResetProgress, onLoginClick, onReorderChapters }) {
+export default function Sidebar({
+  course,
+  courses,
+  activeCourseId,
+  onSelectCourse,
+  onCreateCourse,
+  chapters,
+  activeChapter,
+  onSelectChapter,
+  progress,
+  onResetProgress,
+  onLoginClick,
+  onReorderChapters,
+}) {
   const { user, isTeacher, signOut } = useAuth();
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [overIndex, setOverIndex]       = useState(null);
@@ -28,7 +41,7 @@ export default function Sidebar({ chapters, activeChapter, onSelectChapter, prog
     const newOrder = [...chapters];
     const [moved] = newOrder.splice(draggedIndex, 1);
     newOrder.splice(index, 0, moved);
-    onReorderChapters(newOrder);
+    onReorderChapters?.(newOrder);
     setDraggedIndex(null);
     setOverIndex(null);
   }
@@ -41,8 +54,8 @@ export default function Sidebar({ chapters, activeChapter, onSelectChapter, prog
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
-        <h1>QM I</h1>
-        <p className="sidebar-subtitle">Quantumfysica I</p>
+        <h1>{course?.name ?? 'QuantLectures'}</h1>
+        <p className="sidebar-subtitle">{course?.subtitle ?? 'Leeromgeving'}</p>
       </div>
       <nav className="chapter-list">
         {chapters.map((ch, i) => {
@@ -66,7 +79,7 @@ export default function Sidebar({ chapters, activeChapter, onSelectChapter, prog
               onDragEnd={isTeacher   ? handleDragEnd               : undefined}
             >
               {isTeacher && <span className="drag-handle">⠿</span>}
-              <span className="chapter-number">{i + 1}</span>
+              <span className="chapter-number">{ch.id}</span>
               <span className="chapter-info">
                 <span className="chapter-title">
                   <MathText text={ch.title} />
@@ -82,6 +95,26 @@ export default function Sidebar({ chapters, activeChapter, onSelectChapter, prog
         })}
       </nav>
       <div className="sidebar-footer">
+        {isTeacher && (
+          <div className="sidebar-course-controls">
+            <label className="sidebar-course-label">
+              Cursus
+              <select
+                className="sidebar-course-select"
+                value={activeCourseId ?? ''}
+                onChange={e => onSelectCourse?.(e.target.value)}
+              >
+                {courses.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </label>
+            <button className="sidebar-auth-btn sidebar-course-create" onClick={onCreateCourse}>
+              + Nieuwe cursus
+            </button>
+          </div>
+        )}
+
         {/* Auth section */}
         <div className="sidebar-auth">
           {user ? (

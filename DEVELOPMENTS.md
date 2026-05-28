@@ -2,6 +2,28 @@
 
 > **Primary goal:** lecture notes with optional exercises. Exercises are for self-study only — no formal grading or LMS integration intended.
 
+## Implementation Tracker
+
+Use this table as the single source of truth while we build. Update `Status`, `Owner`, `Last update`, `Est. AI time`, and `Notes` as work progresses.
+
+| Item | Scope | Status | Est. AI time | Owner | Last update | Notes |
+|---|---|---|---|---|---|---|
+| Step 1 | Current MVP (single course, chapter editor, AI import/export, teacher toolbar, chapter reorder) | 🟢 Done | Implemented | - | 2026-05-28 | Baseline already in place |
+| Step 2 | Multi-course support + course members + published flag + subject prompt/language | 🟡 In progress | 2-3 days | AI + user | 2026-05-28 | Schema + course scoping done; pending settings UI, members UI, and membership-based access rules |
+| Step 3 | Teacher registration via secret link | ⚪ Planned | 2-3 hours | - | 2026-05-28 | Fastest safe onboarding path |
+| Step 3a | Password management + email verification | ⚪ Planned | 0.5-1 day | - | 2026-05-28 | PocketBase-native APIs |
+| Step 3b | Proper teacher approval flow | ⚪ Planned | 1 day | - | 2026-05-28 | Add when teacher volume increases |
+| Step 3c | Student invite codes + student signup flow | ⚪ Planned | 1-1.5 days | - | 2026-05-28 | Access to specific courses only |
+| Step 3d | Student progress in PocketBase | ⚪ Planned | 1 day | - | 2026-05-28 | No grading; lightweight progress only |
+| Step 4 | Subscription tiers + admin manual overrides | ⚪ Planned | 1-2 days | - | 2026-05-28 | Gate content by tier |
+| Step 5 | Payment integration (Paddle/Stripe) | ⚪ Planned | 2-3 days | - | 2026-05-28 | Requires webhook service |
+| Step 6 | Image support in chapters | ⚪ Planned | 0.5-1 day | - | 2026-05-28 | URL-based references in JSON |
+| Step 7 | GDPR compliance | ⚪ Planned | 0.5-1 day (tech) + legal drafting time | - | 2026-05-28 | Account deletion + policy docs |
+| Step 8 | Production deployment | ⚪ Planned | 0.5-1 day | - | 2026-05-28 | Domain, SSL, SMTP, backups |
+
+Status values: `⚪ Planned`, `🟡 In progress`, `🔴 Blocked`, `🟢 Done`.
+Step 1 is intentionally marked as complete because it represents the current app baseline.
+
 ## Already implemented
 
 - Chapter editor (concepts, formulas, quiz) with live LaTeX preview
@@ -67,6 +89,22 @@ role        ("owner" | "editor")
 - Students can read published courses they were invited to (via invite code, see Step 3c)
 
 **Note:** `chapter_number` stays per-course, so two different courses can both have a chapter 1.
+
+### Step 2 status (2026-05-28)
+
+Done:
+- `courses` collection includes `published`, `language`, and `subject_prompt`
+- `course_members` collection exists with `owner` and `editor` roles
+- `chapters` collection uses required `course_id` relation
+- App is course-scoped for chapter CRUD, import/export, and reorder
+- Course picker + create course flow is available in the sidebar
+
+Pending:
+- Course settings UI (name, subtitle, published toggle, language, subject prompt)
+- Members management UI (list editors, add by email, remove)
+- "My courses" behavior based on owner/editor membership only
+- PocketBase rules that enforce access via `course_members` instead of teacher-wide access
+- Student visibility should be published-only + invite-based (Step 3c dependency)
 
 ---
 
@@ -282,194 +320,3 @@ last_attempt   (datetime)
 | Course visibility | All courses public vs. teacher controls per course | Teacher controls via published flag |
 | Subscription model | Recurring (monthly/yearly) vs. one-time per course | Decide before Step 5 |
 | Email verification | Required on signup vs. optional | Optional to start; enable when spam becomes a concern |
-
-
-- Chapter editor (concepts, formulas, quiz) with live LaTeX preview
-- AI import: copy a Claude prompt, paste the JSON output → chapter is created/updated in PocketBase
-- AI export: download current chapter as `chapter<N>.json` for editing by AI and re-importing
-- Drag-and-drop chapter reordering in the sidebar (teacher only)
-- Teacher toolbar: new chapter, edit, import, export, delete
-
----
-
-## Step 2 — Multi-course support
-
-**What:** multiple courses can live in the same app, each owned by one or more teachers.
-
-**New collections:**
-
-```
-courses
-───────────────────────────────
-id
-name
-subtitle
-
-course_members
-───────────────────────────────
-course_id   → links to a course
-user_id     → links to a user
-role        ("owner" | "editor")
-```
-
-- **owner** — created the course; can delete it, manage members, and edit content
-- **editor** — can add/edit/delete chapters but cannot delete the course or remove the owner
-- Only the owner can add or remove editors (editors cannot manage membership)
-- A teacher can own or co-edit any number of courses
-- An owner can invite other teachers as editors via the course settings UI
-
-**Other changes:**
-- Add a `course_id` foreign key to the `chapters` collection
-- Course picker / landing page before the sidebar loads chapters
-- "New course" button and a small course-settings form (name, subtitle)
-- "My courses" view showing all courses where the user is owner or editor
-- "Members" tab in course settings: list current editors, add by email, remove
-- PocketBase access rules check `course_members` for read/write permissions
-- Students can read courses they were invited to (via invite code, see Step 3c)
-
-**Note:** `chapter_number` stays per-course, so two different courses can both have a chapter 1.
-
----
-
-## Step 3 — Teacher registration via secret link
-
-**What:** teachers can self-register using a secret link you control; no open signup.
-
-**Changes:**
-- Enable email/password signup in PocketBase
-- Registration page accepts a `?token=` query parameter
-- If the token matches a server-side secret (env variable), the new user gets role `teacher` immediately
-- Without the token, signup is rejected or gets role `pending`
-- You hand out the link to trusted people only; rotate the token to revoke access
-
-**Effort:** ~2 hours. No approval queue needed for small trusted groups.
-
----
-
-## Step 3a — Password management
-
-**What:** forgot password, reset password, change password flows.
-
-**All logic is built into PocketBase — UI only:**
-
-| Flow | Trigger | API call |
-|---|---|---|
-| Forgot password | "Forgot password?" link on login form | `pb.collection('users').requestPasswordReset(email)` → PocketBase sends reset email |
-| Reset password | User clicks link in email → `/reset-password?token=…` route | `pb.collection('users').confirmPasswordReset(token, newPass, newPassConfirm)` |
-| Change password | "Change password" in user profile/settings | `pb.collection('users').update(userId, { oldPassword, password, passwordConfirm })` |
-
-**Email sending:** PocketBase needs an SMTP server configured for production (Resend, Mailgun, or Gmail SMTP). Has a built-in mail preview for local dev.
-
-**Effort:** ~half a day for all three flows.
-
----
-
-## Step 3b — Proper teacher approval flow
-
-**What:** any visitor can apply to become a teacher; an admin approves or rejects via a UI in the web app.
-
-**Changes:**
-- Open signup creates users with role `pending`
-- Add `pending_teachers` view in the admin section of the web app (visible to admins only)
-- List shows name, email, signup date; buttons: Approve / Reject
-- Approve → PocketBase API updates role to `teacher`, optionally sends a confirmation email
-- Reject → deletes the user record or sets role `rejected`
-- PocketBase access rules block `pending` users from accessing any content
-
-**Effort:** ~1 day. Replaces the need to log into the PocketBase admin panel.
-
-**Note:** implement Step 3 first; upgrade to Step 3b when teacher volume justifies it.
-
----
-
-## Step 3c — Student invite codes
-
-**What:** teachers invite students to their course via a short code (e.g. `QM2026`).
-
-**New collection:**
-```
-course_invites
-──────────────
-code          ("QM2026")
-course_id     → links to a course
-created_by    → teacher's user ID
-expires_at    (optional)
-max_uses      (optional)
-```
-
-**Flow:**
-- Teacher generates a code in the course settings UI
-- Student signs up (or logs in) and enters the code
-- Student gets read access to that specific course only
-- Teacher can revoke or expire the code at any time
-
-**Roles summary:**
-
-| Role | How obtained | Can do |
-|---|---|---|
-| `pending` | Self-signup without token | Nothing; awaiting approval |
-| `teacher` | Secret link or admin approval | Create and edit own courses |
-| `student` | Enter invite code | Read the invited course(s) |
-| `admin` | Set manually in PocketBase | Everything |
-
----
-
-## Step 4 — Subscription tiers (free / basic / pro)
-
-**What:** content is gated by subscription level.
-
-**Changes:**
-- Add `subscription_tier` field to users (`free`, `basic`, `pro`)
-- Tag courses or chapters with a minimum required tier
-- PocketBase access rules enforce read access based on tier
-- UI shows locked content with an upgrade prompt
-
-**Note:** the tiered-access logic itself is small; the subscription lifecycle (upgrades, downgrades, cancellations, failed payments) adds overhead.
-
----
-
-## Step 5 — Payment integration
-
-**What:** users pay for basic/pro access via a hosted checkout.
-
-**Recommended provider:** Paddle (handles EU VAT automatically as seller of record).  
-**Alternative:** Stripe (more control, but you handle VAT yourself).
-
-**Flow:**
-1. User clicks "Upgrade" → redirected to Paddle/Stripe hosted checkout
-2. Payment provider sends a webhook to a small backend endpoint
-3. Backend updates `subscription_tier` in PocketBase
-4. Access unlocks immediately
-
-**Additional work:**
-- Small webhook server (PocketBase alone cannot receive payment events)
-- Pricing page in the UI
-- Terms of service, privacy policy, refund policy (legally required in the EU)
-
----
-
-## Step 6 — Image support
-
-**What:** teachers can attach images to concepts and exercises.
-
-**Approach:** URL references in JSON (not base64 inline).
-
-**Changes:**
-- Add a file-upload field to PocketBase (`chapters` or a separate `images` collection)
-- Upload button per concept/exercise in `ChapterEditor`
-- `<img>` tag in the content renderer
-- JSON export includes image URLs as plain strings; AI round-trips preserve them unchanged
-- For AI-generated chapters: AI writes `"image": null`; teacher uploads manually afterwards
-
-**Does not affect:** auth, routing, AI import/export logic.
-
----
-
-## Design decisions to make before Step 2
-
-| Decision | Options | Recommendation |
-|---|---|---|
-| Teacher registration | Secret link (Step 3) vs. approval flow (Step 3b) | Start with secret link |
-| Student access | Anonymous (no account) vs. invite code | Invite code if progress tracking matters |
-| Course visibility | All courses public vs. teacher controls visibility | Teacher controls |
-| Subscription model | Recurring (monthly/yearly) vs. one-time per course | Decide before Step 5 |

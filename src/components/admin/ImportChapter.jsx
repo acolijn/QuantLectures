@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { upsertChapter, fetchChapters } from '../../lib/api';
+import { upsertChapter } from '../../lib/api';
 
 const CLAUDE_PROMPT = `Je bent een assistent die college-aantekeningen omzet naar een gestructureerd JSON-hoofdstuk voor een quantumfysica leer-app.
 
@@ -94,7 +94,7 @@ function validateChapter(obj) {
   return null;
 }
 
-export default function ImportChapter({ existingChapters, onClose, onImported }) {
+export default function ImportChapter({ courseId, existingChapters, onClose, onImported }) {
   const [json, setJson]           = useState('');
   const [chapterNum, setChapterNum] = useState(
     existingChapters.length > 0 ? Math.max(...existingChapters.map(c => c.id)) + 1 : 1
@@ -157,7 +157,7 @@ export default function ImportChapter({ existingChapters, onClose, onImported })
 
     setSaving(true);
     try {
-      const saved = await upsertChapter({ ...parsed, id: chapterNum });
+      const saved = await upsertChapter({ ...parsed, id: chapterNum }, courseId);
       onImported(saved);
     } catch (err) {
       setError(err.message);

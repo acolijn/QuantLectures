@@ -983,6 +983,55 @@ body {
   flex: 1;
 }
 
+.sidebar-course-controls {
+  border-top: 1px solid rgba(255,255,255,0.06);
+  margin-top: 8px;
+  padding-top: 10px;
+  margin-bottom: 10px;
+}
+
+.sidebar-course-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: rgba(240, 244, 255, 0.72);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 8px;
+}
+
+.sidebar-course-select {
+  width: 100%;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.06);
+  color: var(--color-text-sidebar);
+  padding: 0 8px;
+  font-size: 0.8rem;
+}
+
+.sidebar-course-select option {
+  background: #142445;
+  color: #fff;
+}
+
+.sidebar-course-create {
+  margin-top: 0;
+}
+
+.empty-course-state {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+
+.empty-course-state p {
+  margin: 0;
+}
+
 .teacher-toolbar {
   padding: 12px 48px 0;
   display: flex;
