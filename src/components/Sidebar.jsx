@@ -1,8 +1,43 @@
+import { useState } from 'react';
 import MathText from './MathText';
 import { useAuth } from '../contexts/AuthContext';
 
-export default function Sidebar({ chapters, activeChapter, onSelectChapter, progress, onResetProgress, onLoginClick }) {
+export default function Sidebar({ chapters, activeChapter, onSelectChapter, progress, onResetProgress, onLoginClick, onReorderChapters }) {
   const { user, isTeacher, signOut } = useAuth();
+  const [draggedIndex, setDraggedIndex] = useState(null);
+  const [overIndex, setOverIndex]       = useState(null);
+
+  function handleDragStart(e, index) {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  }
+
+  function handleDragOver(e, index) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (index !== overIndex) setOverIndex(index);
+  }
+
+  function handleDrop(e, index) {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) {
+      setDraggedIndex(null);
+      setOverIndex(null);
+      return;
+    }
+    const newOrder = [...chapters];
+    const [moved] = newOrder.splice(draggedIndex, 1);
+    newOrder.splice(index, 0, moved);
+    onReorderChapters(newOrder);
+    setDraggedIndex(null);
+    setOverIndex(null);
+  }
+
+  function handleDragEnd() {
+    setDraggedIndex(null);
+    setOverIndex(null);
+  }
+
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
@@ -10,17 +45,28 @@ export default function Sidebar({ chapters, activeChapter, onSelectChapter, prog
         <p className="sidebar-subtitle">Quantumfysica I</p>
       </div>
       <nav className="chapter-list">
-        {chapters.map(ch => {
+        {chapters.map((ch, i) => {
           const chProgress = progress[ch.id] || {};
           const quizDone = chProgress.quizCompleted;
           const bestScore = chProgress.bestScore;
           return (
             <button
-              key={ch.id}
-              className={`chapter-item ${activeChapter === ch.id ? 'active' : ''}`}
+              key={ch.pbId ?? ch.id}
+              className={[
+                'chapter-item',
+                activeChapter === ch.id ? 'active' : '',
+                draggedIndex === i      ? 'dragging' : '',
+                overIndex === i         ? 'drag-over' : '',
+              ].join(' ')}
               onClick={() => onSelectChapter(ch.id)}
+              draggable={!!isTeacher}
+              onDragStart={isTeacher ? e => handleDragStart(e, i) : undefined}
+              onDragOver={isTeacher  ? e => handleDragOver(e, i)  : undefined}
+              onDrop={isTeacher      ? e => handleDrop(e, i)      : undefined}
+              onDragEnd={isTeacher   ? handleDragEnd               : undefined}
             >
-              <span className="chapter-number">{ch.id}</span>
+              {isTeacher && <span className="drag-handle">⠿</span>}
+              <span className="chapter-number">{i + 1}</span>
               <span className="chapter-info">
                 <span className="chapter-title">
                   <MathText text={ch.title} />

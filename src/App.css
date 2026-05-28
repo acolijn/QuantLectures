@@ -86,6 +86,29 @@ body {
   gap: 2px;
 }
 
+.chapter-item.dragging {
+  opacity: 0.35;
+}
+
+.chapter-item.drag-over {
+  background: var(--color-sidebar-hover);
+  box-shadow: inset 0 2px 0 var(--color-primary);
+}
+
+.drag-handle {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.25);
+  cursor: grab;
+  flex-shrink: 0;
+  user-select: none;
+  padding-right: 2px;
+  line-height: 1;
+}
+
+.chapter-item:hover .drag-handle {
+  color: rgba(255, 255, 255, 0.55);
+}
+
 .chapter-item {
   display: flex;
   align-items: center;
@@ -1007,6 +1030,20 @@ body {
 }
 
 .btn-import-chapter:hover { background: #fef0c0; }
+
+.btn-export-chapter {
+  background: #eef4ff;
+  color: #1a56aa;
+  border: 1px solid #b3cfee;
+  border-radius: var(--radius-sm);
+  padding: 7px 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-export-chapter:hover { background: #d8e8fb; }
 
 .btn-delete-chapter {
   background: #fff0f0;

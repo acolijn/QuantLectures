@@ -53,6 +53,17 @@ export async function createChapter(chapterNumber) {  const record = await pb.co
   return toChapter(record);
 }
 
+// Reassign chapter_number = index+1 for each chapter in the new order.
+// No unique constraint exists, so parallel updates are safe.
+export async function reorderChapters(chapters) {
+  const records = await Promise.all(
+    chapters.map((ch, i) =>
+      pb.collection('chapters').update(ch.pbId, { chapter_number: i + 1 })
+    )
+  );
+  return records.map(toChapter);
+}
+
 export async function upsertChapter(chapter) {
   let record;
   try {

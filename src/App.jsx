@@ -5,7 +5,7 @@ import ChapterEditor from './components/admin/ChapterEditor';
 import ImportChapter from './components/admin/ImportChapter';
 import Login from './components/Login';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { fetchChapters, createChapter, deleteChapter } from './lib/api';
+import { fetchChapters, createChapter, deleteChapter, reorderChapters } from './lib/api';
 
 const STORAGE_KEY = 'qm1-progress';
 
@@ -63,12 +63,48 @@ function AppContent() {
     setEditMode(false);
   }
 
+  async function handleReorderChapters(newOrder) {
+    try {
+      const updated = await reorderChapters(newOrder);
+      const sorted = updated.sort((a, b) => a.id - b.id);
+      setChapters(sorted);
+      // Keep the active chapter tracking the same chapter by pbId
+      const activePbId = chapter?.pbId;
+      if (activePbId) {
+        const stillActive = sorted.find(c => c.pbId === activePbId);
+        if (stillActive) setActiveChapter(stillActive.id);
+      }
+    } catch (err) {
+      console.error('Reorder failed:', err);
+      fetchChapters().then(setChapters);
+    }
+  }
+
   async function handleNewChapter() {
     const nextId = chapters.length > 0 ? Math.max(...chapters.map(c => c.id)) + 1 : 1;
     const newChapter = await createChapter(nextId);
     setChapters(prev => [...prev, newChapter]);
     setActiveChapter(newChapter.id);
     setEditMode(true);
+  }
+
+  function handleExportChapter() {
+    if (!chapter) return;
+    const exportData = {
+      title:     chapter.title,
+      subtitle:  chapter.subtitle,
+      formulas:  chapter.formulas,
+      concepts:  chapter.concepts,
+      exercises: chapter.exercises,
+      quiz:      chapter.quiz,
+    };
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `chapter${chapter.id}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   async function handleDeleteChapter() {
@@ -125,6 +161,7 @@ function AppContent() {
           progress={progress}
           onResetProgress={() => setProgress({})}
           onLoginClick={() => setShowLogin(true)}
+          onReorderChapters={handleReorderChapters}
         />
       </div>
       {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
@@ -149,7 +186,10 @@ function AppContent() {
                   ➕ Nieuw hoofdstuk
                 </button>
                 <button className="btn-import-chapter" onClick={() => setShowImport(true)}>
-                  ⬆️ Importeer via Claude
+                  ⬆️ Importeer
+                </button>
+                <button className="btn-export-chapter" onClick={handleExportChapter}>
+                  ⬇️ Exporteer
                 </button>
                 <button className="btn-delete-chapter" onClick={handleDeleteChapter}>
                   🗑️ Verwijder hoofdstuk

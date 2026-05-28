@@ -170,7 +170,7 @@ export default function ImportChapter({ existingChapters, onClose, onImported })
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal import-modal" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>Hoofdstuk importeren via Claude</h2>
+          <h2>Hoofdstuk importeren</h2>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
 
