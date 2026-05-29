@@ -16,7 +16,41 @@ function toCourse(record) {
     published:     !!record.published,
     language:      record.language ?? 'nl',
     subjectPrompt: record.subject_prompt ?? '',
+    memberRole:    record.memberRole ?? null,
   };
+}
+
+function escapeRegex(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function buildOrFilter(field, values) {
+  if (!Array.isArray(values) || values.length === 0) return '';
+  return values.map(v => `${field}="${escapeFilterValue(v)}"`).join(' || ');
+}
+
+async function getMyMemberships() {
+  if (!pb.authStore.model?.id) return [];
+
+  try {
+    return await pb.collection('course_members').getFullList({
+      filter: `user_id="${escapeFilterValue(pb.authStore.model.id)}"`,
+    });
+  } catch {
+    return [];
+  }
+}
+
+async function getMyMembership(courseId) {
+  if (!pb.authStore.model?.id || !courseId) return null;
+
+  try {
+    return await pb.collection('course_members').getFirstListItem(
+      `course_id="${escapeFilterValue(courseId)}" && user_id="${escapeFilterValue(pb.authStore.model.id)}"`
+    );
+  } catch {
+    return null;
+  }
 }
 
 // Map a raw PocketBase record to the shape the app expects.
@@ -36,16 +70,30 @@ function toChapter(record) {
 }
 
 export async function fetchCourses() {
-  let records;
-  if (isTeacher()) {
-    records = await pb.collection('courses').getFullList({ sort: 'name' });
-  } else {
-    records = await pb.collection('courses').getFullList({
+  if (!isTeacher()) {
+    const records = await pb.collection('courses').getFullList({
       sort: 'name',
       filter: 'published=true',
     });
+    return records.map(toCourse);
   }
-  return records.map(toCourse);
+
+  const memberships = await getMyMemberships();
+  if (memberships.length === 0) return [];
+
+  const roleByCourse = new Map(memberships.map(m => [m.course_id, m.role]));
+  const filter = buildOrFilter('id', memberships.map(m => m.course_id));
+  if (!filter) return [];
+
+  const records = await pb.collection('courses').getFullList({
+    sort: 'name',
+    filter,
+  });
+
+  return records.map(record => toCourse({
+    ...record,
+    memberRole: roleByCourse.get(record.id) ?? null,
+  }));
 }
 
 export async function createCourse(payload = {}) {
@@ -70,7 +118,10 @@ export async function createCourse(payload = {}) {
     }
   }
 
-  return toCourse(record);
+  return toCourse({
+    ...record,
+    memberRole: pb.authStore.model?.id ? 'owner' : null,
+  });
 }
 
 export async function updateCourse(courseId, updates) {
@@ -81,7 +132,70 @@ export async function updateCourse(courseId, updates) {
     language:       updates.language,
     subject_prompt: updates.subjectPrompt,
   });
-  return toCourse(record);
+  const myMembership = await getMyMembership(courseId);
+  return toCourse({
+    ...record,
+    memberRole: myMembership?.role ?? null,
+  });
+}
+
+function toMember(record) {
+  const expandedUser = record.expand?.user_id;
+  return {
+    id: record.id,
+    courseId: record.course_id,
+    userId: record.user_id,
+    role: record.role,
+    email: expandedUser?.email ?? '',
+    name: expandedUser?.name ?? expandedUser?.email ?? '',
+  };
+}
+
+export async function fetchCourseMembers(courseId) {
+  const records = await pb.collection('course_members').getFullList({
+    filter: `course_id="${escapeFilterValue(courseId)}"`,
+    expand: 'user_id',
+  });
+  return records.map(toMember);
+}
+
+export async function addCourseEditorByEmail(courseId, email) {
+  const normalizedEmail = String(email).trim().toLowerCase();
+  if (!normalizedEmail) {
+    throw new Error('Vul een geldig e-mailadres in.');
+  }
+
+  const emailFilter = `email ~ "^${escapeRegex(normalizedEmail)}$"`;
+  const user = await pb.collection('users').getFirstListItem(emailFilter);
+  if (user.role !== 'teacher') {
+    throw new Error('Alleen gebruikers met rol teacher kunnen editor worden.');
+  }
+
+  const existing = await pb.collection('course_members').getFullList({
+    filter: `course_id="${escapeFilterValue(courseId)}" && user_id="${escapeFilterValue(user.id)}"`,
+  });
+  if (existing.length > 0) {
+    throw new Error('Deze gebruiker is al lid van de cursus.');
+  }
+
+  const created = await pb.collection('course_members').create({
+    course_id: courseId,
+    user_id: user.id,
+    role: 'editor',
+  });
+
+  const withExpand = await pb.collection('course_members').getOne(created.id, {
+    expand: 'user_id',
+  });
+  return toMember(withExpand);
+}
+
+export async function removeCourseEditor(memberId) {
+  const record = await pb.collection('course_members').getOne(memberId);
+  if (record.role === 'owner') {
+    throw new Error('Owner kan niet via deze actie verwijderd worden.');
+  }
+  await pb.collection('course_members').delete(memberId);
 }
 
 export async function fetchChapters(courseId) {

@@ -1090,6 +1090,59 @@ body {
   color: #9bc1ff;
 }
 
+.sidebar-members-panel {
+  margin-top: 12px;
+  border-top: 1px solid rgba(255,255,255,0.12);
+  padding-top: 10px;
+}
+
+.sidebar-members-title {
+  font-size: 0.78rem;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.sidebar-members-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.sidebar-members-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sidebar-members-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: var(--radius-sm);
+  background: rgba(255,255,255,0.03);
+}
+
+.sidebar-members-email {
+  font-size: 0.75rem;
+  color: #e4e9ff;
+}
+
+.sidebar-members-role {
+  font-size: 0.68rem;
+  color: rgba(240, 244, 255, 0.68);
+}
+
+.sidebar-members-remove {
+  margin-top: 0;
+  width: auto;
+  white-space: nowrap;
+}
+
 .empty-course-state {
   display: flex;
   flex-direction: column;

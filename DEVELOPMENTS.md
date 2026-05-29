@@ -9,7 +9,8 @@ Use this table as the single source of truth while we build. Update `Status`, `O
 | Item | Scope | Status | Est. AI time | Owner | Last update | Notes |
 |---|---|---|---|---|---|---|
 | Step 1 | Current MVP (single course, chapter editor, AI import/export, teacher toolbar, chapter reorder) | 🟢 Done | Implemented | - | 2026-05-28 | Baseline already in place |
-| Step 2 | Multi-course support + course members + published flag + subject prompt/language | 🟡 In progress | 2-3 days | AI + user | 2026-05-28 | Schema + course scoping done; pending settings UI, members UI, and membership-based access rules |
+| Step 2 | Multi-course support + course members + published flag + subject prompt/language | 🟢 Done | 2-3 days | AI + user | 2026-05-29 | Completed: members UI, my-courses filtering by membership, and membership-based PocketBase rules |
+| Step 2e | UI localization (menus/buttons/messages) | ⚪ Planned | 1-2 days | AI + user | 2026-05-29 | Add app-wide i18n so UI language can follow selected language |
 | Step 3 | Teacher registration via secret link | ⚪ Planned | 2-3 hours | - | 2026-05-28 | Fastest safe onboarding path |
 | Step 3a | Password management + email verification | ⚪ Planned | 0.5-1 day | - | 2026-05-28 | PocketBase-native APIs |
 | Step 3b | Proper teacher approval flow | ⚪ Planned | 1 day | - | 2026-05-28 | Add when teacher volume increases |
@@ -90,7 +91,7 @@ role        ("owner" | "editor")
 
 **Note:** `chapter_number` stays per-course, so two different courses can both have a chapter 1.
 
-### Step 2 status (2026-05-28)
+### Step 2 status (2026-05-29)
 
 Done:
 - `courses` collection includes `published`, `language`, and `subject_prompt`
@@ -98,13 +99,30 @@ Done:
 - `chapters` collection uses required `course_id` relation
 - App is course-scoped for chapter CRUD, import/export, and reorder
 - Course picker + create course flow is available in the sidebar
+- Course settings UI is available in the sidebar (`name`, `subtitle`, `published`, `language`, `subject_prompt`)
+- Import prompt now auto-injects the active course language + `subject_prompt`
+- Members management UI is available for owners (list/add/remove editors by email)
+- Teacher course list behaves as "My courses" via `course_members`
+- PocketBase rules now enforce membership-based access for courses/chapters/members
+- Students only see published courses in Step 2
 
-Pending:
-- Course settings UI (name, subtitle, published toggle, language, subject prompt)
-- Members management UI (list editors, add by email, remove)
-- "My courses" behavior based on owner/editor membership only
-- PocketBase rules that enforce access via `course_members` instead of teacher-wide access
-- Student visibility should be published-only + invite-based (Step 3c dependency)
+Remaining after Step 2:
+- Invite-code based student enrollment remains in Step 3c
+
+### Step 2e — UI localization (planned)
+
+**What:** when English is selected, the app UI (menu items, buttons, labels, messages) can also render in English.
+
+**Scope:**
+- Introduce an app-wide i18n layer with translation dictionaries (start with NL + EN)
+- Replace hardcoded UI strings with translation keys in core screens (sidebar, toolbars, modals, chapter/quiz UI)
+- Persist selected UI language and apply it on reload
+- Keep a fallback language for missing translations
+
+**Important split:**
+- `course.language` controls generated chapter content/import prompt behavior
+- UI language controls labels/menu text
+- These can be linked by default, but should remain separately configurable
 
 ---
 

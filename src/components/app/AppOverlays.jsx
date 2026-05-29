@@ -6,6 +6,7 @@ export default function AppOverlays({
   onCloseLogin,
   showImport,
   courseId,
+  course,
   existingChapters,
   onCloseImport,
   onImported,
@@ -16,6 +17,7 @@ export default function AppOverlays({
       {showImport && (
         <ImportChapter
           courseId={courseId}
+          course={course}
           existingChapters={existingChapters}
           onClose={onCloseImport}
           onImported={onImported}

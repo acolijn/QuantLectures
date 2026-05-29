@@ -20,6 +20,10 @@ export default function Sidebar({
   onSelectCourse,
   onCreateCourse,
   onUpdateCourse,
+  courseMembers,
+  onLoadCourseMembers,
+  onAddEditor,
+  onRemoveEditor,
   chapters,
   activeChapter,
   onSelectChapter,
@@ -34,6 +38,10 @@ export default function Sidebar({
   const [showCourseSettings, setShowCourseSettings] = useState(false);
   const [savingCourse, setSavingCourse] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
+  const [memberEmail, setMemberEmail] = useState('');
+  const [membersLoading, setMembersLoading] = useState(false);
+  const [memberActionLoading, setMemberActionLoading] = useState(false);
+  const [memberMessage, setMemberMessage] = useState('');
   const [courseForm, setCourseForm] = useState({
     name: '',
     subtitle: '',
@@ -65,6 +73,21 @@ export default function Sidebar({
     });
     setSaveMessage('');
   }, [course]);
+
+  const isCourseOwner = course?.memberRole === 'owner';
+
+  useEffect(() => {
+    if (!showCourseSettings || !course || course.memberRole !== 'owner') return;
+    if (courseMembers.length > 0) return;
+
+    setMembersLoading(true);
+    onLoadCourseMembers?.()
+      .catch(err => {
+        console.error('Failed to load course members:', err);
+        setMemberMessage('Leden laden mislukt');
+      })
+        .finally(() => setMembersLoading(false));
+      }, [showCourseSettings, course, courseMembers.length]);
 
   function handleDragStart(e, index) {
     setDraggedIndex(index);
@@ -100,6 +123,10 @@ export default function Sidebar({
   async function handleSaveCourseSettings(e) {
     e.preventDefault();
     if (!course || !onUpdateCourse) return;
+    if (!isCourseOwner) {
+      setSaveMessage('Alleen owners kunnen cursusinstellingen wijzigen.');
+      return;
+    }
 
     setSavingCourse(true);
     setSaveMessage('');
@@ -117,6 +144,39 @@ export default function Sidebar({
       setSaveMessage('Opslaan mislukt');
     } finally {
       setSavingCourse(false);
+    }
+  }
+
+  async function handleAddEditor(e) {
+    e.preventDefault();
+    if (!onAddEditor || !memberEmail.trim()) return;
+
+    setMemberActionLoading(true);
+    setMemberMessage('');
+    try {
+      await onAddEditor(memberEmail.trim());
+      setMemberEmail('');
+      setMemberMessage('Editor toegevoegd');
+    } catch (err) {
+      setMemberMessage(err.message || 'Editor toevoegen mislukt');
+    } finally {
+      setMemberActionLoading(false);
+    }
+  }
+
+  async function handleRemoveEditor(memberId) {
+    if (!onRemoveEditor) return;
+    if (!window.confirm('Editor verwijderen uit deze cursus?')) return;
+
+    setMemberActionLoading(true);
+    setMemberMessage('');
+    try {
+      await onRemoveEditor(memberId);
+      setMemberMessage('Editor verwijderd');
+    } catch (err) {
+      setMemberMessage(err.message || 'Editor verwijderen mislukt');
+    } finally {
+      setMemberActionLoading(false);
     }
   }
 
@@ -191,70 +251,132 @@ export default function Sidebar({
                 </button>
 
                 {showCourseSettings && (
-                  <form className="sidebar-course-settings" onSubmit={handleSaveCourseSettings}>
-                    <label className="sidebar-course-label">
-                      Naam
-                      <input
-                        className="sidebar-course-input"
-                        type="text"
-                        value={courseForm.name}
-                        onChange={e => setCourseForm(prev => ({ ...prev, name: e.target.value }))}
-                      />
-                    </label>
+                  <div className="sidebar-course-settings">
+                    <form onSubmit={handleSaveCourseSettings}>
+                      <label className="sidebar-course-label">
+                        Naam
+                        <input
+                          className="sidebar-course-input"
+                          type="text"
+                          value={courseForm.name}
+                          disabled={!isCourseOwner}
+                          onChange={e => setCourseForm(prev => ({ ...prev, name: e.target.value }))}
+                        />
+                      </label>
 
-                    <label className="sidebar-course-label">
-                      Subtitel
-                      <input
-                        className="sidebar-course-input"
-                        type="text"
-                        value={courseForm.subtitle}
-                        onChange={e => setCourseForm(prev => ({ ...prev, subtitle: e.target.value }))}
-                      />
-                    </label>
+                      <label className="sidebar-course-label">
+                        Subtitel
+                        <input
+                          className="sidebar-course-input"
+                          type="text"
+                          value={courseForm.subtitle}
+                          disabled={!isCourseOwner}
+                          onChange={e => setCourseForm(prev => ({ ...prev, subtitle: e.target.value }))}
+                        />
+                      </label>
 
-                    <label className="sidebar-course-label">
-                      Taal
-                      <select
-                        className="sidebar-course-select"
-                        value={courseForm.language}
-                        onChange={e => setCourseForm(prev => ({ ...prev, language: e.target.value }))}
-                      >
-                        {LANGUAGE_OPTIONS.map(option => (
-                          <option key={option.value} value={option.value}>{option.label}</option>
-                        ))}
-                      </select>
-                    </label>
+                      <label className="sidebar-course-label">
+                        Taal
+                        <select
+                          className="sidebar-course-select"
+                          value={courseForm.language}
+                          disabled={!isCourseOwner}
+                          onChange={e => setCourseForm(prev => ({ ...prev, language: e.target.value }))}
+                        >
+                          {LANGUAGE_OPTIONS.map(option => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                          ))}
+                        </select>
+                      </label>
 
-                    <label className="sidebar-course-checkbox">
-                      <input
-                        type="checkbox"
-                        checked={courseForm.published}
-                        onChange={e => setCourseForm(prev => ({ ...prev, published: e.target.checked }))}
-                      />
-                      Gepubliceerd (zichtbaar voor studenten)
-                    </label>
+                      <label className="sidebar-course-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={courseForm.published}
+                          disabled={!isCourseOwner}
+                          onChange={e => setCourseForm(prev => ({ ...prev, published: e.target.checked }))}
+                        />
+                        Gepubliceerd (zichtbaar voor studenten)
+                      </label>
 
-                    <label className="sidebar-course-label">
-                      Subject prompt
-                      <textarea
-                        className="sidebar-course-textarea"
-                        rows={5}
-                        placeholder="Bijv. Write in English. The subject is classical mechanics..."
-                        value={courseForm.subjectPrompt}
-                        onChange={e => setCourseForm(prev => ({ ...prev, subjectPrompt: e.target.value }))}
-                      />
-                    </label>
+                      <label className="sidebar-course-label">
+                        Subject prompt
+                        <textarea
+                          className="sidebar-course-textarea"
+                          rows={5}
+                          placeholder="Bijv. Write in English. The subject is classical mechanics..."
+                          value={courseForm.subjectPrompt}
+                          disabled={!isCourseOwner}
+                          onChange={e => setCourseForm(prev => ({ ...prev, subjectPrompt: e.target.value }))}
+                        />
+                      </label>
 
-                    <p className="sidebar-course-hint">
-                      De vaste JSON- en formatteringsregels worden automatisch toegevoegd aan de prompt.
-                    </p>
+                      <p className="sidebar-course-hint">
+                        De vaste JSON- en formatteringsregels worden automatisch toegevoegd aan de prompt.
+                      </p>
 
-                    <button className="sidebar-auth-btn sidebar-course-save" type="submit" disabled={savingCourse}>
-                      {savingCourse ? 'Opslaan…' : 'Opslaan'}
-                    </button>
+                      <button className="sidebar-auth-btn sidebar-course-save" type="submit" disabled={savingCourse}>
+                        {savingCourse ? 'Opslaan…' : 'Opslaan'}
+                      </button>
 
-                    {saveMessage && <p className="sidebar-course-save-message">{saveMessage}</p>}
-                  </form>
+                      {!isCourseOwner && (
+                        <p className="sidebar-course-hint">Alleen owners kunnen cursusinstellingen aanpassen.</p>
+                      )}
+
+                      {saveMessage && <p className="sidebar-course-save-message">{saveMessage}</p>}
+                    </form>
+
+                    {isCourseOwner && (
+                      <div className="sidebar-members-panel">
+                        <h4 className="sidebar-members-title">Leden (editors)</h4>
+                        <form className="sidebar-members-form" onSubmit={handleAddEditor}>
+                          <input
+                            className="sidebar-course-input"
+                            type="email"
+                            placeholder="docent@email.nl"
+                            value={memberEmail}
+                            onChange={e => setMemberEmail(e.target.value)}
+                          />
+                          <button
+                            className="sidebar-auth-btn sidebar-course-save"
+                            type="submit"
+                            disabled={memberActionLoading || !memberEmail.trim()}
+                          >
+                            Editor toevoegen
+                          </button>
+                        </form>
+
+                        {membersLoading ? (
+                          <p className="sidebar-course-hint">Leden laden…</p>
+                        ) : (
+                          <ul className="sidebar-members-list">
+                            {courseMembers.map(member => (
+                              <li key={member.id} className="sidebar-members-item">
+                                <div>
+                                  <div className="sidebar-members-email">{member.email || member.name || member.userId}</div>
+                                  <div className="sidebar-members-role">{member.role === 'owner' ? 'Owner' : 'Editor'}</div>
+                                </div>
+                                {member.role === 'editor' && (
+                                  <button
+                                    className="sidebar-auth-btn sidebar-members-remove"
+                                    onClick={() => handleRemoveEditor(member.id)}
+                                    disabled={memberActionLoading}
+                                  >
+                                    Verwijder
+                                  </button>
+                                )}
+                              </li>
+                            ))}
+                            {courseMembers.length === 0 && (
+                              <li className="sidebar-course-hint">Nog geen leden gevonden.</li>
+                            )}
+                          </ul>
+                        )}
+
+                        {memberMessage && <p className="sidebar-course-save-message">{memberMessage}</p>}
+                      </div>
+                    )}
+                  </div>
                 )}
               </>
             )}

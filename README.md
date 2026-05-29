@@ -23,6 +23,10 @@ QuantLectures/
 │   ├── components/
 │   │   ├── admin/
 │   │   │   └── ImportChapter.jsx   # Teacher UI: import chapter from Claude
+│   │   ├── app/
+│   │   │   ├── AppMainContent.jsx
+│   │   │   ├── AppOverlays.jsx
+│   │   │   └── TeacherToolbar.jsx
 │   │   ├── ChapterView.jsx
 │   │   ├── GuidedExercise.jsx
 │   │   ├── MathText.jsx            # KaTeX renderer ($...$ and $$...$$)
@@ -30,13 +34,17 @@ QuantLectures/
 │   │   └── Sidebar.jsx
 │   ├── contexts/
 │   │   └── AuthContext.jsx         # PocketBase auth (teacher / student / guest)
+│   ├── hooks/
+│   │   ├── useChapters.js
+│   │   ├── useCourseProgress.js
+│   │   └── useCourses.js
 │   ├── lib/
 │   │   ├── api.js                  # PocketBase CRUD helpers
 │   │   └── pocketbase.js           # PocketBase singleton
-│   ├── App.jsx                     # Root component, teacher toolbar
+│   ├── App.jsx                     # Root composition layer
 │   └── App.css
 ├── scripts/
-│   ├── setup-pocketbase.js         # Create collections + add role field to users
+│   ├── setup-pocketbase.js         # Create/update schema + access rules
 │   └── (no seed/export scripts; content is managed in-app)
 ├── docker-compose.yml
 ├── Dockerfile
@@ -93,6 +101,12 @@ npm run setup
 
 This creates the `chapters` collection and adds a `role` select field (`student` / `teacher`) to the built-in `users` collection.
 
+It also creates/updates Step 2 collections and rules:
+- `courses` (with `published`, `language`, `subject_prompt`)
+- `course_members` (`owner` / `editor`)
+- `chapters.course_id` relation
+- membership-based access rules for teachers and published-only visibility for students
+
 ### 4. Start the dev server
 
 ```bash
@@ -137,12 +151,18 @@ Teachers can export the currently open chapter as JSON directly from the toolbar
 
 | Role | Access |
 |---|---|
-| **Guest** (not logged in) | Read all chapters, concepts, exercises, quiz |
-| **Student** | Same as guest + login |
-| **Teacher** | All of the above + teacher toolbar (edit, new chapter, import, export, delete) |
+| **Guest** (not logged in) | No guaranteed course access (use a student/teacher account) |
+| **Student** | Read published courses only |
+| **Teacher (editor)** | Access own member courses + chapter CRUD/import/export/reorder |
+| **Teacher (owner)** | Editor rights + course settings + member management |
 
 Assign the `teacher` role to a user in the PocketBase admin UI:
 **http://localhost:8090/_/** → Collections → users → edit a record → set `role` = `teacher`.
+
+Step 2 permission model is membership-based:
+- Teachers only see courses where they are in `course_members`
+- Owners can add/remove editors
+- Editors cannot manage members or owner-level settings
 
 ---
 
@@ -155,6 +175,10 @@ Assign the `teacher` role to a user in the PocketBase admin UI:
 3. Copy the generated prompt and paste it into Claude along with your lecture notes
 4. Copy Claude's JSON response and paste it into the import modal
 5. Set the chapter number and click **Importeer**
+
+The generated import prompt automatically includes:
+- selected course language
+- course `subject_prompt` (teacher-provided instructions)
 
 ---
 
@@ -220,6 +244,8 @@ PB_ADMIN_PASSWORD=yourpassword \
 npm run setup
 ```
 
+If you update from an older single-course version, run `npm run setup` again after pulling changes so Step 2 collections/rules are applied.
+
 ---
 
 ## Remote Server Deployment
@@ -277,6 +303,12 @@ docker compose up -d --build
 ```
 
 This rebuilds the frontend with the latest code. PocketBase data in `./pb_data/` is preserved.
+
+After updates that touch schema or rules, run:
+
+```bash
+npm run setup
+```
 
 ### Typical port layout
 

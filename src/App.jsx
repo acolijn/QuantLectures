@@ -17,9 +17,13 @@ function AppContent() {
     courses,
     activeCourseId,
     loadingCourses,
+    courseMembersByCourse,
     setActiveCourseId,
     createNewCourse,
     updateExistingCourse,
+    refreshCourseMembers,
+    addEditorToCourse,
+    removeEditorFromCourse,
   } = useCourses(isTeacher);
   const {
     chapters,
@@ -123,6 +127,7 @@ function AppContent() {
         onCloseLogin={() => setShowLogin(false)}
         showImport={showImport}
         courseId={activeCourseId}
+        course={course}
         existingChapters={chapters}
         onCloseImport={() => setShowImport(false)}
         onImported={handleImported}
@@ -143,6 +148,10 @@ function AppContent() {
           onSelectCourse={handleSelectCourse}
           onCreateCourse={handleCreateCourse}
           onUpdateCourse={handleUpdateCourse}
+          courseMembers={courseMembersByCourse[activeCourseId] ?? []}
+          onLoadCourseMembers={() => refreshCourseMembers(activeCourseId)}
+          onAddEditor={email => addEditorToCourse(activeCourseId, email)}
+          onRemoveEditor={memberId => removeEditorFromCourse(activeCourseId, memberId)}
           chapters={chapters}
           activeChapter={activeChapter}
           onSelectChapter={handleSelectChapter}

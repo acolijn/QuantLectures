@@ -122,6 +122,9 @@ async function setup() {
 
   // ── 3. Create/update 'courses' collection ───────────────────
   console.log("Creating/updating 'courses' collection…");
+  const courseTeacherMemberRule = '@request.auth.role = "teacher" && @collection.course_members.course_id ?= id && @collection.course_members.user_id ?= @request.auth.id';
+  const courseTeacherOwnerRule = '@request.auth.role = "teacher" && @collection.course_members.course_id ?= id && @collection.course_members.user_id ?= @request.auth.id && @collection.course_members.role ?= "owner"';
+  const courseStudentPublishedRule = '@request.auth.role = "student" && published = true';
   const courses = await ensureCollection('courses', {
     fields: [
       { name: 'name',           type: 'text',   required: true },
@@ -136,15 +139,17 @@ async function setup() {
       },
       { name: 'subject_prompt', type: 'text',   required: false },
     ],
-    listRule:   '',
-    viewRule:   '',
+    listRule:   `(${courseTeacherMemberRule}) || (${courseStudentPublishedRule})`,
+    viewRule:   `(${courseTeacherMemberRule}) || (${courseStudentPublishedRule})`,
     createRule: '@request.auth.role = "teacher"',
-    updateRule: '@request.auth.role = "teacher"',
-    deleteRule: '@request.auth.role = "teacher"',
+    updateRule: courseTeacherOwnerRule,
+    deleteRule: courseTeacherOwnerRule,
   });
 
   // ── 4. Create/update 'course_members' collection ────────────
   console.log("Creating/updating 'course_members' collection…");
+  const ownerForTargetCourse = '@request.auth.role = "teacher" && @collection.course_members.course_id ?= course_id && @collection.course_members.user_id ?= @request.auth.id && @collection.course_members.role ?= "owner"';
+  const selfMembershipRule = '@request.auth.role = "teacher" && user_id = @request.auth.id';
   await ensureCollection('course_members', {
     fields: [
       {
@@ -171,15 +176,82 @@ async function setup() {
         values: ['owner', 'editor'],
       },
     ],
-    listRule:   '@request.auth.role = "teacher"',
-    viewRule:   '@request.auth.role = "teacher"',
-    createRule: '@request.auth.role = "teacher"',
-    updateRule: '@request.auth.role = "teacher"',
-    deleteRule: '@request.auth.role = "teacher"',
+    listRule:   `(${selfMembershipRule}) || (${ownerForTargetCourse})`,
+    viewRule:   `(${selfMembershipRule}) || (${ownerForTargetCourse})`,
+    createRule: '@request.auth.role = "teacher" && ((role = "owner" && user_id = @request.auth.id) || (@collection.course_members.course_id ?= course_id && @collection.course_members.user_id ?= @request.auth.id && @collection.course_members.role ?= "owner"))',
+    updateRule: `${ownerForTargetCourse} && role != "owner"`,
+    deleteRule: `${ownerForTargetCourse} && role != "owner"`,
   });
+
+  // ── 4b. Backfill legacy memberships for existing courses ───
+  console.log("Backfilling legacy course memberships…");
+  try {
+    const teachers = await pb.collection('users').getFullList({
+      filter: 'role = "teacher"',
+    });
+
+    if (teachers.length === 0) {
+      console.log('  → No teachers found, skipping membership backfill.');
+    } else {
+      const teacherIds = new Set(teachers.map(t => t.id));
+      const allCourses = await pb.collection('courses').getFullList();
+      const allMembers = await pb.collection('course_members').getFullList();
+
+      const membersByCourse = new Map();
+      for (const member of allMembers) {
+        if (!membersByCourse.has(member.course_id)) membersByCourse.set(member.course_id, []);
+        membersByCourse.get(member.course_id).push(member);
+      }
+
+      let createdOwners = 0;
+      let createdEditors = 0;
+      let promotedOwners = 0;
+
+      for (const course of allCourses) {
+        const members = membersByCourse.get(course.id) ?? [];
+        const hasOwner = members.some(m => m.role === 'owner');
+
+        if (members.length === 0) {
+          // Legacy course without memberships: attach teachers so it stays accessible.
+          const ownerRecord = await pb.collection('course_members').create({
+            course_id: course.id,
+            user_id: teachers[0].id,
+            role: 'owner',
+          });
+          createdOwners += 1;
+
+          const nextMembers = [ownerRecord];
+          for (const teacher of teachers.slice(1)) {
+            const editorRecord = await pb.collection('course_members').create({
+              course_id: course.id,
+              user_id: teacher.id,
+              role: 'editor',
+            });
+            nextMembers.push(editorRecord);
+            createdEditors += 1;
+          }
+          membersByCourse.set(course.id, nextMembers);
+          continue;
+        }
+
+        if (!hasOwner) {
+          // Ensure each course has an owner.
+          const preferred = members.find(m => teacherIds.has(m.user_id)) ?? members[0];
+          await pb.collection('course_members').update(preferred.id, { role: 'owner' });
+          promotedOwners += 1;
+        }
+      }
+
+      console.log(`  → Backfill complete: ${createdOwners} owner(s), ${createdEditors} editor(s) created, ${promotedOwners} owner(s) promoted.`);
+    }
+  } catch (err) {
+    console.warn(`  → Membership backfill skipped due to error: ${err.message}`);
+  }
 
   // ── 5. Create/update 'chapters' collection ──────────────────
   console.log("Creating/updating 'chapters' collection…");
+  const chapterTeacherMemberRule = '@request.auth.role = "teacher" && @collection.course_members.course_id ?= course_id && @collection.course_members.user_id ?= @request.auth.id';
+  const chapterStudentPublishedRule = '@request.auth.role = "student" && course_id.published = true';
   await ensureCollection('chapters', {
     fields: [
       {
@@ -198,13 +270,11 @@ async function setup() {
       { name: 'exercises',      type: 'json',   required: false },
       { name: 'quiz',           type: 'json',   required: false },
     ],
-    // Read stays public for now.
-    listRule:   '',
-    viewRule:   '',
-    // Write remains teacher-only at Step 2.
-    createRule: '@request.auth.role = "teacher"',
-    updateRule: '@request.auth.role = "teacher"',
-    deleteRule: '@request.auth.role = "teacher"',
+    listRule:   `(${chapterTeacherMemberRule}) || (${chapterStudentPublishedRule})`,
+    viewRule:   `(${chapterTeacherMemberRule}) || (${chapterStudentPublishedRule})`,
+    createRule: chapterTeacherMemberRule,
+    updateRule: chapterTeacherMemberRule,
+    deleteRule: chapterTeacherMemberRule,
   });
 
   console.log('\nSetup complete!');

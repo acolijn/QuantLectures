@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { upsertChapter } from '../../lib/api';
 
-const CLAUDE_PROMPT = `Je bent een assistent die college-aantekeningen omzet naar een gestructureerd JSON-hoofdstuk voor een quantumfysica leer-app.
+const BASE_PROMPT = `Je bent een assistent die college-aantekeningen omzet naar een gestructureerd JSON-hoofdstuk voor een quantumfysica leer-app.
 
 Genereer ALLEEN geldige JSON (geen markdown, geen uitleg erbuiten), in dit exacte formaat:
 
@@ -70,16 +70,43 @@ LaTeX-regels (VERPLICHT — gebruik altijd echte LaTeX-commando's):
 - GOED: |\\psi\\rangle, \\alpha, \\sqrt{x}
 
 Overige regels:
-- Schrijf in het Nederlands
 - Geef 4-10 formules, 4-8 concepten, 2-4 opgaven met elk 3-6 stappen, 3-6 quizvragen
 - Elke quizvraag heeft precies 4 opties; "correct" is de index (0-3) van het juiste antwoord
 - VERPLICHT: omsluit ALLE LaTeX in quizvragen én opties met $...$ (inline), ook korte uitdrukkingen zoals $|0\\rangle$ of $\\alpha$
 - FOUT: "options": ["|0\\rangle", "|1\\rangle"] — GOED: "options": ["$|0\\rangle$", "$|1\\rangle$"]
 - Geef ALLEEN de JSON terug, niets anders
+`;
 
-Hier zijn de college-aantekeningen / het bronmateriaal:
+const LANGUAGE_LABELS = {
+  nl: 'Nederlands',
+  en: 'English',
+  de: 'Deutsch',
+  fr: 'Français',
+  es: 'Español',
+  it: 'Italiano',
+  pt: 'Português',
+  pl: 'Polski',
+};
 
-[PLAK HIER JE AANTEKENINGEN / BOEKFRAGMENT / ANDERE INFORMATIE]`;
+function buildClaudePrompt(course) {
+  const languageCode = course?.language ?? 'nl';
+  const languageLabel = LANGUAGE_LABELS[languageCode] ?? 'Nederlands';
+  const subjectPrompt = (course?.subjectPrompt ?? '').trim();
+
+  const dynamicContext = [
+    'Cursusinstellingen voor deze import (automatisch toegevoegd):',
+    `- Schrijf alle inhoud in: ${languageLabel}`,
+    subjectPrompt
+      ? `- Vakinhoudelijke instructies van docent: ${subjectPrompt}`
+      : '- Vakinhoudelijke instructies van docent: (nog niet ingesteld)',
+    '',
+    'Hier zijn de college-aantekeningen / het bronmateriaal:',
+    '',
+    '[PLAK HIER JE AANTEKENINGEN / BOEKFRAGMENT / ANDERE INFORMATIE]',
+  ].join('\n');
+
+  return `${BASE_PROMPT}\n\n${dynamicContext}`;
+}
 
 const REQUIRED_KEYS = ['title', 'subtitle', 'formulas', 'concepts', 'exercises', 'quiz'];
 
@@ -94,7 +121,7 @@ function validateChapter(obj) {
   return null;
 }
 
-export default function ImportChapter({ courseId, existingChapters, onClose, onImported }) {
+export default function ImportChapter({ courseId, course, existingChapters, onClose, onImported }) {
   const [json, setJson]           = useState('');
   const [chapterNum, setChapterNum] = useState(
     existingChapters.length > 0 ? Math.max(...existingChapters.map(c => c.id)) + 1 : 1
@@ -103,14 +130,15 @@ export default function ImportChapter({ courseId, existingChapters, onClose, onI
   const [saving, setSaving]       = useState(false);
   const [promptCopied, setPromptCopied] = useState(false);
   const [showPrompt, setShowPrompt] = useState(true);
+  const claudePrompt = buildClaudePrompt(course);
 
   async function handleCopyPrompt() {
     try {
-      await navigator.clipboard.writeText(CLAUDE_PROMPT);
+      await navigator.clipboard.writeText(claudePrompt);
     } catch {
       // Fallback for browsers that block clipboard API
       const el = document.createElement('textarea');
-      el.value = CLAUDE_PROMPT;
+      el.value = claudePrompt;
       el.style.position = 'fixed';
       el.style.opacity = '0';
       document.body.appendChild(el);
@@ -194,7 +222,7 @@ export default function ImportChapter({ courseId, existingChapters, onClose, onI
             </button>
           </div>
           {showPrompt && (
-            <pre className="import-prompt-preview">{CLAUDE_PROMPT}</pre>
+            <pre className="import-prompt-preview">{claudePrompt}</pre>
           )}
         </div>
 

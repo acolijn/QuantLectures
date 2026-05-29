@@ -1,10 +1,18 @@
 import { useEffect, useState } from 'react';
-import { createCourse, fetchCourses, updateCourse } from '../lib/api';
+import {
+  addCourseEditorByEmail,
+  createCourse,
+  fetchCourseMembers,
+  fetchCourses,
+  removeCourseEditor,
+  updateCourse,
+} from '../lib/api';
 
 export function useCourses(isTeacher) {
   const [courses, setCourses] = useState([]);
   const [activeCourseId, setActiveCourseId] = useState(null);
   const [loadingCourses, setLoadingCourses] = useState(true);
+  const [courseMembersByCourse, setCourseMembersByCourse] = useState({});
 
   useEffect(() => {
     let cancelled = false;
@@ -14,6 +22,7 @@ export function useCourses(isTeacher) {
       .then(records => {
         if (cancelled) return;
         setCourses(records);
+        setCourseMembersByCourse({});
         setActiveCourseId(prev => {
           if (records.length === 0) return null;
           if (prev && records.some(c => c.id === prev)) return prev;
@@ -47,12 +56,40 @@ export function useCourses(isTeacher) {
     return updated;
   }
 
+  async function refreshCourseMembers(courseId) {
+    if (!courseId) return [];
+    const members = await fetchCourseMembers(courseId);
+    setCourseMembersByCourse(prev => ({ ...prev, [courseId]: members }));
+    return members;
+  }
+
+  async function addEditorToCourse(courseId, email) {
+    const added = await addCourseEditorByEmail(courseId, email);
+    setCourseMembersByCourse(prev => {
+      const existing = prev[courseId] ?? [];
+      return { ...prev, [courseId]: [...existing, added] };
+    });
+    return added;
+  }
+
+  async function removeEditorFromCourse(courseId, memberId) {
+    await removeCourseEditor(memberId);
+    setCourseMembersByCourse(prev => ({
+      ...prev,
+      [courseId]: (prev[courseId] ?? []).filter(member => member.id !== memberId),
+    }));
+  }
+
   return {
     courses,
     activeCourseId,
     loadingCourses,
+    courseMembersByCourse,
     setActiveCourseId,
     createNewCourse,
     updateExistingCourse,
+    refreshCourseMembers,
+    addEditorToCourse,
+    removeEditorFromCourse,
   };
 }
