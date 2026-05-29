@@ -18,6 +18,7 @@ Use this table as the single source of truth while we build. Update `Status`, `O
 | Step 3d | Student progress in PocketBase | ⚪ Planned | 1 day | - | 2026-05-28 | No grading; lightweight progress only |
 | Step 4 | Subscription tiers + admin manual overrides | ⚪ Planned | 1-2 days | - | 2026-05-28 | Gate content by tier |
 | Step 5 | Payment integration (Paddle/Stripe) | ⚪ Planned | 2-3 days | - | 2026-05-28 | Requires webhook service |
+| Step 5a | Optional concept deep dives | ⚪ Planned | 0.5-1 day | - | 2026-05-29 | Add `deepDive` to AI JSON and show expandable block only when non-empty |
 | Step 6 | Image support in chapters | ⚪ Planned | 0.5-1 day | - | 2026-05-28 | URL-based references in JSON |
 | Step 7 | GDPR compliance | ⚪ Planned | 0.5-1 day (tech) + legal drafting time | - | 2026-05-28 | Account deletion + policy docs |
 | Step 8 | Production deployment | ⚪ Planned | 0.5-1 day | - | 2026-05-28 | Domain, SSL, SMTP, backups |
@@ -298,6 +299,20 @@ last_attempt   (datetime)
 - For AI-generated chapters: AI writes `"image": null`; teacher uploads manually afterwards
 
 **Does not affect:** auth, routing, AI import/export logic.
+
+---
+
+## Step 5a — Optional concept deep dives
+
+**What:** support a deeper optional explanation per concept without forcing long text for every student.
+
+**Changes:**
+- Extend AI JSON schema for each concept with a required `deepDive` field (string, may be empty)
+- Update import prompt/schema examples so Claude always returns `deepDive`
+- In the concept card UI, show an expandable "deeper explanation" block only when `deepDive` is non-empty
+- Keep default concept view concise to preserve current fast-reading flow
+
+**Why later:** this is a UX/content enhancement, not required for current Step 2 platform completion.
 
 ---
 

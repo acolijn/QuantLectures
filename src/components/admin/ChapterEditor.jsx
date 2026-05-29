@@ -110,10 +110,10 @@ export default function ChapterEditor({ chapter, courseId, onClose, onSaved }) {
 
       {/* ── Tabs ── */}
       <div className="tab-bar">
-        {['concepts', 'formulas', 'quiz'].map(t => (
-          <button key={t} className={`tab ${tab === t ? 'active' : ''}`} onClick={() => setTab(t)}>
-            {t === 'concepts' ? t('editor_concepts_tab', { count: concepts.length })
-              : t === 'formulas' ? t('editor_formulas_tab', { count: formulas.length })
+        {['concepts', 'formulas', 'quiz'].map(tabName => (
+          <button key={tabName} className={`tab ${tab === tabName ? 'active' : ''}`} onClick={() => setTab(tabName)}>
+            {tabName === 'concepts' ? t('editor_concepts_tab', { count: concepts.length })
+              : tabName === 'formulas' ? t('editor_formulas_tab', { count: formulas.length })
               : t('editor_quiz_tab', { count: quiz.length })}
           </button>
         ))}

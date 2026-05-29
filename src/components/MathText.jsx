@@ -129,9 +129,14 @@ export default function MathText({ text }) {
         });
         containerRef.current.appendChild(table);
       } else {
-        // Process regular text: handle \n, **bold**
+        // Process regular text: normalize escaped newlines and handle formatting
         const span = document.createElement('span');
-        let html = token.value
+        const normalizedPlainText = token.value
+          .replace(/\\r\\n/g, '\n')
+          .replace(/\\n/g, '\n')
+          .replace(/\\r/g, '\n');
+
+        let html = normalizedPlainText
           .replace(/&/g, '&amp;')
           .replace(/</g, '&lt;')
           .replace(/>/g, '&gt;')
