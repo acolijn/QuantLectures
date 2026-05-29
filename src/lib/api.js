@@ -5,7 +5,11 @@ function escapeFilterValue(value) {
 }
 
 function isTeacher() {
-  return pb.authStore.model?.role === 'teacher';
+  return pb.authStore.model?.role === 'teacher' || pb.authStore.model?.role === 'admin';
+}
+
+function isAdmin() {
+  return pb.authStore.model?.role === 'admin';
 }
 
 function toCourse(record) {
@@ -94,6 +98,137 @@ export async function fetchCourses() {
     ...record,
     memberRole: roleByCourse.get(record.id) ?? null,
   }));
+}
+
+function toInvite(record) {
+  return {
+    id: record.id,
+    courseId: record.course_id,
+    code: record.code,
+    active: !!record.active,
+    maxUses: record.max_uses ?? null,
+    usedCount: record.used_count ?? 0,
+    expiresAt: record.expires_at ?? null,
+    createdBy: record.created_by ?? null,
+  };
+}
+
+function toPendingTeacher(record) {
+  return {
+    id: record.id,
+    email: record.email,
+    name: record.name ?? '',
+    role: record.role,
+    created: record.created,
+    verified: !!record.verified,
+  };
+}
+
+export async function fetchCourseInvites(courseId) {
+  if (!courseId) return [];
+
+  const records = await pb.collection('course_invites').getFullList({
+    filter: `course_id="${escapeFilterValue(courseId)}"`,
+    sort: '-created',
+  });
+
+  return records.map(toInvite);
+}
+
+export async function createCourseInvite(courseId, payload = {}) {
+  if (!courseId) throw new Error('Geen cursus geselecteerd.');
+
+  const rawCode = String(payload.code ?? '').trim().toUpperCase();
+  if (!rawCode) {
+    throw new Error('Voer een invite code in.');
+  }
+
+  const created = await pb.collection('course_invites').create({
+    course_id: courseId,
+    code: rawCode,
+    active: payload.active ?? true,
+    max_uses: payload.maxUses ?? null,
+    expires_at: payload.expiresAt ?? null,
+    used_count: 0,
+    created_by: pb.authStore.model?.id,
+  });
+
+  return toInvite(created);
+}
+
+export async function revokeCourseInvite(inviteId) {
+  await pb.collection('course_invites').update(inviteId, { active: false });
+}
+
+export async function redeemInviteCode(code) {
+  if (!pb.authStore.model?.id) {
+    throw new Error('Log eerst in om een invite code te gebruiken.');
+  }
+
+  const normalized = String(code).trim().toUpperCase();
+  if (!normalized) {
+    throw new Error('Voer een invite code in.');
+  }
+
+  const invite = await pb.collection('course_invites').getFirstListItem(
+    `code="${escapeFilterValue(normalized)}" && active=true`
+  );
+
+  if (invite.expires_at) {
+    const expiresAt = new Date(invite.expires_at).getTime();
+    if (!Number.isNaN(expiresAt) && Date.now() > expiresAt) {
+      throw new Error('Deze invite code is verlopen.');
+    }
+  }
+
+  if (typeof invite.max_uses === 'number' && invite.max_uses > 0 && (invite.used_count ?? 0) >= invite.max_uses) {
+    throw new Error('Deze invite code heeft het maximum aantal activaties bereikt.');
+  }
+
+  const existingEnrollments = await pb.collection('course_enrollments').getFullList({
+    filter: `course_id="${escapeFilterValue(invite.course_id)}" && user_id="${escapeFilterValue(pb.authStore.model.id)}"`,
+  });
+
+  if (existingEnrollments.length > 0) {
+    throw new Error('Je bent al ingeschreven voor deze cursus.');
+  }
+
+  await pb.collection('course_enrollments').create({
+    course_id: invite.course_id,
+    user_id: pb.authStore.model.id,
+    invite_id: invite.id,
+  });
+
+  await pb.collection('course_invites').update(invite.id, {
+    used_count: (invite.used_count ?? 0) + 1,
+  });
+
+  return invite.course_id;
+}
+
+export async function fetchPendingTeachers() {
+  if (!isAdmin()) return [];
+
+  const records = await pb.collection('users').getFullList({
+    filter: 'role="pending"',
+  });
+  return records.map(toPendingTeacher);
+}
+
+export async function approvePendingTeacher(userId) {
+  if (!isAdmin()) throw new Error('Alleen admins kunnen docenten goedkeuren.');
+  await pb.collection('users').update(userId, { role: 'teacher' });
+}
+
+export async function rejectPendingTeacher(userId, mode = 'rejected') {
+  if (!isAdmin()) throw new Error('Alleen admins kunnen docentaanvragen afwijzen.');
+
+  if (mode === 'delete') {
+    await pb.collection('users').delete(userId);
+    return;
+  }
+
+  await pb.collection('users').update(userId, { role: 'student' });
 }
 
 export async function createCourse(payload = {}) {

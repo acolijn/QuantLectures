@@ -11,10 +11,10 @@ Use this table as the single source of truth while we build. Update `Status`, `O
 | Step 1 | Current MVP (single course, chapter editor, AI import/export, teacher toolbar, chapter reorder) | 🟢 Done | Implemented | - | 2026-05-28 | Baseline already in place |
 | Step 2 | Multi-course support + course members + published flag + subject prompt/language | 🟢 Done | 2-3 days | AI + user | 2026-05-29 | Completed: members UI, my-courses filtering by membership, and membership-based PocketBase rules |
 | Step 2e | UI localization (menus/buttons/messages) | 🟢 Done | 1-2 days | AI + user | 2026-05-29 | App-wide NL/EN i18n, persisted UI language, and auto-follow course language toggle implemented |
-| Step 3 | Teacher registration via secret link | ⚪ Planned | 2-3 hours | - | 2026-05-28 | Fastest safe onboarding path |
-| Step 3a | Password management + email verification | ⚪ Planned | 0.5-1 day | - | 2026-05-28 | PocketBase-native APIs |
-| Step 3b | Proper teacher approval flow | ⚪ Planned | 1 day | - | 2026-05-28 | Add when teacher volume increases |
-| Step 3c | Student invite codes + student signup flow | ⚪ Planned | 1-1.5 days | - | 2026-05-28 | Access to specific courses only |
+| Step 3 | Teacher registration via secret link | 🟢 Done | 2-3 hours | AI + user | 2026-05-29 | Signup supports `?token=` teacher path; token enforced in app flow with `TEACHER_SIGNUP_TOKEN` |
+| Step 3a | Password management + email verification | 🟢 Done | 0.5-1 day | AI + user | 2026-05-29 | Added forgot/reset/change-password and verification request flows |
+| Step 3b | Proper teacher approval flow | 🟢 Done | 1 day | AI + user | 2026-05-29 | Admin panel in sidebar for approve/reject of pending teachers |
+| Step 3c | Student invite codes + student signup flow | 🟢 Done | 1-1.5 days | AI + user | 2026-05-29 | `course_invites` + `course_enrollments` + student code redemption |
 | Step 3d | Student progress in PocketBase | ⚪ Planned | 1 day | - | 2026-05-28 | No grading; lightweight progress only |
 | Step 4 | Subscription tiers + admin manual overrides | ⚪ Planned | 1-2 days | - | 2026-05-28 | Gate content by tier |
 | Step 5 | Payment integration (Paddle/Stripe) | ⚪ Planned | 2-3 days | - | 2026-05-28 | Requires webhook service |

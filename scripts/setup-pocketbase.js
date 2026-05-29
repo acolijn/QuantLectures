@@ -14,6 +14,9 @@
  *   POCKETBASE_URL        e.g. http://localhost:8090
  *   PB_ADMIN_EMAIL        your PocketBase superuser e-mail
  *   PB_ADMIN_PASSWORD     your PocketBase superuser password
+ *
+ * Optional env vars:
+ *   TEACHER_SIGNUP_TOKEN  secret token for teacher self-registration links
  */
 
 import PocketBase from 'pocketbase';
@@ -36,14 +39,54 @@ function customFields(collection) {
 }
 
 async function ensureCollection(name, definition) {
+  let existing = null;
   try {
-    const existing = await pb.collections.getOne(name);
+    existing = await pb.collections.getOne(name);
+  } catch {
+    // Some PocketBase versions can fail getOne(name) even if the collection exists.
+    // Fallback to name lookup from full list before creating.
+    try {
+      const all = await pb.collections.getFullList();
+      const matched = all.find(c => c.name === name);
+      if (matched) {
+        const existingCustom = customFields(matched);
+        const missing = (definition.fields ?? []).filter(f => !existingCustom.some(e => e.name === f.name));
+
+        if (missing.length > 0) {
+          await pb.collections.update(matched.id, {
+            fields: [...existingCustom, ...missing],
+          });
+          console.log(`  → '${name}' collection updated (added missing fields: ${[...missing.map(f => f.name)].join(', ')}).`);
+        } else {
+          console.log(`  → '${name}' collection already exists, skipping.`);
+        }
+
+        if (definition.listRule !== undefined || definition.viewRule !== undefined
+          || definition.createRule !== undefined || definition.updateRule !== undefined
+          || definition.deleteRule !== undefined) {
+          await pb.collections.update(matched.id, {
+            fields: customFields(await pb.collections.getOne(matched.id)),
+            listRule:   definition.listRule,
+            viewRule:   definition.viewRule,
+            createRule: definition.createRule,
+            updateRule: definition.updateRule,
+            deleteRule: definition.deleteRule,
+          });
+        }
+
+        return pb.collections.getOne(matched.id);
+      }
+    } catch {
+      // Ignore and continue with create flow below.
+    }
+  }
+
+  if (existing) {
     const existingCustom = customFields(existing);
-    const incomingNames = new Set((definition.fields ?? []).map(f => f.name));
     const missing = (definition.fields ?? []).filter(f => !existingCustom.some(e => e.name === f.name));
 
     if (missing.length > 0) {
-      await pb.collections.update(name, {
+      await pb.collections.update(existing.id, {
         fields: [...existingCustom, ...missing],
       });
       console.log(`  → '${name}' collection updated (added missing fields: ${[...missing.map(f => f.name)].join(', ')}).`);
@@ -51,31 +94,29 @@ async function ensureCollection(name, definition) {
       console.log(`  → '${name}' collection already exists, skipping.`);
     }
 
-    // Best-effort rules sync if provided.
     if (definition.listRule !== undefined || definition.viewRule !== undefined
       || definition.createRule !== undefined || definition.updateRule !== undefined
       || definition.deleteRule !== undefined) {
-      await pb.collections.update(name, {
-        fields: customFields(await pb.collections.getOne(name)),
-        listRule:   definition.listRule,
-        viewRule:   definition.viewRule,
+      await pb.collections.update(existing.id, {
+        fields: customFields(await pb.collections.getOne(existing.id)),
+        listRule: definition.listRule,
+        viewRule: definition.viewRule,
         createRule: definition.createRule,
         updateRule: definition.updateRule,
         deleteRule: definition.deleteRule,
       });
     }
 
-    // Return latest version
-    return pb.collections.getOne(name);
-  } catch {
-    const created = await pb.collections.create({
-      name,
-      type: 'base',
-      ...definition,
-    });
-    console.log(`  → '${name}' collection created.`);
-    return created;
+    return pb.collections.getOne(existing.id);
   }
+
+  const created = await pb.collections.create({
+    name,
+    type: 'base',
+    ...definition,
+  });
+  console.log(`  → '${name}' collection created.`);
+  return created;
 }
 
 async function setup() {
@@ -101,29 +142,62 @@ async function setup() {
 
   const usersCustomFields = customFields(usersCollection);
   const alreadyHasRole = usersCustomFields.some(f => f.name === 'role');
+  const alreadyHasSignupToken = usersCustomFields.some(f => f.name === 'signup_token');
+
+  const nextUserFields = usersCustomFields.map(field => {
+    if (field.name !== 'role') return field;
+    return {
+      ...field,
+      type: 'select',
+      required: false,
+      maxSelect: 1,
+      values: ['pending', 'student', 'teacher', 'admin'],
+    };
+  });
 
   if (!alreadyHasRole) {
-    await pb.collections.update('users', {
-      fields: [
-        ...usersCustomFields,
-        {
-          name: 'role',
-          type: 'select',
-          required: false,
-          maxSelect: 1,
-          values: ['student', 'teacher'],
-        },
-      ],
+    nextUserFields.push({
+      name: 'role',
+      type: 'select',
+      required: false,
+      maxSelect: 1,
+      values: ['pending', 'student', 'teacher', 'admin'],
     });
     console.log("  → 'role' field added.");
-  } else {
-    console.log("  → 'role' field already exists, skipping.");
+  }
+
+  if (!alreadyHasSignupToken) {
+    nextUserFields.push({
+      name: 'signup_token',
+      type: 'text',
+      required: false,
+    });
+    console.log("  → 'signup_token' field added.");
+  }
+
+  await pb.collections.update('users', {
+    fields: nextUserFields,
+  });
+  await pb.collections.update('users', {
+    fields: customFields(await pb.collections.getOne('users')),
+    listRule: '@request.auth.role = "teacher" || @request.auth.role = "admin"',
+    viewRule: '@request.auth.id = id || @request.auth.role = "teacher" || @request.auth.role = "admin"',
+    updateRule: '@request.auth.id = id || @request.auth.role = "admin"',
+    deleteRule: '@request.auth.role = "admin"',
+  });
+  if (alreadyHasRole && alreadyHasSignupToken) {
+    console.log("  → 'users' fields synced (role options refreshed).");
+  }
+
+  const teacherSignupToken = String(process.env.TEACHER_SIGNUP_TOKEN ?? '').trim();
+  if (teacherSignupToken) {
+    console.log('  → TEACHER_SIGNUP_TOKEN detected (enforced in app signup flow).');
   }
 
   // ── 3. Create/update 'courses' collection ───────────────────
   console.log("Creating/updating 'courses' collection…");
-  const courseTeacherMemberRule = '@request.auth.role = "teacher" && @collection.course_members.course_id ?= id && @collection.course_members.user_id ?= @request.auth.id';
-  const courseTeacherOwnerRule = '@request.auth.role = "teacher" && @collection.course_members.course_id ?= id && @collection.course_members.user_id ?= @request.auth.id && @collection.course_members.role ?= "owner"';
+  const courseTeacherMemberRule = '(@request.auth.role = "teacher" || @request.auth.role = "admin") && @collection.course_members.course_id ?= id && @collection.course_members.user_id ?= @request.auth.id';
+  const courseTeacherOwnerRule = '(@request.auth.role = "teacher" || @request.auth.role = "admin") && @collection.course_members.course_id ?= id && @collection.course_members.user_id ?= @request.auth.id && @collection.course_members.role ?= "owner"';
   const courseStudentPublishedRule = '@request.auth.role = "student" && published = true';
   const courses = await ensureCollection('courses', {
     fields: [
@@ -141,15 +215,15 @@ async function setup() {
     ],
     listRule:   `(${courseTeacherMemberRule}) || (${courseStudentPublishedRule})`,
     viewRule:   `(${courseTeacherMemberRule}) || (${courseStudentPublishedRule})`,
-    createRule: '@request.auth.role = "teacher"',
+    createRule: '@request.auth.role = "teacher" || @request.auth.role = "admin"',
     updateRule: courseTeacherOwnerRule,
     deleteRule: courseTeacherOwnerRule,
   });
 
   // ── 4. Create/update 'course_members' collection ────────────
   console.log("Creating/updating 'course_members' collection…");
-  const ownerForTargetCourse = '@request.auth.role = "teacher" && @collection.course_members.course_id ?= course_id && @collection.course_members.user_id ?= @request.auth.id && @collection.course_members.role ?= "owner"';
-  const selfMembershipRule = '@request.auth.role = "teacher" && user_id = @request.auth.id';
+  const ownerForTargetCourse = '(@request.auth.role = "teacher" || @request.auth.role = "admin") && @collection.course_members.course_id ?= course_id && @collection.course_members.user_id ?= @request.auth.id && @collection.course_members.role ?= "owner"';
+  const selfMembershipRule = '(@request.auth.role = "teacher" || @request.auth.role = "admin") && user_id = @request.auth.id';
   await ensureCollection('course_members', {
     fields: [
       {
@@ -178,7 +252,7 @@ async function setup() {
     ],
     listRule:   `(${selfMembershipRule}) || (${ownerForTargetCourse})`,
     viewRule:   `(${selfMembershipRule}) || (${ownerForTargetCourse})`,
-    createRule: '@request.auth.role = "teacher" && ((role = "owner" && user_id = @request.auth.id) || (@collection.course_members.course_id ?= course_id && @collection.course_members.user_id ?= @request.auth.id && @collection.course_members.role ?= "owner"))',
+    createRule: '(@request.auth.role = "teacher" || @request.auth.role = "admin") && ((role = "owner" && user_id = @request.auth.id) || (@collection.course_members.course_id ?= course_id && @collection.course_members.user_id ?= @request.auth.id && @collection.course_members.role ?= "owner"))',
     updateRule: `${ownerForTargetCourse} && role != "owner"`,
     deleteRule: `${ownerForTargetCourse} && role != "owner"`,
   });
@@ -250,7 +324,7 @@ async function setup() {
 
   // ── 5. Create/update 'chapters' collection ──────────────────
   console.log("Creating/updating 'chapters' collection…");
-  const chapterTeacherMemberRule = '@request.auth.role = "teacher" && @collection.course_members.course_id ?= course_id && @collection.course_members.user_id ?= @request.auth.id';
+  const chapterTeacherMemberRule = '(@request.auth.role = "teacher" || @request.auth.role = "admin") && @collection.course_members.course_id ?= course_id && @collection.course_members.user_id ?= @request.auth.id';
   const chapterStudentPublishedRule = '@request.auth.role = "student" && course_id.published = true';
   await ensureCollection('chapters', {
     fields: [
@@ -272,6 +346,99 @@ async function setup() {
     ],
     listRule:   `(${chapterTeacherMemberRule}) || (${chapterStudentPublishedRule})`,
     viewRule:   `(${chapterTeacherMemberRule}) || (${chapterStudentPublishedRule})`,
+    createRule: chapterTeacherMemberRule,
+    updateRule: chapterTeacherMemberRule,
+    deleteRule: chapterTeacherMemberRule,
+  });
+
+  // ── 6. Create/update 'course_invites' collection ────────────
+  console.log("Creating/updating 'course_invites' collection…");
+  const ownerInviteRule = '(@request.auth.role = "teacher" || @request.auth.role = "admin") && @collection.course_members.course_id ?= course_id && @collection.course_members.user_id ?= @request.auth.id && @collection.course_members.role ?= "owner"';
+  await ensureCollection('course_invites', {
+    fields: [
+      {
+        name: 'course_id',
+        type: 'relation',
+        required: true,
+        maxSelect: 1,
+        collectionId: courses.id,
+        cascadeDelete: true,
+      },
+      { name: 'code', type: 'text', required: true },
+      { name: 'active', type: 'bool', required: false },
+      { name: 'max_uses', type: 'number', required: false },
+      { name: 'used_count', type: 'number', required: false },
+      { name: 'expires_at', type: 'date', required: false },
+      {
+        name: 'created_by',
+        type: 'relation',
+        required: false,
+        maxSelect: 1,
+        collectionId: usersCollection.id,
+        cascadeDelete: false,
+      },
+    ],
+    listRule: ownerInviteRule,
+    viewRule: ownerInviteRule,
+    createRule: ownerInviteRule,
+    updateRule: ownerInviteRule,
+    deleteRule: ownerInviteRule,
+  });
+
+  // ── 7. Create/update 'course_enrollments' collection ────────
+  console.log("Creating/updating 'course_enrollments' collection…");
+  await ensureCollection('course_enrollments', {
+    fields: [
+      {
+        name: 'course_id',
+        type: 'relation',
+        required: true,
+        maxSelect: 1,
+        collectionId: courses.id,
+        cascadeDelete: true,
+      },
+      {
+        name: 'user_id',
+        type: 'relation',
+        required: true,
+        maxSelect: 1,
+        collectionId: usersCollection.id,
+        cascadeDelete: true,
+      },
+      {
+        name: 'invite_id',
+        type: 'relation',
+        required: false,
+        maxSelect: 1,
+        collectionId: (await pb.collections.getOne('course_invites')).id,
+        cascadeDelete: false,
+      },
+    ],
+    listRule: '@request.auth.id = user_id || @request.auth.role = "admin" || ((@request.auth.role = "teacher" || @request.auth.role = "admin") && @collection.course_members.course_id ?= course_id && @collection.course_members.user_id ?= @request.auth.id)',
+    viewRule: '@request.auth.id = user_id || @request.auth.role = "admin" || ((@request.auth.role = "teacher" || @request.auth.role = "admin") && @collection.course_members.course_id ?= course_id && @collection.course_members.user_id ?= @request.auth.id)',
+    createRule: '(@request.auth.role = "student" && user_id = @request.auth.id) || @request.auth.role = "admin"',
+    updateRule: '@request.auth.role = "admin"',
+    deleteRule: '@request.auth.role = "admin"',
+  });
+
+  // ── 8. Tighten student rules to enrollment-based visibility ──
+  console.log('Applying enrollment-based student access rules…');
+  const strictCourseStudentRule = '@request.auth.role = "student" && published = true && @collection.course_enrollments.course_id ?= id && @collection.course_enrollments.user_id ?= @request.auth.id';
+  const strictChapterStudentRule = '@request.auth.role = "student" && course_id.published = true && @collection.course_enrollments.course_id ?= course_id && @collection.course_enrollments.user_id ?= @request.auth.id';
+
+  await pb.collections.update('courses', {
+    fields: customFields(await pb.collections.getOne('courses')),
+    listRule: `(${courseTeacherMemberRule}) || (${strictCourseStudentRule})`,
+    viewRule: `(${courseTeacherMemberRule}) || (${strictCourseStudentRule})`,
+    createRule: '@request.auth.role = "teacher"',
+    updateRule: courseTeacherOwnerRule,
+    deleteRule: courseTeacherOwnerRule,
+  });
+
+  await pb.collections.update('chapters', {
+    fields: customFields(await pb.collections.getOne('chapters')),
+    listRule: `(${chapterTeacherMemberRule}) || (${strictChapterStudentRule})`,
+    viewRule: `(${chapterTeacherMemberRule}) || (${strictChapterStudentRule})`,
     createRule: chapterTeacherMemberRule,
     updateRule: chapterTeacherMemberRule,
     deleteRule: chapterTeacherMemberRule,

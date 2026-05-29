@@ -1,10 +1,17 @@
 import { useEffect, useState } from 'react';
 import {
   addCourseEditorByEmail,
+  approvePendingTeacher,
   createCourse,
+  createCourseInvite,
   fetchCourseMembers,
+  fetchCourseInvites,
   fetchCourses,
+  fetchPendingTeachers,
+  redeemInviteCode,
+  rejectPendingTeacher,
   removeCourseEditor,
+  revokeCourseInvite,
   updateCourse,
 } from '../lib/api';
 
@@ -13,6 +20,8 @@ export function useCourses(isTeacher) {
   const [activeCourseId, setActiveCourseId] = useState(null);
   const [loadingCourses, setLoadingCourses] = useState(true);
   const [courseMembersByCourse, setCourseMembersByCourse] = useState({});
+  const [courseInvitesByCourse, setCourseInvitesByCourse] = useState({});
+  const [pendingTeachers, setPendingTeachers] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -23,6 +32,7 @@ export function useCourses(isTeacher) {
         if (cancelled) return;
         setCourses(records);
         setCourseMembersByCourse({});
+        setCourseInvitesByCourse({});
         setActiveCourseId(prev => {
           if (records.length === 0) return null;
           if (prev && records.some(c => c.id === prev)) return prev;
@@ -80,16 +90,78 @@ export function useCourses(isTeacher) {
     }));
   }
 
+  async function refreshCourseInvites(courseId) {
+    if (!courseId) return [];
+    const invites = await fetchCourseInvites(courseId);
+    setCourseInvitesByCourse(prev => ({ ...prev, [courseId]: invites }));
+    return invites;
+  }
+
+  async function createInviteForCourse(courseId, payload) {
+    const invite = await createCourseInvite(courseId, payload);
+    setCourseInvitesByCourse(prev => ({
+      ...prev,
+      [courseId]: [invite, ...(prev[courseId] ?? [])],
+    }));
+    return invite;
+  }
+
+  async function revokeInviteForCourse(courseId, inviteId) {
+    await revokeCourseInvite(inviteId);
+    setCourseInvitesByCourse(prev => ({
+      ...prev,
+      [courseId]: (prev[courseId] ?? []).map(inv => (
+        inv.id === inviteId ? { ...inv, active: false } : inv
+      )),
+    }));
+  }
+
+  async function redeemStudentInvite(code) {
+    const courseId = await redeemInviteCode(code);
+    const records = await fetchCourses();
+    setCourses(records);
+    setActiveCourseId(prev => {
+      if (prev && records.some(c => c.id === prev)) return prev;
+      return courseId ?? records[0]?.id ?? null;
+    });
+    return courseId;
+  }
+
+  async function refreshPendingTeachers() {
+    const pending = await fetchPendingTeachers();
+    setPendingTeachers(pending);
+    return pending;
+  }
+
+  async function approveTeacher(userId) {
+    await approvePendingTeacher(userId);
+    setPendingTeachers(prev => prev.filter(user => user.id !== userId));
+  }
+
+  async function rejectTeacher(userId, mode) {
+    await rejectPendingTeacher(userId, mode);
+    setPendingTeachers(prev => prev.filter(user => user.id !== userId));
+  }
+
   return {
     courses,
     activeCourseId,
     loadingCourses,
     courseMembersByCourse,
+    courseInvitesByCourse,
+    pendingTeachers,
     setActiveCourseId,
     createNewCourse,
     updateExistingCourse,
     refreshCourseMembers,
     addEditorToCourse,
     removeEditorFromCourse,
+    refreshCourseInvites,
+    createInviteForCourse,
+    revokeInviteForCourse,
+    redeemStudentInvite,
+    refreshPendingTeachers,
+    approveTeacher,
+    rejectTeacher,
   };
 }

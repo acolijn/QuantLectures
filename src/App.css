@@ -1373,6 +1373,29 @@ body {
   margin-bottom: 24px;
 }
 
+.auth-mode-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.auth-mode-btn {
+  border: 1px solid var(--color-border);
+  background: #fff;
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.auth-mode-btn.active {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
 .login-form {
   display: flex;
   flex-direction: column;
@@ -1398,11 +1421,30 @@ body {
   transition: border-color 0.15s;
 }
 
+.login-form select {
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  outline: none;
+  background: #fff;
+}
+
+.login-form select:focus {
+  border-color: var(--color-primary);
+}
+
 .login-form input:focus { border-color: var(--color-primary); }
 
 .form-error {
   color: var(--color-incorrect);
   font-size: 0.85rem;
+}
+
+.form-message {
+  color: var(--color-primary);
+  font-size: 0.84rem;
 }
 
 .form-actions {

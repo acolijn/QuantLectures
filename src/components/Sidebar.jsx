@@ -18,6 +18,7 @@ export default function Sidebar({
   course,
   courses,
   activeCourseId,
+  isAdmin,
   onSelectCourse,
   onCreateCourse,
   onUpdateCourse,
@@ -25,6 +26,15 @@ export default function Sidebar({
   onLoadCourseMembers,
   onAddEditor,
   onRemoveEditor,
+  courseInvites,
+  onLoadCourseInvites,
+  onCreateInvite,
+  onRevokeInvite,
+  onRedeemInvite,
+  pendingTeachers,
+  onLoadPendingTeachers,
+  onApproveTeacher,
+  onRejectTeacher,
   chapters,
   activeChapter,
   onSelectChapter,
@@ -44,6 +54,18 @@ export default function Sidebar({
   const [membersLoading, setMembersLoading] = useState(false);
   const [memberActionLoading, setMemberActionLoading] = useState(false);
   const [memberMessage, setMemberMessage] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
+  const [inviteMaxUses, setInviteMaxUses] = useState('');
+  const [inviteExpiresAt, setInviteExpiresAt] = useState('');
+  const [invitesLoading, setInvitesLoading] = useState(false);
+  const [inviteActionLoading, setInviteActionLoading] = useState(false);
+  const [inviteMessage, setInviteMessage] = useState('');
+  const [redeemCode, setRedeemCode] = useState('');
+  const [redeemingInvite, setRedeemingInvite] = useState(false);
+  const [redeemMessage, setRedeemMessage] = useState('');
+  const [pendingActionLoading, setPendingActionLoading] = useState(false);
+  const [pendingMessage, setPendingMessage] = useState('');
+  const [pendingLoading, setPendingLoading] = useState(false);
   const [courseForm, setCourseForm] = useState({
     name: '',
     subtitle: '',
@@ -90,6 +112,32 @@ export default function Sidebar({
       })
         .finally(() => setMembersLoading(false));
       }, [showCourseSettings, course, courseMembers.length, t]);
+
+  useEffect(() => {
+    if (!showCourseSettings || !course || course.memberRole !== 'owner') return;
+    if (courseInvites.length > 0) return;
+
+    setInvitesLoading(true);
+    onLoadCourseInvites?.()
+      .catch(err => {
+        console.error('Failed to load invites:', err);
+        setInviteMessage(t('sidebar_invite_load_failed'));
+      })
+      .finally(() => setInvitesLoading(false));
+  }, [showCourseSettings, course, courseInvites.length, onLoadCourseInvites, t]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    if (pendingTeachers.length > 0) return;
+
+    setPendingLoading(true);
+    onLoadPendingTeachers?.()
+      .catch(err => {
+        console.error('Failed to load pending teachers:', err);
+        setPendingMessage(t('sidebar_pending_load_failed'));
+      })
+      .finally(() => setPendingLoading(false));
+  }, [isAdmin, pendingTeachers.length, onLoadPendingTeachers, t]);
 
   function handleDragStart(e, index) {
     setDraggedIndex(index);
@@ -182,10 +230,96 @@ export default function Sidebar({
     }
   }
 
+  async function handleCreateInvite(e) {
+    e.preventDefault();
+    if (!onCreateInvite || !inviteCode.trim()) return;
+
+    setInviteActionLoading(true);
+    setInviteMessage('');
+    try {
+      await onCreateInvite({
+        code: inviteCode.trim().toUpperCase(),
+        maxUses: inviteMaxUses.trim() ? Number(inviteMaxUses) : null,
+        expiresAt: inviteExpiresAt || null,
+      });
+      setInviteCode('');
+      setInviteMaxUses('');
+      setInviteExpiresAt('');
+      setInviteMessage(t('sidebar_invite_created'));
+    } catch (err) {
+      setInviteMessage(err.message || t('sidebar_invite_create_failed'));
+    } finally {
+      setInviteActionLoading(false);
+    }
+  }
+
+  async function handleRevokeInvite(inviteId) {
+    if (!onRevokeInvite) return;
+    if (!window.confirm(t('sidebar_invite_revoke_confirm'))) return;
+
+    setInviteActionLoading(true);
+    setInviteMessage('');
+    try {
+      await onRevokeInvite(inviteId);
+      setInviteMessage(t('sidebar_invite_revoked'));
+    } catch (err) {
+      setInviteMessage(err.message || t('sidebar_invite_revoke_failed'));
+    } finally {
+      setInviteActionLoading(false);
+    }
+  }
+
+  async function handleRedeemInvite(e) {
+    e.preventDefault();
+    if (!onRedeemInvite || !redeemCode.trim()) return;
+
+    setRedeemingInvite(true);
+    setRedeemMessage('');
+    try {
+      await onRedeemInvite(redeemCode.trim());
+      setRedeemCode('');
+      setRedeemMessage(t('sidebar_redeem_success'));
+    } catch (err) {
+      setRedeemMessage(err.message || t('sidebar_redeem_failed'));
+    } finally {
+      setRedeemingInvite(false);
+    }
+  }
+
+  async function handleApprovePending(userId) {
+    if (!onApproveTeacher) return;
+    setPendingActionLoading(true);
+    setPendingMessage('');
+    try {
+      await onApproveTeacher(userId);
+      setPendingMessage(t('sidebar_pending_approved'));
+    } catch (err) {
+      setPendingMessage(err.message || t('sidebar_pending_approve_failed'));
+    } finally {
+      setPendingActionLoading(false);
+    }
+  }
+
+  async function handleRejectPending(userId) {
+    if (!onRejectTeacher) return;
+    if (!window.confirm(t('sidebar_pending_reject_confirm'))) return;
+
+    setPendingActionLoading(true);
+    setPendingMessage('');
+    try {
+      await onRejectTeacher(userId, 'delete');
+      setPendingMessage(t('sidebar_pending_rejected'));
+    } catch (err) {
+      setPendingMessage(err.message || t('sidebar_pending_reject_failed'));
+    } finally {
+      setPendingActionLoading(false);
+    }
+  }
+
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
-        <h1>{course?.name ?? 'QuantLectures'}</h1>
+        <h1>{course?.name ?? 'MiniLectures'}</h1>
         <p className="sidebar-subtitle">{course?.subtitle ?? t('sidebar_default_subtitle')}</p>
       </div>
       <nav className="chapter-list">
@@ -378,6 +512,75 @@ export default function Sidebar({
                         {memberMessage && <p className="sidebar-course-save-message">{memberMessage}</p>}
                       </div>
                     )}
+
+                    {isCourseOwner && (
+                      <div className="sidebar-members-panel">
+                        <h4 className="sidebar-members-title">{t('sidebar_invites_title')}</h4>
+                        <form className="sidebar-members-form" onSubmit={handleCreateInvite}>
+                          <input
+                            className="sidebar-course-input"
+                            type="text"
+                            placeholder={t('sidebar_invite_code_placeholder')}
+                            value={inviteCode}
+                            onChange={e => setInviteCode(e.target.value.toUpperCase())}
+                          />
+                          <input
+                            className="sidebar-course-input"
+                            type="number"
+                            min="1"
+                            placeholder={t('sidebar_invite_max_uses_placeholder')}
+                            value={inviteMaxUses}
+                            onChange={e => setInviteMaxUses(e.target.value)}
+                          />
+                          <input
+                            className="sidebar-course-input"
+                            type="datetime-local"
+                            value={inviteExpiresAt}
+                            onChange={e => setInviteExpiresAt(e.target.value)}
+                          />
+                          <button
+                            className="sidebar-auth-btn sidebar-course-save"
+                            type="submit"
+                            disabled={inviteActionLoading || !inviteCode.trim()}
+                          >
+                            {t('sidebar_invite_create')}
+                          </button>
+                        </form>
+
+                        {invitesLoading ? (
+                          <p className="sidebar-course-hint">{t('sidebar_loading_invites')}</p>
+                        ) : (
+                          <ul className="sidebar-members-list">
+                            {courseInvites.map(invite => (
+                              <li key={invite.id} className="sidebar-members-item">
+                                <div>
+                                  <div className="sidebar-members-email">{invite.code}</div>
+                                  <div className="sidebar-members-role">
+                                    {invite.active ? t('sidebar_invite_active') : t('sidebar_invite_inactive')}
+                                    {' · '}
+                                    {t('sidebar_invite_usage', { used: invite.usedCount, max: invite.maxUses ?? '∞' })}
+                                  </div>
+                                </div>
+                                {invite.active && (
+                                  <button
+                                    className="sidebar-auth-btn sidebar-members-remove"
+                                    onClick={() => handleRevokeInvite(invite.id)}
+                                    disabled={inviteActionLoading}
+                                  >
+                                    {t('sidebar_invite_revoke')}
+                                  </button>
+                                )}
+                              </li>
+                            ))}
+                            {courseInvites.length === 0 && (
+                              <li className="sidebar-course-hint">{t('sidebar_no_invites')}</li>
+                            )}
+                          </ul>
+                        )}
+
+                        {inviteMessage && <p className="sidebar-course-save-message">{inviteMessage}</p>}
+                      </div>
+                    )}
                   </div>
                 )}
               </>
@@ -389,9 +592,31 @@ export default function Sidebar({
         <div className="sidebar-auth">
           {user ? (
             <div className="sidebar-auth-user">
-              <span className="sidebar-auth-role">{isTeacher ? t('sidebar_teacher_role') : t('sidebar_student_role')}</span>
+              <span className="sidebar-auth-role">
+                {isAdmin ? t('sidebar_admin_role') : (isTeacher ? t('sidebar_teacher_role') : t('sidebar_student_role'))}
+              </span>
               <span className="sidebar-auth-email">{user.email}</span>
               <button className="sidebar-auth-btn" onClick={signOut}>{t('sidebar_sign_out')}</button>
+
+              {!isTeacher && !isAdmin && (
+                <form className="sidebar-members-form" onSubmit={handleRedeemInvite}>
+                  <input
+                    className="sidebar-course-input"
+                    type="text"
+                    placeholder={t('sidebar_redeem_code_placeholder')}
+                    value={redeemCode}
+                    onChange={e => setRedeemCode(e.target.value.toUpperCase())}
+                  />
+                  <button
+                    className="sidebar-auth-btn sidebar-course-save"
+                    type="submit"
+                    disabled={redeemingInvite || !redeemCode.trim()}
+                  >
+                    {t('sidebar_redeem_code')}
+                  </button>
+                  {redeemMessage && <p className="sidebar-course-save-message">{redeemMessage}</p>}
+                </form>
+              )}
             </div>
           ) : (
             <button className="sidebar-auth-btn sidebar-auth-btn--login" onClick={onLoginClick}>
@@ -399,6 +624,46 @@ export default function Sidebar({
             </button>
           )}
         </div>
+
+        {isAdmin && (
+          <div className="sidebar-members-panel">
+            <h4 className="sidebar-members-title">{t('sidebar_pending_title')}</h4>
+            {pendingLoading ? (
+              <p className="sidebar-course-hint">{t('sidebar_loading_pending')}</p>
+            ) : (
+              <ul className="sidebar-members-list">
+                {pendingTeachers.map(item => (
+                  <li key={item.id} className="sidebar-members-item">
+                    <div>
+                      <div className="sidebar-members-email">{item.email}</div>
+                      <div className="sidebar-members-role">{item.name || t('sidebar_no_name')}</div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button
+                        className="sidebar-auth-btn sidebar-members-remove"
+                        onClick={() => handleApprovePending(item.id)}
+                        disabled={pendingActionLoading}
+                      >
+                        {t('sidebar_pending_approve')}
+                      </button>
+                      <button
+                        className="sidebar-auth-btn sidebar-members-remove"
+                        onClick={() => handleRejectPending(item.id)}
+                        disabled={pendingActionLoading}
+                      >
+                        {t('sidebar_pending_reject')}
+                      </button>
+                    </div>
+                  </li>
+                ))}
+                {pendingTeachers.length === 0 && (
+                  <li className="sidebar-course-hint">{t('sidebar_no_pending')}</li>
+                )}
+              </ul>
+            )}
+            {pendingMessage && <p className="sidebar-course-save-message">{pendingMessage}</p>}
+          </div>
+        )}
 
         <div className="overall-progress">
           <div className="progress-header">

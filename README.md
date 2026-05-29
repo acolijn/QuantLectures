@@ -68,6 +68,9 @@ POCKETBASE_URL=http://localhost:8090
 # PocketBase superuser credentials (for setup script)
 PB_ADMIN_EMAIL=admin@example.com
 PB_ADMIN_PASSWORD=yourpassword
+
+# Optional: secret token for teacher signup links (?token=...)
+TEACHER_SIGNUP_TOKEN=replace-with-a-long-random-secret
 ```
 
 ---
@@ -152,9 +155,11 @@ Teachers can export the currently open chapter as JSON directly from the toolbar
 | Role | Access |
 |---|---|
 | **Guest** (not logged in) | No guaranteed course access (use a student/teacher account) |
-| **Student** | Read published courses only |
+| **Student** | Read invited published courses only (via invite code) |
+| **Pending** | Signed up for teacher access; awaiting admin approval |
 | **Teacher (editor)** | Access own member courses + chapter CRUD/import/export/reorder |
 | **Teacher (owner)** | Editor rights + course settings + member management |
+| **Admin** | Can approve/reject pending teachers |
 
 Assign the `teacher` role to a user in the PocketBase admin UI:
 **http://localhost:8090/_/** → Collections → users → edit a record → set `role` = `teacher`.

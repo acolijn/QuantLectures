@@ -9,7 +9,7 @@ import { useChapters } from './hooks/useChapters';
 import { useCourseProgress } from './hooks/useCourseProgress';
 
 function AppContent() {
-  const { isTeacher } = useAuth();
+  const { isTeacher, isAdmin } = useAuth();
   const { t, syncWithCourseLanguage } = useLanguage();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -20,12 +20,21 @@ function AppContent() {
     activeCourseId,
     loadingCourses,
     courseMembersByCourse,
+    courseInvitesByCourse,
+    pendingTeachers,
     setActiveCourseId,
     createNewCourse,
     updateExistingCourse,
     refreshCourseMembers,
     addEditorToCourse,
     removeEditorFromCourse,
+    refreshCourseInvites,
+    createInviteForCourse,
+    revokeInviteForCourse,
+    redeemStudentInvite,
+    refreshPendingTeachers,
+    approveTeacher,
+    rejectTeacher,
   } = useCourses(isTeacher);
   const {
     chapters,
@@ -151,6 +160,7 @@ function AppContent() {
           course={course}
           courses={courses}
           activeCourseId={activeCourseId}
+          isAdmin={isAdmin}
           onSelectCourse={handleSelectCourse}
           onCreateCourse={handleCreateCourse}
           onUpdateCourse={handleUpdateCourse}
@@ -158,6 +168,15 @@ function AppContent() {
           onLoadCourseMembers={() => refreshCourseMembers(activeCourseId)}
           onAddEditor={email => addEditorToCourse(activeCourseId, email)}
           onRemoveEditor={memberId => removeEditorFromCourse(activeCourseId, memberId)}
+          courseInvites={courseInvitesByCourse[activeCourseId] ?? []}
+          onLoadCourseInvites={() => refreshCourseInvites(activeCourseId)}
+          onCreateInvite={payload => createInviteForCourse(activeCourseId, payload)}
+          onRevokeInvite={inviteId => revokeInviteForCourse(activeCourseId, inviteId)}
+          onRedeemInvite={redeemStudentInvite}
+          pendingTeachers={pendingTeachers}
+          onLoadPendingTeachers={refreshPendingTeachers}
+          onApproveTeacher={approveTeacher}
+          onRejectTeacher={rejectTeacher}
           chapters={chapters}
           activeChapter={activeChapter}
           onSelectChapter={handleSelectChapter}
