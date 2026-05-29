@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { upsertChapter } from '../../lib/api';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 const BASE_PROMPT = `Je bent een assistent die college-aantekeningen omzet naar een gestructureerd JSON-hoofdstuk voor een quantumfysica leer-app.
 
@@ -110,18 +111,19 @@ function buildClaudePrompt(course) {
 
 const REQUIRED_KEYS = ['title', 'subtitle', 'formulas', 'concepts', 'exercises', 'quiz'];
 
-function validateChapter(obj) {
+function validateChapter(obj, t) {
   for (const key of REQUIRED_KEYS) {
-    if (!(key in obj)) return `Verplicht veld ontbreekt: "${key}"`;
+    if (!(key in obj)) return t('import_required_field_missing', { field: key });
   }
-  if (!Array.isArray(obj.formulas))  return '"formulas" moet een array zijn';
-  if (!Array.isArray(obj.concepts))  return '"concepts" moet een array zijn';
-  if (!Array.isArray(obj.exercises)) return '"exercises" moet een array zijn';
-  if (!Array.isArray(obj.quiz))      return '"quiz" moet een array zijn';
+  if (!Array.isArray(obj.formulas))  return t('import_array_expected', { field: 'formulas' });
+  if (!Array.isArray(obj.concepts))  return t('import_array_expected', { field: 'concepts' });
+  if (!Array.isArray(obj.exercises)) return t('import_array_expected', { field: 'exercises' });
+  if (!Array.isArray(obj.quiz))      return t('import_array_expected', { field: 'quiz' });
   return null;
 }
 
 export default function ImportChapter({ courseId, course, existingChapters, onClose, onImported }) {
+  const { t } = useLanguage();
   const [json, setJson]           = useState('');
   const [chapterNum, setChapterNum] = useState(
     existingChapters.length > 0 ? Math.max(...existingChapters.map(c => c.id)) + 1 : 1
@@ -132,13 +134,39 @@ export default function ImportChapter({ courseId, course, existingChapters, onCl
   const [showPrompt, setShowPrompt] = useState(true);
   const claudePrompt = buildClaudePrompt(course);
 
+  const localizedPrompt = claudePrompt
+    .replace(
+      'Cursusinstellingen voor deze import (automatisch toegevoegd):',
+      t('import_prompt_context_title')
+    )
+    .replace(
+      /- Schrijf alle inhoud in: (.*)/,
+      (_, language) => t('import_prompt_language', { language })
+    )
+    .replace(
+      /- Vakinhoudelijke instructies van docent: \(nog niet ingesteld\)/,
+      t('import_prompt_subject_missing')
+    )
+    .replace(
+      /- Vakinhoudelijke instructies van docent: (.*)/,
+      (_, text) => t('import_prompt_subject', { text })
+    )
+    .replace(
+      'Hier zijn de college-aantekeningen / het bronmateriaal:',
+      t('import_prompt_source_title')
+    )
+    .replace(
+      '[PLAK HIER JE AANTEKENINGEN / BOEKFRAGMENT / ANDERE INFORMATIE]',
+      t('import_prompt_source_placeholder')
+    );
+
   async function handleCopyPrompt() {
     try {
-      await navigator.clipboard.writeText(claudePrompt);
+      await navigator.clipboard.writeText(localizedPrompt);
     } catch {
       // Fallback for browsers that block clipboard API
       const el = document.createElement('textarea');
-      el.value = claudePrompt;
+      el.value = localizedPrompt;
       el.style.position = 'fixed';
       el.style.opacity = '0';
       document.body.appendChild(el);
@@ -176,12 +204,12 @@ export default function ImportChapter({ courseId, course, existingChapters, onCl
         .replace(/[\u2018\u2019]/g, "'"); // ' '  → '
       parsed = JSON.parse(cleaned);
     } catch(e) {
-      setError(`Ongeldige JSON: ${e.message}`);
+      setError(t('import_invalid_json', { message: e.message }));
       return;
     }
-    const validationError = validateChapter(parsed);
+    const validationError = validateChapter(parsed, t);
     if (validationError) { setError(validationError); return; }
-    if (!chapterNum || chapterNum < 1) { setError('Voer een geldig hoofdstuknummer in.'); return; }
+    if (!chapterNum || chapterNum < 1) { setError(t('import_invalid_chapter_num')); return; }
 
     setSaving(true);
     try {
@@ -198,37 +226,37 @@ export default function ImportChapter({ courseId, course, existingChapters, onCl
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal import-modal" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>Hoofdstuk importeren</h2>
+          <h2>{t('import_title')}</h2>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
 
         {/* Step 1 */}
         <div className="import-step">
-          <div className="import-step-label">Stap 1 — Kopieer de Claude-prompt</div>
+          <div className="import-step-label">{t('import_step1')}</div>
           <p className="import-step-desc">
-            Kopieer de prompt hieronder, open{' '}
+            {t('import_step1_desc_a')}{' '}
             <a href="https://claude.ai" target="_blank" rel="noreferrer">claude.ai</a>,
-            plak de prompt en voeg je eigen aantekeningen toe op de aangegeven plek.
+            {' '}{t('import_step1_desc_b')}
           </p>
           <div className="import-prompt-actions">
             <button className="btn-copy-prompt" onClick={handleCopyPrompt}>
-              {promptCopied ? '✓ Gekopieerd!' : '📋 Kopieer prompt'}
+              {promptCopied ? t('import_copied') : t('import_copy_prompt')}
             </button>
             <button
               className="btn-toggle-prompt"
               onClick={() => setShowPrompt(p => !p)}
             >
-              {showPrompt ? 'Verberg prompt' : 'Bekijk prompt'}
+              {showPrompt ? t('import_hide_prompt') : t('import_show_prompt')}
             </button>
           </div>
           {showPrompt && (
-            <pre className="import-prompt-preview">{claudePrompt}</pre>
+            <pre className="import-prompt-preview">{localizedPrompt}</pre>
           )}
         </div>
 
         {/* Step 2 */}
         <div className="import-step">
-          <div className="import-step-label">Stap 2 — Plak de JSON-output van Claude</div>
+          <div className="import-step-label">{t('import_step2')}</div>
           <textarea
             className="import-json-input"
             placeholder={'{\n  "title": "...",\n  "formulas": [...],\n  ...\n}'}
@@ -241,7 +269,7 @@ export default function ImportChapter({ courseId, course, existingChapters, onCl
 
         {/* Step 3 */}
         <div className="import-step import-step--inline">
-          <div className="import-step-label">Stap 3 — Hoofdstuknummer</div>
+          <div className="import-step-label">{t('import_step3')}</div>
           <input
             type="number"
             min="1"
@@ -251,17 +279,17 @@ export default function ImportChapter({ courseId, course, existingChapters, onCl
           />
           <span className="import-chapter-num-hint">
             {existingChapters.find(c => c.id === chapterNum)
-              ? '⚠️ Overschrijft bestaand hoofdstuk'
-              : '(nieuw hoofdstuk)'}
+              ? t('import_overwrite_warning')
+              : t('import_new_chapter')}
           </span>
         </div>
 
         {error && <div className="form-error">{error}</div>}
 
         <div className="form-actions">
-          <button className="btn-secondary" onClick={onClose}>Annuleren</button>
+          <button className="btn-secondary" onClick={onClose}>{t('common_cancel')}</button>
           <button className="btn-primary" onClick={handleImport} disabled={saving || !json.trim()}>
-            {saving ? 'Importeren…' : '⬆️ Importeer hoofdstuk'}
+            {saving ? t('import_importing') : t('import_import_button')}
           </button>
         </div>
       </div>

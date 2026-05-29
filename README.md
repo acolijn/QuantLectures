@@ -180,6 +180,12 @@ The generated import prompt automatically includes:
 - selected course language
 - course `subject_prompt` (teacher-provided instructions)
 
+UI localization (Step 2e):
+- The app UI supports Dutch and English
+- UI language can be set in course settings
+- UI language preference is persisted in localStorage
+- "Follow course language automatically" is enabled by default
+
 ---
 
 ## Chapter Data Structure

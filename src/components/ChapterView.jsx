@@ -2,15 +2,17 @@ import { useState } from 'react';
 import MathText, { MathBlock } from './MathText';
 import Quiz from './Quiz';
 import GuidedExercise from './GuidedExercise';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export default function ChapterView({ chapter, progress, onProgressUpdate }) {
   const [tab, setTab] = useState('concepts');
+  const { t } = useLanguage();
   const hasExercises = chapter.exercises && chapter.exercises.length > 0;
 
   return (
     <main className="chapter-view">
       <header className="chapter-header">
-        <div className="chapter-header-number">Hoofdstuk {chapter.id}</div>
+        <div className="chapter-header-number">{t('chapter_header', { id: chapter.id })}</div>
         <h2><MathText text={chapter.title} /></h2>
         <p className="chapter-subtitle"><MathText text={chapter.subtitle} /></p>
       </header>
@@ -20,27 +22,27 @@ export default function ChapterView({ chapter, progress, onProgressUpdate }) {
           className={`tab ${tab === 'concepts' ? 'active' : ''}`}
           onClick={() => setTab('concepts')}
         >
-          📖 Concepten
+          {t('chapter_tab_concepts')}
         </button>
         <button
           className={`tab ${tab === 'formulas' ? 'active' : ''}`}
           onClick={() => setTab('formulas')}
         >
-          📐 Formules
+          {t('chapter_tab_formulas')}
         </button>
         {hasExercises && (
           <button
             className={`tab ${tab === 'exercises' ? 'active' : ''}`}
             onClick={() => setTab('exercises')}
           >
-            🧮 Opgaven
+            {t('chapter_tab_exercises')}
           </button>
         )}
         <button
           className={`tab ${tab === 'quiz' ? 'active' : ''}`}
           onClick={() => setTab('quiz')}
         >
-          ✏️ Quiz
+          {t('chapter_tab_quiz')}
           {progress?.bestScore !== undefined && (
             <span className="tab-badge">{Math.round(progress.bestScore)}%</span>
           )}

@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { updateChapter } from '../../lib/api';
 import { MathBlock } from '../MathText';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 export default function ChapterEditor({ chapter, courseId, onClose, onSaved }) {
+  const { t } = useLanguage();
   const [title, setTitle] = useState(chapter.title);
   const [subtitle, setSubtitle] = useState(chapter.subtitle);
   const [concepts, setConcepts] = useState(chapter.concepts ?? []);
@@ -84,12 +86,12 @@ export default function ChapterEditor({ chapter, courseId, onClose, onSaved }) {
     <div className="chapter-editor">
       {/* ── Header ── */}
       <div className="editor-header">
-        <h2>Hoofdstuk {chapter.id} bewerken</h2>
+        <h2>{t('editor_title', { id: chapter.id })}</h2>
         <div className="editor-header-actions">
           {error && <span className="editor-error">{error}</span>}
-          <button onClick={onClose} className="btn-secondary">Annuleren</button>
+          <button onClick={onClose} className="btn-secondary">{t('common_cancel')}</button>
           <button onClick={handleSave} disabled={saving} className="btn-primary">
-            {saving ? 'Opslaan…' : 'Opslaan'}
+            {saving ? t('common_saving') : t('common_save')}
           </button>
         </div>
       </div>
@@ -97,11 +99,11 @@ export default function ChapterEditor({ chapter, courseId, onClose, onSaved }) {
       {/* ── Metadata ── */}
       <div className="editor-meta">
         <label>
-          Titel
+          {t('editor_title_field')}
           <input value={title} onChange={e => setTitle(e.target.value)} />
         </label>
         <label>
-          Subtitel
+          {t('editor_subtitle_field')}
           <input value={subtitle} onChange={e => setSubtitle(e.target.value)} />
         </label>
       </div>
@@ -110,9 +112,9 @@ export default function ChapterEditor({ chapter, courseId, onClose, onSaved }) {
       <div className="tab-bar">
         {['concepts', 'formulas', 'quiz'].map(t => (
           <button key={t} className={`tab ${tab === t ? 'active' : ''}`} onClick={() => setTab(t)}>
-            {t === 'concepts' ? `📖 Concepten (${concepts.length})`
-              : t === 'formulas' ? `📐 Formules (${formulas.length})`
-              : `✏️ Quiz (${quiz.length})`}
+            {t === 'concepts' ? t('editor_concepts_tab', { count: concepts.length })
+              : t === 'formulas' ? t('editor_formulas_tab', { count: formulas.length })
+              : t('editor_quiz_tab', { count: quiz.length })}
           </button>
         ))}
       </div>
@@ -127,22 +129,22 @@ export default function ChapterEditor({ chapter, courseId, onClose, onSaved }) {
                 <div className="editor-item-header">
                   <span className="editor-item-number">{i + 1}</span>
                   <div className="editor-item-controls">
-                    <button onClick={() => moveConcept(i, -1)} disabled={i === 0} className="btn-icon" title="Omhoog">↑</button>
-                    <button onClick={() => moveConcept(i, 1)} disabled={i === concepts.length - 1} className="btn-icon" title="Omlaag">↓</button>
-                    <button onClick={() => deleteConcept(i)} className="btn-icon btn-delete" title="Verwijderen">✕</button>
+                    <button onClick={() => moveConcept(i, -1)} disabled={i === 0} className="btn-icon" title={t('editor_move_up')}>↑</button>
+                    <button onClick={() => moveConcept(i, 1)} disabled={i === concepts.length - 1} className="btn-icon" title={t('editor_move_down')}>↓</button>
+                    <button onClick={() => deleteConcept(i)} className="btn-icon btn-delete" title={t('editor_delete')}>✕</button>
                   </div>
                 </div>
                 <label>
-                  Titel
+                  {t('editor_title_field')}
                   <input value={c.title} onChange={e => updateConcept(i, 'title', e.target.value)} />
                 </label>
                 <label>
-                  Inhoud <span className="label-hint">(LaTeX: $...$ of $$...$$)</span>
+                  {t('editor_content_field')} <span className="label-hint">{t('editor_latex_hint')}</span>
                   <textarea rows={5} value={c.content} onChange={e => updateConcept(i, 'content', e.target.value)} />
                 </label>
               </div>
             ))}
-            <button onClick={addConcept} className="btn-add">+ Concept toevoegen</button>
+            <button onClick={addConcept} className="btn-add">{t('editor_add_concept')}</button>
           </div>
         )}
 
@@ -153,14 +155,14 @@ export default function ChapterEditor({ chapter, courseId, onClose, onSaved }) {
               <div key={i} className="editor-item editor-item-formula">
                 <div className="editor-item-header">
                   <span className="editor-item-number">{i + 1}</span>
-                  <button onClick={() => deleteFormula(i)} className="btn-icon btn-delete" title="Verwijderen">✕</button>
+                  <button onClick={() => deleteFormula(i)} className="btn-icon btn-delete" title={t('editor_delete')}>✕</button>
                 </div>
                 <label>
-                  Naam
+                  {t('editor_name_field')}
                   <input value={f.name} onChange={e => updateFormula(i, 'name', e.target.value)} />
                 </label>
                 <label>
-                  LaTeX
+                  {t('editor_latex_field')}
                   <input
                     value={f.latex}
                     onChange={e => updateFormula(i, 'latex', e.target.value)}
@@ -170,13 +172,13 @@ export default function ChapterEditor({ chapter, courseId, onClose, onSaved }) {
                 </label>
                 {f.latex && (
                   <div className="formula-preview">
-                    <span className="formula-preview-label">Voorbeeld:</span>
+                    <span className="formula-preview-label">{t('editor_preview')}</span>
                     <MathBlock latex={f.latex} />
                   </div>
                 )}
               </div>
             ))}
-            <button onClick={addFormula} className="btn-add">+ Formule toevoegen</button>
+            <button onClick={addFormula} className="btn-add">{t('editor_add_formula')}</button>
           </div>
         )}
 
@@ -187,13 +189,13 @@ export default function ChapterEditor({ chapter, courseId, onClose, onSaved }) {
               <div key={qi} className="editor-item">
                 <div className="editor-item-header">
                   <span className="editor-item-number">V{qi + 1}</span>
-                  <button onClick={() => deleteQuiz(qi)} className="btn-icon btn-delete" title="Verwijderen">✕</button>
+                  <button onClick={() => deleteQuiz(qi)} className="btn-icon btn-delete" title={t('editor_delete')}>✕</button>
                 </div>
                 <label>
-                  Vraag <span className="label-hint">(LaTeX ondersteund)</span>
+                  {t('editor_question_field')} <span className="label-hint">{t('editor_question_hint')}</span>
                   <textarea rows={2} value={q.question} onChange={e => updateQuiz(qi, 'question', e.target.value)} />
                 </label>
-                <div className="editor-options-label">Antwoordopties <span className="label-hint">(selecteer het juiste antwoord)</span></div>
+                <div className="editor-options-label">{t('editor_options_label')} <span className="label-hint">{t('editor_options_hint')}</span></div>
                 <div className="editor-options">
                   {(q.options ?? []).map((opt, oi) => (
                     <label key={oi} className={`editor-option ${q.correct === oi ? 'correct' : ''}`}>
@@ -211,12 +213,12 @@ export default function ChapterEditor({ chapter, courseId, onClose, onSaved }) {
                   ))}
                 </div>
                 <label>
-                  Uitleg
+                  {t('editor_explanation_field')}
                   <textarea rows={2} value={q.explanation} onChange={e => updateQuiz(qi, 'explanation', e.target.value)} />
                 </label>
               </div>
             ))}
-            <button onClick={addQuiz} className="btn-add">+ Vraag toevoegen</button>
+            <button onClick={addQuiz} className="btn-add">{t('editor_add_question')}</button>
           </div>
         )}
 

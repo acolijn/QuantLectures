@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import MathText from './MathText';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export default function Quiz({ questions, chapterId, onComplete, bestScore }) {
+  const { t } = useLanguage();
   const [currentQ, setCurrentQ] = useState(0);
   const [selected, setSelected] = useState(null);
   const [showExplanation, setShowExplanation] = useState(false);
@@ -46,14 +48,14 @@ export default function Quiz({ questions, chapterId, onComplete, bestScore }) {
             {Math.round(percentage)}%
           </div>
           <h3>
-            {percentage >= 70 ? 'Goed gedaan! 🎉' : percentage >= 40 ? 'Redelijk, oefen nog even 📚' : 'Herhaal de stof nog eens 💪'}
+            {percentage >= 70 ? t('quiz_result_good') : percentage >= 40 ? t('quiz_result_ok') : t('quiz_result_poor')}
           </h3>
-          <p>{score} van {questions.length} vragen correct</p>
+          <p>{t('quiz_correct_count', { score, total: questions.length })}</p>
           {bestScore !== undefined && bestScore > percentage && (
-            <p className="best-score">Je beste score: {Math.round(bestScore)}%</p>
+            <p className="best-score">{t('quiz_best_score', { score: Math.round(bestScore) })}</p>
           )}
           <button className="btn-primary" onClick={handleRestart}>
-            Opnieuw proberen
+            {t('common_retry')}
           </button>
         </div>
       </div>
@@ -64,7 +66,7 @@ export default function Quiz({ questions, chapterId, onComplete, bestScore }) {
     <div className="quiz">
       <div className="quiz-progress">
         <div className="quiz-progress-text">
-          Vraag {currentQ + 1} van {questions.length}
+          {t('quiz_question_progress', { current: currentQ + 1, total: questions.length })}
         </div>
         <div className="quiz-progress-bar">
           <div
@@ -106,11 +108,11 @@ export default function Quiz({ questions, chapterId, onComplete, bestScore }) {
       {showExplanation && (
         <div className={`quiz-explanation ${selected === (question.correct ?? question.answer) ? 'correct' : 'incorrect'}`}>
           <div className="explanation-header">
-            {selected === question.correct ? '✓ Correct!' : '✗ Helaas, dat is niet juist.'}
+            {selected === question.correct ? t('quiz_correct') : t('quiz_incorrect')}
           </div>
           <p><MathText text={question.explanation} /></p>
           <button className="btn-primary" onClick={handleNext}>
-            {currentQ < questions.length - 1 ? 'Volgende vraag →' : 'Bekijk resultaat'}
+            {currentQ < questions.length - 1 ? t('quiz_next_question') : t('quiz_show_result')}
           </button>
         </div>
       )}

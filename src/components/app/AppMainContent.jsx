@@ -1,6 +1,7 @@
 import ChapterView from '../ChapterView';
 import ChapterEditor from '../admin/ChapterEditor';
 import TeacherToolbar from './TeacherToolbar';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 export default function AppMainContent({
   loadingCourses,
@@ -20,8 +21,10 @@ export default function AppMainContent({
   courseProgress,
   onProgressUpdate,
 }) {
+  const { t } = useLanguage();
+
   if (loadingCourses || loadingChapters) {
-    return <div className="chapter-loading">Laden…</div>;
+    return <div className="chapter-loading">{t('common_loading')}</div>;
   }
 
   if (!activeCourseId) {
@@ -29,10 +32,10 @@ export default function AppMainContent({
       <div className="chapter-loading">
         {isTeacher ? (
           <div className="empty-course-state">
-            <p>Nog geen cursus gevonden.</p>
-            <button className="btn-new-chapter" onClick={onCreateCourse}>➕ Eerste cursus maken</button>
+            <p>{t('main_no_course_teacher')}</p>
+            <button className="btn-new-chapter" onClick={onCreateCourse}>{t('main_create_first_course')}</button>
           </div>
-        ) : 'Geen gepubliceerde cursussen beschikbaar.'}
+        ) : t('main_no_course_student')}
       </div>
     );
   }
@@ -82,10 +85,10 @@ export default function AppMainContent({
       <div className="chapter-loading">
         {isTeacher ? (
           <div className="empty-course-state">
-            <p>Deze cursus heeft nog geen hoofdstukken.</p>
-            <button className="btn-new-chapter" onClick={onNewChapter}>➕ Eerste hoofdstuk maken</button>
+            <p>{t('main_no_chapters_teacher')}</p>
+            <button className="btn-new-chapter" onClick={onNewChapter}>{t('main_create_first_chapter')}</button>
           </div>
-        ) : 'Deze cursus heeft nog geen hoofdstukken.'}
+        ) : t('main_no_chapters_student')}
       </div>
     </div>
   );

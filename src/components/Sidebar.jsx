@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import MathText from './MathText';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const LANGUAGE_OPTIONS = [
   { value: 'nl', label: 'Nederlands (NL)' },
@@ -33,6 +34,7 @@ export default function Sidebar({
   onReorderChapters,
 }) {
   const { user, isTeacher, signOut } = useAuth();
+  const { t } = useLanguage();
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [overIndex, setOverIndex]       = useState(null);
   const [showCourseSettings, setShowCourseSettings] = useState(false);
@@ -84,10 +86,10 @@ export default function Sidebar({
     onLoadCourseMembers?.()
       .catch(err => {
         console.error('Failed to load course members:', err);
-        setMemberMessage('Leden laden mislukt');
+        setMemberMessage(t('sidebar_member_load_failed'));
       })
         .finally(() => setMembersLoading(false));
-      }, [showCourseSettings, course, courseMembers.length]);
+      }, [showCourseSettings, course, courseMembers.length, t]);
 
   function handleDragStart(e, index) {
     setDraggedIndex(index);
@@ -124,7 +126,7 @@ export default function Sidebar({
     e.preventDefault();
     if (!course || !onUpdateCourse) return;
     if (!isCourseOwner) {
-      setSaveMessage('Alleen owners kunnen cursusinstellingen wijzigen.');
+      setSaveMessage(t('sidebar_owner_only_settings'));
       return;
     }
 
@@ -138,10 +140,10 @@ export default function Sidebar({
         published: courseForm.published,
         subjectPrompt: courseForm.subjectPrompt.trim(),
       });
-      setSaveMessage('Opgeslagen');
+      setSaveMessage(t('sidebar_saved'));
     } catch (err) {
       console.error('Saving course settings failed:', err);
-      setSaveMessage('Opslaan mislukt');
+      setSaveMessage(t('sidebar_save_failed'));
     } finally {
       setSavingCourse(false);
     }
@@ -156,9 +158,9 @@ export default function Sidebar({
     try {
       await onAddEditor(memberEmail.trim());
       setMemberEmail('');
-      setMemberMessage('Editor toegevoegd');
+      setMemberMessage(t('sidebar_member_added'));
     } catch (err) {
-      setMemberMessage(err.message || 'Editor toevoegen mislukt');
+      setMemberMessage(err.message || t('sidebar_member_add_failed'));
     } finally {
       setMemberActionLoading(false);
     }
@@ -166,15 +168,15 @@ export default function Sidebar({
 
   async function handleRemoveEditor(memberId) {
     if (!onRemoveEditor) return;
-    if (!window.confirm('Editor verwijderen uit deze cursus?')) return;
+    if (!window.confirm(t('sidebar_remove_editor_confirm'))) return;
 
     setMemberActionLoading(true);
     setMemberMessage('');
     try {
       await onRemoveEditor(memberId);
-      setMemberMessage('Editor verwijderd');
+      setMemberMessage(t('sidebar_member_removed'));
     } catch (err) {
-      setMemberMessage(err.message || 'Editor verwijderen mislukt');
+      setMemberMessage(err.message || t('sidebar_member_remove_failed'));
     } finally {
       setMemberActionLoading(false);
     }
@@ -184,7 +186,7 @@ export default function Sidebar({
     <aside className="sidebar">
       <div className="sidebar-header">
         <h1>{course?.name ?? 'QuantLectures'}</h1>
-        <p className="sidebar-subtitle">{course?.subtitle ?? 'Leeromgeving'}</p>
+        <p className="sidebar-subtitle">{course?.subtitle ?? t('sidebar_default_subtitle')}</p>
       </div>
       <nav className="chapter-list">
         {chapters.map((ch, i) => {
@@ -227,7 +229,7 @@ export default function Sidebar({
         {isTeacher && (
           <div className="sidebar-course-controls">
             <label className="sidebar-course-label">
-              Cursus
+              {t('sidebar_course')}
               <select
                 className="sidebar-course-select"
                 value={activeCourseId ?? ''}
@@ -239,7 +241,7 @@ export default function Sidebar({
               </select>
             </label>
             <button className="sidebar-auth-btn sidebar-course-create" onClick={onCreateCourse}>
-              + Nieuwe cursus
+              {t('sidebar_new_course')}
             </button>
             {course && (
               <>
@@ -247,14 +249,14 @@ export default function Sidebar({
                   className="sidebar-auth-btn sidebar-course-settings-toggle"
                   onClick={() => setShowCourseSettings(prev => !prev)}
                 >
-                  {showCourseSettings ? '− Sluit cursusinstellingen' : '⚙️ Cursusinstellingen'}
+                  {showCourseSettings ? t('sidebar_close_course_settings') : t('sidebar_open_course_settings')}
                 </button>
 
                 {showCourseSettings && (
                   <div className="sidebar-course-settings">
                     <form onSubmit={handleSaveCourseSettings}>
                       <label className="sidebar-course-label">
-                        Naam
+                        {t('sidebar_name')}
                         <input
                           className="sidebar-course-input"
                           type="text"
@@ -265,7 +267,7 @@ export default function Sidebar({
                       </label>
 
                       <label className="sidebar-course-label">
-                        Subtitel
+                        {t('sidebar_subtitle')}
                         <input
                           className="sidebar-course-input"
                           type="text"
@@ -276,7 +278,7 @@ export default function Sidebar({
                       </label>
 
                       <label className="sidebar-course-label">
-                        Taal
+                        {t('sidebar_language')}
                         <select
                           className="sidebar-course-select"
                           value={courseForm.language}
@@ -296,15 +298,15 @@ export default function Sidebar({
                           disabled={!isCourseOwner}
                           onChange={e => setCourseForm(prev => ({ ...prev, published: e.target.checked }))}
                         />
-                        Gepubliceerd (zichtbaar voor studenten)
+                        {t('sidebar_published')}
                       </label>
 
                       <label className="sidebar-course-label">
-                        Subject prompt
+                        {t('sidebar_subject_prompt')}
                         <textarea
                           className="sidebar-course-textarea"
                           rows={5}
-                          placeholder="Bijv. Write in English. The subject is classical mechanics..."
+                          placeholder={t('sidebar_subject_prompt_placeholder')}
                           value={courseForm.subjectPrompt}
                           disabled={!isCourseOwner}
                           onChange={e => setCourseForm(prev => ({ ...prev, subjectPrompt: e.target.value }))}
@@ -312,15 +314,15 @@ export default function Sidebar({
                       </label>
 
                       <p className="sidebar-course-hint">
-                        De vaste JSON- en formatteringsregels worden automatisch toegevoegd aan de prompt.
+                        {t('sidebar_prompt_hint')}
                       </p>
 
                       <button className="sidebar-auth-btn sidebar-course-save" type="submit" disabled={savingCourse}>
-                        {savingCourse ? 'Opslaan…' : 'Opslaan'}
+                        {savingCourse ? t('common_saving') : t('common_save')}
                       </button>
 
                       {!isCourseOwner && (
-                        <p className="sidebar-course-hint">Alleen owners kunnen cursusinstellingen aanpassen.</p>
+                        <p className="sidebar-course-hint">{t('sidebar_owner_only_settings')}</p>
                       )}
 
                       {saveMessage && <p className="sidebar-course-save-message">{saveMessage}</p>}
@@ -328,12 +330,12 @@ export default function Sidebar({
 
                     {isCourseOwner && (
                       <div className="sidebar-members-panel">
-                        <h4 className="sidebar-members-title">Leden (editors)</h4>
+                        <h4 className="sidebar-members-title">{t('sidebar_members_title')}</h4>
                         <form className="sidebar-members-form" onSubmit={handleAddEditor}>
                           <input
                             className="sidebar-course-input"
                             type="email"
-                            placeholder="docent@email.nl"
+                            placeholder={t('sidebar_member_email_placeholder')}
                             value={memberEmail}
                             onChange={e => setMemberEmail(e.target.value)}
                           />
@@ -342,19 +344,19 @@ export default function Sidebar({
                             type="submit"
                             disabled={memberActionLoading || !memberEmail.trim()}
                           >
-                            Editor toevoegen
+                            {t('sidebar_add_editor')}
                           </button>
                         </form>
 
                         {membersLoading ? (
-                          <p className="sidebar-course-hint">Leden laden…</p>
+                          <p className="sidebar-course-hint">{t('sidebar_loading_members')}</p>
                         ) : (
                           <ul className="sidebar-members-list">
                             {courseMembers.map(member => (
                               <li key={member.id} className="sidebar-members-item">
                                 <div>
                                   <div className="sidebar-members-email">{member.email || member.name || member.userId}</div>
-                                  <div className="sidebar-members-role">{member.role === 'owner' ? 'Owner' : 'Editor'}</div>
+                                  <div className="sidebar-members-role">{member.role === 'owner' ? t('sidebar_owner_label') : t('sidebar_editor_label')}</div>
                                 </div>
                                 {member.role === 'editor' && (
                                   <button
@@ -362,13 +364,13 @@ export default function Sidebar({
                                     onClick={() => handleRemoveEditor(member.id)}
                                     disabled={memberActionLoading}
                                   >
-                                    Verwijder
+                                    {t('sidebar_remove')}
                                   </button>
                                 )}
                               </li>
                             ))}
                             {courseMembers.length === 0 && (
-                              <li className="sidebar-course-hint">Nog geen leden gevonden.</li>
+                              <li className="sidebar-course-hint">{t('sidebar_no_members')}</li>
                             )}
                           </ul>
                         )}
@@ -387,13 +389,13 @@ export default function Sidebar({
         <div className="sidebar-auth">
           {user ? (
             <div className="sidebar-auth-user">
-              <span className="sidebar-auth-role">{isTeacher ? '🎓 Docent' : '📚 Student'}</span>
+              <span className="sidebar-auth-role">{isTeacher ? t('sidebar_teacher_role') : t('sidebar_student_role')}</span>
               <span className="sidebar-auth-email">{user.email}</span>
-              <button className="sidebar-auth-btn" onClick={signOut}>Uitloggen</button>
+              <button className="sidebar-auth-btn" onClick={signOut}>{t('sidebar_sign_out')}</button>
             </div>
           ) : (
             <button className="sidebar-auth-btn sidebar-auth-btn--login" onClick={onLoginClick}>
-              Inloggen
+              {t('sidebar_sign_in')}
             </button>
           )}
         </div>
@@ -401,17 +403,20 @@ export default function Sidebar({
         <div className="overall-progress">
           <div className="progress-header">
             <span className="progress-label">
-              Voortgang: {Object.values(progress).filter(p => p.quizCompleted).length}/{chapters.length}
+              {t('sidebar_progress', {
+                done: Object.values(progress).filter(p => p.quizCompleted).length,
+                total: chapters.length,
+              })}
             </span>
             {Object.keys(progress).length > 0 && (
               <button
                 className="reset-progress-btn"
                 onClick={() => {
-                  if (window.confirm('Weet je zeker dat je alle voortgang wilt resetten?')) {
+                  if (window.confirm(t('sidebar_reset_confirm'))) {
                     onResetProgress();
                   }
                 }}
-                title="Reset voortgang"
+                title={t('sidebar_reset_title')}
               >
                 ↺
               </button>

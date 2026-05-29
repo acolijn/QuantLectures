@@ -10,7 +10,7 @@ Use this table as the single source of truth while we build. Update `Status`, `O
 |---|---|---|---|---|---|---|
 | Step 1 | Current MVP (single course, chapter editor, AI import/export, teacher toolbar, chapter reorder) | 🟢 Done | Implemented | - | 2026-05-28 | Baseline already in place |
 | Step 2 | Multi-course support + course members + published flag + subject prompt/language | 🟢 Done | 2-3 days | AI + user | 2026-05-29 | Completed: members UI, my-courses filtering by membership, and membership-based PocketBase rules |
-| Step 2e | UI localization (menus/buttons/messages) | ⚪ Planned | 1-2 days | AI + user | 2026-05-29 | Add app-wide i18n so UI language can follow selected language |
+| Step 2e | UI localization (menus/buttons/messages) | 🟢 Done | 1-2 days | AI + user | 2026-05-29 | App-wide NL/EN i18n, persisted UI language, and auto-follow course language toggle implemented |
 | Step 3 | Teacher registration via secret link | ⚪ Planned | 2-3 hours | - | 2026-05-28 | Fastest safe onboarding path |
 | Step 3a | Password management + email verification | ⚪ Planned | 0.5-1 day | - | 2026-05-28 | PocketBase-native APIs |
 | Step 3b | Proper teacher approval flow | ⚪ Planned | 1 day | - | 2026-05-28 | Add when teacher volume increases |
@@ -109,7 +109,7 @@ Done:
 Remaining after Step 2:
 - Invite-code based student enrollment remains in Step 3c
 
-### Step 2e — UI localization (planned)
+### Step 2e — UI localization
 
 **What:** when English is selected, the app UI (menu items, buttons, labels, messages) can also render in English.
 
@@ -123,6 +123,12 @@ Remaining after Step 2:
 - `course.language` controls generated chapter content/import prompt behavior
 - UI language controls labels/menu text
 - These can be linked by default, but should remain separately configurable
+
+**Status (done):**
+- App-wide i18n layer added with NL + EN dictionaries
+- UI language persists in localStorage
+- Auto-follow toggle links UI language to course language by default
+- Core screens migrated to translation keys (sidebar, toolbars, login/import modals, chapter/quiz/exercise/editor UI)
 
 ---
 

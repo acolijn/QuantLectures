@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import MathText, { MathBlock } from './MathText';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export default function GuidedExercise({ exercise }) {
+  const { t } = useLanguage();
   const [currentStep, setCurrentStep] = useState(0);
   const [revealedHints, setRevealedHints] = useState({});
   const [answers, setAnswers] = useState({});
@@ -78,7 +80,7 @@ export default function GuidedExercise({ exercise }) {
   return (
     <div className="guided-exercise">
       <div className="exercise-header">
-        <div className="exercise-label">{exercise.label || 'Opgave'}</div>
+        <div className="exercise-label">{exercise.label || t('exercise_label_default')}</div>
         <h3><MathText text={exercise.title} /></h3>
         {exercise.intro && (
           <div className="exercise-intro"><MathText text={exercise.intro} /></div>
@@ -110,7 +112,7 @@ export default function GuidedExercise({ exercise }) {
                   className="hint-toggle"
                   onClick={() => toggleHint(currentStep, hi)}
                 >
-                  {revealedHints[`${currentStep}-${hi}`] ? '▾' : '▸'} Hint {hi + 1}
+                  {revealedHints[`${currentStep}-${hi}`] ? '▾' : '▸'} {t('exercise_hint', { n: hi + 1 })}
                 </button>
                 {revealedHints[`${currentStep}-${hi}`] && (
                   <div className="hint-content">
@@ -126,7 +128,7 @@ export default function GuidedExercise({ exercise }) {
           <div className="step-answer-input">
             <input
               type="text"
-              placeholder="Jouw antwoord..."
+              placeholder={t('exercise_your_answer')}
               value={answers[currentStep] || ''}
               onChange={e => handleAnswer(currentStep, e.target.value)}
               disabled={checked[currentStep]}
@@ -139,14 +141,14 @@ export default function GuidedExercise({ exercise }) {
             )}
             {!checked[currentStep] && (
               <button className="btn-check" onClick={() => checkAnswer(currentStep)}>
-                Controleer
+                {t('exercise_check')}
               </button>
             )}
             {checked[currentStep] && (
               <div className={`answer-feedback ${isCorrect(currentStep) ? 'correct' : 'incorrect'}`}>
                 {isCorrect(currentStep)
-                  ? '✓ Correct!'
-                  : <span>✗ Het juiste antwoord is: <MathText text={step.answer} /></span>
+                  ? t('exercise_correct')
+                  : <span>{t('exercise_correct_answer')} <MathText text={step.answer} /></span>
                 }
               </div>
             )}
@@ -162,7 +164,7 @@ export default function GuidedExercise({ exercise }) {
                 <div key={ai} className="multi-answer-row">
                   <input
                     type="text"
-                    placeholder={`Antwoord ${ai + 1}...`}
+                    placeholder={t('exercise_answer', { n: ai + 1 })}
                     value={givenObj[ai] || ''}
                     onChange={e => handleAnswer(currentStep, e.target.value, ai)}
                     disabled={checked[currentStep]}
@@ -183,11 +185,11 @@ export default function GuidedExercise({ exercise }) {
             })}
             {!checked[currentStep] && (
               <button className="btn-check" onClick={() => checkAnswer(currentStep)}>
-                Controleer
+                {t('exercise_check')}
               </button>
             )}
             {checked[currentStep] && isCorrect(currentStep) && (
-              <div className="answer-feedback correct">✓ Correct!</div>
+              <div className="answer-feedback correct">{t('exercise_correct')}</div>
             )}
           </div>
         )}
@@ -199,16 +201,16 @@ export default function GuidedExercise({ exercise }) {
         <div className="step-nav">
           {currentStep > 0 && (
             <button className="btn-secondary" onClick={() => setCurrentStep(currentStep - 1)}>
-              ← Vorige
+              {t('exercise_prev')}
             </button>
           )}
           {currentStep < totalSteps - 1 && (
             <button className="btn-primary" onClick={() => setCurrentStep(currentStep + 1)}>
-              Volgende stap →
+              {t('exercise_next')}
             </button>
           )}
           {currentStep === totalSteps - 1 && (
-            <div className="exercise-complete">Opgave voltooid!</div>
+            <div className="exercise-complete">{t('exercise_complete')}</div>
           )}
         </div>
       </div>
@@ -217,11 +219,12 @@ export default function GuidedExercise({ exercise }) {
 }
 
 function SolutionReveal({ solution }) {
+  const { t } = useLanguage();
   const [show, setShow] = useState(false);
   return (
     <div className="solution-wrapper">
       <button className="solution-toggle" onClick={() => setShow(!show)}>
-        {show ? '▾ Verberg uitwerking' : '▸ Toon uitwerking'}
+        {show ? t('exercise_hide_solution') : t('exercise_show_solution')}
       </button>
       {show && (
         <div className="solution-content">

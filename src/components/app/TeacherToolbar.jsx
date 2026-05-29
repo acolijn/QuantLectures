@@ -1,3 +1,5 @@
+import { useLanguage } from '../../contexts/LanguageContext';
+
 export default function TeacherToolbar({
   showEditButton = false,
   onEdit,
@@ -6,27 +8,29 @@ export default function TeacherToolbar({
   onExport,
   onDelete,
 }) {
+  const { t } = useLanguage();
+
   return (
     <div className="teacher-toolbar">
       {showEditButton && (
         <button className="btn-edit-chapter" onClick={onEdit}>
-          ✏️ Hoofdstuk bewerken
+          {t('toolbar_edit_chapter')}
         </button>
       )}
       <button className="btn-new-chapter" onClick={onNewChapter}>
-        ➕ Nieuw hoofdstuk
+        {t('toolbar_new_chapter')}
       </button>
       <button className="btn-import-chapter" onClick={onImport}>
-        ⬆️ Importeer
+        {t('toolbar_import')}
       </button>
       {onExport && (
         <button className="btn-export-chapter" onClick={onExport}>
-          ⬇️ Exporteer
+          {t('toolbar_export')}
         </button>
       )}
       {onDelete && (
         <button className="btn-delete-chapter" onClick={onDelete}>
-          🗑️ Verwijder hoofdstuk
+          {t('toolbar_delete_chapter')}
         </button>
       )}
     </div>

@@ -1,14 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Sidebar from './components/Sidebar';
 import AppMainContent from './components/app/AppMainContent';
 import AppOverlays from './components/app/AppOverlays';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import { useCourses } from './hooks/useCourses';
 import { useChapters } from './hooks/useChapters';
 import { useCourseProgress } from './hooks/useCourseProgress';
 
 function AppContent() {
   const { isTeacher } = useAuth();
+  const { t, syncWithCourseLanguage } = useLanguage();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
@@ -45,6 +47,10 @@ function AppContent() {
   const course = courses.find(c => c.id === activeCourseId) ?? null;
   const chapter = chapters.find(c => c.id === activeChapter);
 
+  useEffect(() => {
+    syncWithCourseLanguage(course?.language);
+  }, [course?.language, syncWithCourseLanguage]);
+
   function handleProgressUpdate(chapterId, score) {
     updateProgress(chapterId, score);
   }
@@ -60,8 +66,8 @@ function AppContent() {
 
   async function handleCreateCourse() {
     if (!isTeacher) return;
-    const defaultName = `Nieuwe cursus ${courses.length + 1}`;
-    const name = window.prompt('Naam van de cursus?', defaultName);
+    const defaultName = `Course ${courses.length + 1}`;
+    const name = window.prompt(t('sidebar_name'), defaultName);
     if (name === null) return;
     await createNewCourse(name.trim() || defaultName);
   }
@@ -93,7 +99,7 @@ function AppContent() {
 
   async function handleDeleteChapter() {
     if (!activeCourseId || !chapter) return;
-    if (!window.confirm(`Hoofdstuk ${chapter.id} "${chapter.title}" verwijderen? Dit kan niet ongedaan worden gemaakt.`)) return;
+    if (!window.confirm(t('app_confirm_delete_chapter', { id: chapter.id, title: chapter.title }))) return;
 
     await deleteExistingChapter(chapter);
   }
@@ -136,7 +142,7 @@ function AppContent() {
       <button
         className="mobile-menu-btn"
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        aria-label="Menu"
+        aria-label={t('app_menu')}
       >
         ☰
       </button>
@@ -188,7 +194,9 @@ function AppContent() {
 export default function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <LanguageProvider>
+        <AppContent />
+      </LanguageProvider>
     </AuthProvider>
   );
 }
