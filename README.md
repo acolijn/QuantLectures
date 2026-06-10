@@ -348,6 +348,23 @@ npm run fix:course-membership -- --course "QF1" --email "auke.pieter.colijn@gmai
 
 This command creates or updates the membership link without modifying chapter content.
 
+If your remote DB is from the legacy single-course version and no course record exists yet, recover with:
+
+```bash
+npm run recover:legacy-course -- --course "QF1" --email "auke.pieter.colijn@gmail.com" --role owner
+```
+
+This will:
+- create the course if missing
+- ensure the teacher has membership on that course
+- reassign orphan legacy chapters (without `course_id`) to that course
+
+To force all existing chapters into that course, use:
+
+```bash
+npm run recover:legacy-course -- --course "QF1" --email "auke.pieter.colijn@gmail.com" --role owner --all-chapters
+```
+
 ### Typical port layout
 
 | Service | Internal | Exposed |

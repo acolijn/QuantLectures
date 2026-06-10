@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "setup": "node --env-file=.env scripts/setup-pocketbase.js",
-    "fix:course-membership": "node --env-file=.env scripts/fix-course-membership.js"
+    "fix:course-membership": "node --env-file=.env scripts/fix-course-membership.js",
+    "recover:legacy-course": "node --env-file=.env scripts/recover-legacy-course.js"
   },
   "dependencies": {
     "katex": "^0.16.9",
