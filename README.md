@@ -321,6 +321,21 @@ After updates that touch schema or rules, run:
 npm run setup
 ```
 
+### One-command safe upgrade (recommended)
+
+From the project root on the server:
+
+```bash
+./scripts/upgrade-server.sh
+```
+
+What it does:
+- creates a timestamped backup of `pb_data/` and `.env` in `backups/<timestamp>/`
+- pulls the latest `main`
+- runs `docker compose up -d --build`
+- runs `npm run setup` (or a one-off Node container fallback if `npm` is unavailable)
+- prints container status and recent logs
+
 ### Typical port layout
 
 | Service | Internal | Exposed |
