@@ -284,12 +284,15 @@ POCKETBASE_URL=http://pocketbase:8090
 PB_ADMIN_EMAIL=admin@example.com
 PB_ADMIN_PASSWORD=yourpassword
 PUBLIC_STUDENT_COURSE_NAME=
+PUBLIC_GUEST_COURSE_NAME=
 EOF
 ```
 
 > **Note:** `VITE_POCKETBASE_URL` is baked into the frontend at build time — set it to the public URL the *browser* uses to reach PocketBase. `POCKETBASE_URL` is used by the Node scripts and can be the internal Docker service name.
 
 > Optional temporary setting: set `PUBLIC_STUDENT_COURSE_NAME=QF1` to allow all logged-in students to see that published course without an invite enrollment.
+
+> Optional temporary setting: set `PUBLIC_GUEST_COURSE_NAME=QF1` to allow non-logged-in visitors to see that published course and its chapters.
 
 ### 3. Build and start all containers
 

@@ -452,24 +452,38 @@ async function setup() {
   // ── 8. Tighten student rules to enrollment-based visibility ──
   console.log('Applying enrollment-based student access rules…');
   const publicStudentCourseName = String(process.env.PUBLIC_STUDENT_COURSE_NAME ?? '').trim();
+  const publicGuestCourseName = String(process.env.PUBLIC_GUEST_COURSE_NAME ?? '').trim();
+
+  const publicGuestCourseRule = publicGuestCourseName
+    ? `(published = true && name = "${publicGuestCourseName.replaceAll('"', '\\"')}")`
+    : '';
+
   const publicStudentCourseRule = publicStudentCourseName
     ? `(@request.auth.role = "student" && published = true && name = "${publicStudentCourseName.replaceAll('"', '\\"')}")`
     : '';
   const strictCourseStudentEnrollmentRule = '@request.auth.role = "student" && published = true && @collection.course_enrollments.course_id ?= id && @collection.course_enrollments.user_id ?= @request.auth.id';
-  const strictCourseStudentRule = publicStudentCourseRule
-    ? `(${strictCourseStudentEnrollmentRule}) || ${publicStudentCourseRule}`
-    : strictCourseStudentEnrollmentRule;
+  const strictCourseStudentRuleParts = [strictCourseStudentEnrollmentRule];
+  if (publicStudentCourseRule) strictCourseStudentRuleParts.push(publicStudentCourseRule);
+  if (publicGuestCourseRule) strictCourseStudentRuleParts.push(publicGuestCourseRule);
+  const strictCourseStudentRule = strictCourseStudentRuleParts.map(p => `(${p})`).join(' || ');
 
   const strictChapterStudentEnrollmentRule = '@request.auth.role = "student" && course_id.published = true && @collection.course_enrollments.course_id ?= course_id && @collection.course_enrollments.user_id ?= @request.auth.id';
   const strictChapterPublicCourseRule = publicStudentCourseName
     ? `(@request.auth.role = "student" && course_id.published = true && course_id.name = "${publicStudentCourseName.replaceAll('"', '\\"')}")`
     : '';
-  const strictChapterStudentRule = strictChapterPublicCourseRule
-    ? `(${strictChapterStudentEnrollmentRule}) || ${strictChapterPublicCourseRule}`
-    : strictChapterStudentEnrollmentRule;
+  const strictChapterGuestCourseRule = publicGuestCourseName
+    ? `(course_id.published = true && course_id.name = "${publicGuestCourseName.replaceAll('"', '\\"')}")`
+    : '';
+  const strictChapterStudentRuleParts = [strictChapterStudentEnrollmentRule];
+  if (strictChapterPublicCourseRule) strictChapterStudentRuleParts.push(strictChapterPublicCourseRule);
+  if (strictChapterGuestCourseRule) strictChapterStudentRuleParts.push(strictChapterGuestCourseRule);
+  const strictChapterStudentRule = strictChapterStudentRuleParts.map(p => `(${p})`).join(' || ');
 
   if (publicStudentCourseName) {
     console.log(`  → Public student course override enabled for: ${publicStudentCourseName}`);
+  }
+  if (publicGuestCourseName) {
+    console.log(`  → Public guest course override enabled for: ${publicGuestCourseName}`);
   }
 
   await pb.collections.update('courses', {
