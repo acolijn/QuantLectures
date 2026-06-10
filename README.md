@@ -336,6 +336,18 @@ What it does:
 - runs `npm run setup` (or a one-off Node container fallback if `npm` is unavailable)
 - prints container status and recent logs
 
+### Repair missing teacher course visibility
+
+If a course exists in PocketBase but is not visible to a teacher, the teacher is usually missing a `course_members` record for that course.
+
+Use the repair script:
+
+```bash
+npm run fix:course-membership -- --course "QF1" --email "auke.pieter.colijn@gmail.com" --role owner
+```
+
+This command creates or updates the membership link without modifying chapter content.
+
 ### Typical port layout
 
 | Service | Internal | Exposed |
