@@ -451,8 +451,26 @@ async function setup() {
 
   // ── 8. Tighten student rules to enrollment-based visibility ──
   console.log('Applying enrollment-based student access rules…');
-  const strictCourseStudentRule = '@request.auth.role = "student" && published = true && @collection.course_enrollments.course_id ?= id && @collection.course_enrollments.user_id ?= @request.auth.id';
-  const strictChapterStudentRule = '@request.auth.role = "student" && course_id.published = true && @collection.course_enrollments.course_id ?= course_id && @collection.course_enrollments.user_id ?= @request.auth.id';
+  const publicStudentCourseName = String(process.env.PUBLIC_STUDENT_COURSE_NAME ?? '').trim();
+  const publicStudentCourseRule = publicStudentCourseName
+    ? `(@request.auth.role = "student" && published = true && name = "${publicStudentCourseName.replaceAll('"', '\\"')}")`
+    : '';
+  const strictCourseStudentEnrollmentRule = '@request.auth.role = "student" && published = true && @collection.course_enrollments.course_id ?= id && @collection.course_enrollments.user_id ?= @request.auth.id';
+  const strictCourseStudentRule = publicStudentCourseRule
+    ? `(${strictCourseStudentEnrollmentRule}) || ${publicStudentCourseRule}`
+    : strictCourseStudentEnrollmentRule;
+
+  const strictChapterStudentEnrollmentRule = '@request.auth.role = "student" && course_id.published = true && @collection.course_enrollments.course_id ?= course_id && @collection.course_enrollments.user_id ?= @request.auth.id';
+  const strictChapterPublicCourseRule = publicStudentCourseName
+    ? `(@request.auth.role = "student" && course_id.published = true && course_id.name = "${publicStudentCourseName.replaceAll('"', '\\"')}")`
+    : '';
+  const strictChapterStudentRule = strictChapterPublicCourseRule
+    ? `(${strictChapterStudentEnrollmentRule}) || ${strictChapterPublicCourseRule}`
+    : strictChapterStudentEnrollmentRule;
+
+  if (publicStudentCourseName) {
+    console.log(`  → Public student course override enabled for: ${publicStudentCourseName}`);
+  }
 
   await pb.collections.update('courses', {
     fields: customFields(await pb.collections.getOne('courses')),
