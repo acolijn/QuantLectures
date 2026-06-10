@@ -119,6 +119,20 @@ async function ensureCollection(name, definition) {
   return created;
 }
 
+async function collectionExists(name) {
+  try {
+    await pb.collections.getOne(name);
+    return true;
+  } catch {
+    try {
+      const all = await pb.collections.getFullList();
+      return all.some(c => c.name === name);
+    } catch {
+      return false;
+    }
+  }
+}
+
 async function setup() {
   // ── 1. Authenticate as admin ────────────────────────────────
   console.log('Authenticating as admin…');
@@ -198,7 +212,9 @@ async function setup() {
   console.log("Creating/updating 'courses' collection…");
   const courseTeacherMemberRule = '(@request.auth.role = "teacher" || @request.auth.role = "admin") && @collection.course_members.course_id ?= id && @collection.course_members.user_id ?= @request.auth.id';
   const courseTeacherOwnerRule = '(@request.auth.role = "teacher" || @request.auth.role = "admin") && @collection.course_members.course_id ?= id && @collection.course_members.user_id ?= @request.auth.id && @collection.course_members.role ?= "owner"';
+  const courseTeacherBootstrapRule = '@request.auth.role = "teacher" || @request.auth.role = "admin"';
   const courseStudentPublishedRule = '@request.auth.role = "student" && published = true';
+  const hasCourseMembersCollection = await collectionExists('course_members');
   const courses = await ensureCollection('courses', {
     fields: [
       { name: 'name',           type: 'text',   required: true },
@@ -213,11 +229,11 @@ async function setup() {
       },
       { name: 'subject_prompt', type: 'text',   required: false },
     ],
-    listRule:   `(${courseTeacherMemberRule}) || (${courseStudentPublishedRule})`,
-    viewRule:   `(${courseTeacherMemberRule}) || (${courseStudentPublishedRule})`,
+    listRule:   `(${hasCourseMembersCollection ? courseTeacherMemberRule : courseTeacherBootstrapRule}) || (${courseStudentPublishedRule})`,
+    viewRule:   `(${hasCourseMembersCollection ? courseTeacherMemberRule : courseTeacherBootstrapRule}) || (${courseStudentPublishedRule})`,
     createRule: '@request.auth.role = "teacher" || @request.auth.role = "admin"',
-    updateRule: courseTeacherOwnerRule,
-    deleteRule: courseTeacherOwnerRule,
+    updateRule: hasCourseMembersCollection ? courseTeacherOwnerRule : courseTeacherBootstrapRule,
+    deleteRule: hasCourseMembersCollection ? courseTeacherOwnerRule : courseTeacherBootstrapRule,
   });
 
   // ── 4. Create/update 'course_members' collection ────────────
@@ -256,6 +272,18 @@ async function setup() {
     updateRule: `${ownerForTargetCourse} && role != "owner"`,
     deleteRule: `${ownerForTargetCourse} && role != "owner"`,
   });
+
+  // If we created/updated courses before course_members existed, tighten now.
+  if (!hasCourseMembersCollection) {
+    await pb.collections.update('courses', {
+      fields: customFields(await pb.collections.getOne('courses')),
+      listRule: `(${courseTeacherMemberRule}) || (${courseStudentPublishedRule})`,
+      viewRule: `(${courseTeacherMemberRule}) || (${courseStudentPublishedRule})`,
+      createRule: '@request.auth.role = "teacher" || @request.auth.role = "admin"',
+      updateRule: courseTeacherOwnerRule,
+      deleteRule: courseTeacherOwnerRule,
+    });
+  }
 
   // ── 4b. Backfill legacy memberships for existing courses ───
   console.log("Backfilling legacy course memberships…");
