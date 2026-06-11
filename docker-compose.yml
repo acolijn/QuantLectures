@@ -17,5 +17,5 @@ services:
     ports:
       - "8090:8090"
     volumes:
-      - ./pb_data:/pb/pb_data
+      - ./pb_data:/pb_data
     restart: unless-stopped
