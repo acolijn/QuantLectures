@@ -53,6 +53,13 @@ git pull --ff-only "$REMOTE" "$BRANCH"
 echo "==> Rebuilding and restarting containers"
 docker compose up -d --build
 
+echo "==> Ensuring PocketBase superuser exists"
+if [[ -n "${PB_ADMIN_EMAIL:-}" && -n "${PB_ADMIN_PASSWORD:-}" ]]; then
+  docker compose exec -T pocketbase pocketbase superuser upsert "$PB_ADMIN_EMAIL" "$PB_ADMIN_PASSWORD"
+else
+  echo "  - Skipping superuser upsert (PB_ADMIN_EMAIL/PB_ADMIN_PASSWORD not set)."
+fi
+
 echo "==> Running PocketBase setup"
 if command -v npm >/dev/null 2>&1; then
   npm ci
