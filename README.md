@@ -154,8 +154,8 @@ Teachers can export the currently open chapter as JSON directly from the toolbar
 
 | Role | Access |
 |---|---|
-| **Guest** (not logged in) | No guaranteed course access (use a student/teacher account) |
-| **Student** | Read invited published courses only (via invite code) |
+| **Guest** (not logged in) | Read courses and chapters that have both `published` and `public` enabled |
+| **Student** | Read all published courses and chapters |
 | **Pending** | Signed up for teacher access; awaiting admin approval |
 | **Teacher (editor)** | Access own member courses + chapter CRUD/import/export/reorder |
 | **Teacher (owner)** | Editor rights + course settings + member management |
@@ -283,16 +283,12 @@ VITE_POCKETBASE_URL=https://your-server.example.com/pb
 POCKETBASE_URL=http://pocketbase:8090
 PB_ADMIN_EMAIL=admin@example.com
 PB_ADMIN_PASSWORD=yourpassword
-PUBLIC_STUDENT_COURSE_NAME=
-PUBLIC_GUEST_COURSE_NAME=
 EOF
 ```
 
 > **Note:** `VITE_POCKETBASE_URL` is baked into the frontend at build time — set it to the public URL the *browser* uses to reach PocketBase. `POCKETBASE_URL` is used by the Node scripts and can be the internal Docker service name.
 
-> Optional temporary setting: set `PUBLIC_STUDENT_COURSE_NAME=QF1` to allow all logged-in students to see that published course without an invite enrollment.
-
-> Optional temporary setting: set `PUBLIC_GUEST_COURSE_NAME=QF1` to allow non-logged-in visitors to see that published course and its chapters.
+> **Guest access:** To allow non-logged-in visitors to see a course, enable the **Public** toggle in the course settings (sets the `public` field). The course must also be published.
 
 ### 3. Build and start all containers
 
