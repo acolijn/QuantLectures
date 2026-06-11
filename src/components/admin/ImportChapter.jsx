@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { upsertChapter } from '../../lib/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 
-const BASE_PROMPT = `Je bent een assistent die college-aantekeningen omzet naar een gestructureerd JSON-hoofdstuk voor een quantumfysica leer-app.
+const BASE_PROMPT = `Je bent een assistent die college-aantekeningen omzet naar een gestructureerd JSON-hoofdstuk voor een leer-app.
 
 Genereer ALLEEN geldige JSON (geen markdown, geen uitleg erbuiten), in dit exacte formaat:
 
