@@ -15,12 +15,12 @@ function saveProgress(progress) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
 }
 
-export function useCourseProgress(activeCourseId) {
-  const [progress, setProgress] = useState(loadProgress);
+export function useCourseProgress(activeCourseId, userId) {
+  const [progress, setProgress] = useState(() => userId ? loadProgress() : {});
 
   useEffect(() => {
-    saveProgress(progress);
-  }, [progress]);
+    if (userId) saveProgress(progress);
+  }, [progress, userId]);
 
   const courseProgress = useMemo(() => {
     if (!activeCourseId) return {};
@@ -28,7 +28,7 @@ export function useCourseProgress(activeCourseId) {
   }, [activeCourseId, progress]);
 
   function updateProgress(chapterId, score) {
-    if (!activeCourseId) return;
+    if (!userId || !activeCourseId) return;
 
     setProgress(prev => {
       const existing = prev[activeCourseId]?.[chapterId] || {};
@@ -47,7 +47,7 @@ export function useCourseProgress(activeCourseId) {
   }
 
   function resetCourseProgress() {
-    if (!activeCourseId) return;
+    if (!userId || !activeCourseId) return;
 
     setProgress(prev => {
       const next = { ...prev };

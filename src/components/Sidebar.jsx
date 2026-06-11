@@ -364,6 +364,41 @@ export default function Sidebar({
           );
         })}
       </nav>
+
+      {user && chapters.length > 0 && (
+        <div className="overall-progress">
+          <div className="progress-header">
+            <span className="progress-label">
+              {t('sidebar_progress', {
+                done: Object.values(progress).filter(p => p.quizCompleted).length,
+                total: chapters.length,
+              })}
+            </span>
+            {Object.keys(progress).length > 0 && (
+              <button
+                className="reset-progress-btn"
+                onClick={() => {
+                  if (window.confirm(t('sidebar_reset_confirm'))) {
+                    onResetProgress();
+                  }
+                }}
+                title={t('sidebar_reset_title')}
+              >
+                ↺
+              </button>
+            )}
+          </div>
+          <div className="progress-bar-track">
+            <div
+              className="progress-bar-fill"
+              style={{
+                width: `${(Object.values(progress).filter(p => p.quizCompleted).length / chapters.length) * 100}%`
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       <div className="sidebar-footer">
         {(courses.length > 0 || isTeacher) && (
           <div className="sidebar-course-controls">
@@ -700,37 +735,6 @@ export default function Sidebar({
           </div>
         )}
 
-        <div className="overall-progress">
-          <div className="progress-header">
-            <span className="progress-label">
-              {t('sidebar_progress', {
-                done: Object.values(progress).filter(p => p.quizCompleted).length,
-                total: chapters.length,
-              })}
-            </span>
-            {Object.keys(progress).length > 0 && (
-              <button
-                className="reset-progress-btn"
-                onClick={() => {
-                  if (window.confirm(t('sidebar_reset_confirm'))) {
-                    onResetProgress();
-                  }
-                }}
-                title={t('sidebar_reset_title')}
-              >
-                ↺
-              </button>
-            )}
-          </div>
-          <div className="progress-bar-track">
-            <div
-              className="progress-bar-fill"
-              style={{
-                width: `${(Object.values(progress).filter(p => p.quizCompleted).length / chapters.length) * 100}%`
-              }}
-            />
-          </div>
-        </div>
       </div>
     </aside>
   );
