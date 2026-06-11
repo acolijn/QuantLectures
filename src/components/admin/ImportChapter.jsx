@@ -194,14 +194,40 @@ export default function ImportChapter({ courseId, course, existingChapters, onCl
       if (start !== -1 && end > start) {
         cleaned = cleaned.slice(start, end + 1);
       }
-      // Double backslashes for LaTeX commands (\alpha → \\alpha etc.)
-      // Only touch single backslashes — skip already-doubled ones (negative lookbehind)
-      cleaned = cleaned.replace(/(?<!\\)\\([a-zA-Z{}[\]|,;! ^_])/g, '\\\\$1');
-
       // Normalize typographic/curly quotes that Claude's UI inserts
+      // (do this first so string boundaries are reliably straight-quote delimited)
       cleaned = cleaned
         .replace(/[\u201C\u201D]/g, '"')  // " "  → "
         .replace(/[\u2018\u2019]/g, "'"); // ' '  → '
+
+      // Fix LaTeX backslashes: walk through the JSON character by character and,
+      // inside string values, double every backslash except \" (escaped quote).
+      // This correctly handles \frac, \begin, and tricky sequences like \\\infty
+      // (LaTeX line-break + \infty) where the lookbehind regex approach fails.
+      {
+        let out = '';
+        let inStr = false;
+        for (let i = 0; i < cleaned.length; i++) {
+          const c = cleaned[i];
+          if (!inStr) {
+            out += c;
+            if (c === '"') inStr = true;
+          } else if (c === '\\') {
+            if (cleaned[i + 1] === '"') {
+              // \" — valid JSON escape for a literal quote, keep as-is
+              out += '\\"';
+              i++;
+            } else {
+              // Any other backslash (LaTeX command, \\, etc.) — double it
+              out += '\\\\';
+            }
+          } else {
+            out += c;
+            if (c === '"') inStr = false;
+          }
+        }
+        cleaned = out;
+      }
       parsed = JSON.parse(cleaned);
     } catch(e) {
       setError(t('import_invalid_json', { message: e.message }));
