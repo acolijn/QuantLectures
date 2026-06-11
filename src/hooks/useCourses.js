@@ -4,6 +4,7 @@ import {
   approvePendingTeacher,
   createCourse,
   createCourseInvite,
+  deleteCourse,
   fetchCourseMembers,
   fetchCourseInvites,
   fetchCourses,
@@ -54,6 +55,16 @@ export function useCourses(user) {
     setCourses(prev => [...prev, created].sort((a, b) => a.name.localeCompare(b.name, 'nl')));
     setActiveCourseId(created.id);
     return created;
+  }
+
+  async function deleteExistingCourse(courseId) {
+    await deleteCourse(courseId);
+    setCourses(prev => prev.filter(c => c.id !== courseId));
+    setActiveCourseId(prev => {
+      if (prev !== courseId) return prev;
+      const remaining = courses.filter(c => c.id !== courseId);
+      return remaining[0]?.id ?? null;
+    });
   }
 
   async function updateExistingCourse(courseId, updates) {
@@ -152,6 +163,7 @@ export function useCourses(user) {
     pendingTeachers,
     setActiveCourseId,
     createNewCourse,
+    deleteExistingCourse,
     updateExistingCourse,
     refreshCourseMembers,
     addEditorToCourse,

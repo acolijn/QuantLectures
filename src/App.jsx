@@ -24,6 +24,7 @@ function AppContent() {
     pendingTeachers,
     setActiveCourseId,
     createNewCourse,
+    deleteExistingCourse,
     updateExistingCourse,
     refreshCourseMembers,
     addEditorToCourse,
@@ -79,6 +80,12 @@ function AppContent() {
     const name = window.prompt(t('sidebar_name'), defaultName);
     if (name === null) return;
     await createNewCourse(name.trim() || defaultName);
+  }
+
+  async function handleDeleteCourse() {
+    if (!activeCourseId) return;
+    if (!window.confirm(t('sidebar_confirm_delete_course'))) return;
+    await deleteExistingCourse(activeCourseId);
   }
 
   async function handleNewChapter() {
@@ -163,6 +170,7 @@ function AppContent() {
           isAdmin={isAdmin}
           onSelectCourse={handleSelectCourse}
           onCreateCourse={handleCreateCourse}
+          onDeleteCourse={handleDeleteCourse}
           onUpdateCourse={handleUpdateCourse}
           courseMembers={courseMembersByCourse[activeCourseId] ?? []}
           onLoadCourseMembers={() => refreshCourseMembers(activeCourseId)}

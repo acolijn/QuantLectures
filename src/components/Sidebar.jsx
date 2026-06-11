@@ -21,6 +21,7 @@ export default function Sidebar({
   isAdmin,
   onSelectCourse,
   onCreateCourse,
+  onDeleteCourse,
   onUpdateCourse,
   courseMembers,
   onLoadCourseMembers,
@@ -482,6 +483,16 @@ export default function Sidebar({
                       )}
 
                       {saveMessage && <p className="sidebar-course-save-message">{saveMessage}</p>}
+
+                      {isCourseOwner && (
+                        <button
+                          className="sidebar-auth-btn sidebar-course-delete"
+                          type="button"
+                          onClick={onDeleteCourse}
+                        >
+                          {t('sidebar_delete_course')}
+                        </button>
+                      )}
                     </form>
 
                     {isCourseOwner && (

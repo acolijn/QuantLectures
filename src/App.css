@@ -1090,6 +1090,17 @@ body {
   color: #9bc1ff;
 }
 
+.sidebar-course-delete {
+  margin-top: 8px;
+  background: rgba(220, 50, 50, 0.25);
+  border: 1px solid rgba(220, 50, 50, 0.5);
+  color: #ff9999;
+}
+
+.sidebar-course-delete:hover {
+  background: rgba(220, 50, 50, 0.45);
+}
+
 .sidebar-members-panel {
   margin-top: 12px;
   border-top: 1px solid rgba(255,255,255,0.12);

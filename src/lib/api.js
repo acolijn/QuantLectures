@@ -278,6 +278,10 @@ export async function updateCourse(courseId, updates) {
   });
 }
 
+export async function deleteCourse(courseId) {
+  await pb.collection('courses').delete(courseId);
+}
+
 function toMember(record) {
   const expandedUser = record.expand?.user_id;
   return {
