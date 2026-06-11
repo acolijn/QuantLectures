@@ -214,12 +214,14 @@ async function setup() {
   const courseTeacherOwnerRule = '(@request.auth.role = "teacher" || @request.auth.role = "admin") && @collection.course_members.course_id ?= id && @collection.course_members.user_id ?= @request.auth.id && @collection.course_members.role ?= "owner"';
   const courseTeacherBootstrapRule = '@request.auth.role = "teacher" || @request.auth.role = "admin"';
   const courseStudentPublishedRule = '@request.auth.role = "student" && published = true';
+  const courseGuestPublicRule = 'published = true && public = true';
   const hasCourseMembersCollection = await collectionExists('course_members');
   const courses = await ensureCollection('courses', {
     fields: [
       { name: 'name',           type: 'text',   required: true },
       { name: 'subtitle',       type: 'text',   required: false },
       { name: 'published',      type: 'bool',   required: false },
+      { name: 'public',         type: 'bool',   required: false },
       {
         name: 'language',
         type: 'select',
@@ -229,8 +231,8 @@ async function setup() {
       },
       { name: 'subject_prompt', type: 'text',   required: false },
     ],
-    listRule:   `(${hasCourseMembersCollection ? courseTeacherMemberRule : courseTeacherBootstrapRule}) || (${courseStudentPublishedRule})`,
-    viewRule:   `(${hasCourseMembersCollection ? courseTeacherMemberRule : courseTeacherBootstrapRule}) || (${courseStudentPublishedRule})`,
+    listRule:   `(${hasCourseMembersCollection ? courseTeacherMemberRule : courseTeacherBootstrapRule}) || (${courseStudentPublishedRule}) || (${courseGuestPublicRule})`,
+    viewRule:   `(${hasCourseMembersCollection ? courseTeacherMemberRule : courseTeacherBootstrapRule}) || (${courseStudentPublishedRule}) || (${courseGuestPublicRule})`,
     createRule: '@request.auth.role = "teacher" || @request.auth.role = "admin"',
     updateRule: hasCourseMembersCollection ? courseTeacherOwnerRule : courseTeacherBootstrapRule,
     deleteRule: hasCourseMembersCollection ? courseTeacherOwnerRule : courseTeacherBootstrapRule,
@@ -277,8 +279,8 @@ async function setup() {
   if (!hasCourseMembersCollection) {
     await pb.collections.update('courses', {
       fields: customFields(await pb.collections.getOne('courses')),
-      listRule: `(${courseTeacherMemberRule}) || (${courseStudentPublishedRule})`,
-      viewRule: `(${courseTeacherMemberRule}) || (${courseStudentPublishedRule})`,
+      listRule: `(${courseTeacherMemberRule}) || (${courseStudentPublishedRule}) || (${courseGuestPublicRule})`,
+      viewRule: `(${courseTeacherMemberRule}) || (${courseStudentPublishedRule}) || (${courseGuestPublicRule})`,
       createRule: '@request.auth.role = "teacher" || @request.auth.role = "admin"',
       updateRule: courseTeacherOwnerRule,
       deleteRule: courseTeacherOwnerRule,
@@ -354,6 +356,7 @@ async function setup() {
   console.log("Creating/updating 'chapters' collection…");
   const chapterTeacherMemberRule = '(@request.auth.role = "teacher" || @request.auth.role = "admin") && @collection.course_members.course_id ?= course_id && @collection.course_members.user_id ?= @request.auth.id';
   const chapterStudentPublishedRule = '@request.auth.role = "student" && course_id.published = true';
+  const chapterGuestPublicRule = 'course_id.published = true && course_id.public = true';
   await ensureCollection('chapters', {
     fields: [
       {
@@ -372,8 +375,8 @@ async function setup() {
       { name: 'exercises',      type: 'json',   required: false },
       { name: 'quiz',           type: 'json',   required: false },
     ],
-    listRule:   `(${chapterTeacherMemberRule}) || (${chapterStudentPublishedRule})`,
-    viewRule:   `(${chapterTeacherMemberRule}) || (${chapterStudentPublishedRule})`,
+    listRule:   `(${chapterTeacherMemberRule}) || (${chapterStudentPublishedRule}) || (${chapterGuestPublicRule})`,
+    viewRule:   `(${chapterTeacherMemberRule}) || (${chapterStudentPublishedRule}) || (${chapterGuestPublicRule})`,
     createRule: chapterTeacherMemberRule,
     updateRule: chapterTeacherMemberRule,
     deleteRule: chapterTeacherMemberRule,
@@ -449,42 +452,17 @@ async function setup() {
     deleteRule: '@request.auth.role = "admin"',
   });
 
-  // ── 8. Tighten student rules to enrollment-based visibility ──
-  console.log('Applying enrollment-based student access rules…');
-  const publicStudentCourseName = String(process.env.PUBLIC_STUDENT_COURSE_NAME ?? '').trim();
-  const publicGuestCourseName = String(process.env.PUBLIC_GUEST_COURSE_NAME ?? '').trim();
-
-  const publicGuestCourseRule = publicGuestCourseName
-    ? `(published = true && name = "${publicGuestCourseName.replaceAll('"', '\\"')}")`
-    : '';
-
-  const publicStudentCourseRule = publicStudentCourseName
-    ? `(@request.auth.role = "student" && published = true && name = "${publicStudentCourseName.replaceAll('"', '\\"')}")`
-    : '';
+  // ── 8. Tighten student rules while allowing explicitly public guest courses ──
+  console.log('Applying enrollment-based student and public guest access rules…');
   const strictCourseStudentEnrollmentRule = '@request.auth.role = "student" && published = true && @collection.course_enrollments.course_id ?= id && @collection.course_enrollments.user_id ?= @request.auth.id';
-  const strictCourseStudentRuleParts = [strictCourseStudentEnrollmentRule];
-  if (publicStudentCourseRule) strictCourseStudentRuleParts.push(publicStudentCourseRule);
-  if (publicGuestCourseRule) strictCourseStudentRuleParts.push(publicGuestCourseRule);
+  const strictCourseGuestRule = 'published = true && public = true';
+  const strictCourseStudentRuleParts = [strictCourseStudentEnrollmentRule, strictCourseGuestRule];
   const strictCourseStudentRule = strictCourseStudentRuleParts.map(p => `(${p})`).join(' || ');
 
   const strictChapterStudentEnrollmentRule = '@request.auth.role = "student" && course_id.published = true && @collection.course_enrollments.course_id ?= course_id && @collection.course_enrollments.user_id ?= @request.auth.id';
-  const strictChapterPublicCourseRule = publicStudentCourseName
-    ? `(@request.auth.role = "student" && course_id.published = true && course_id.name = "${publicStudentCourseName.replaceAll('"', '\\"')}")`
-    : '';
-  const strictChapterGuestCourseRule = publicGuestCourseName
-    ? `(course_id.published = true && course_id.name = "${publicGuestCourseName.replaceAll('"', '\\"')}")`
-    : '';
-  const strictChapterStudentRuleParts = [strictChapterStudentEnrollmentRule];
-  if (strictChapterPublicCourseRule) strictChapterStudentRuleParts.push(strictChapterPublicCourseRule);
-  if (strictChapterGuestCourseRule) strictChapterStudentRuleParts.push(strictChapterGuestCourseRule);
+  const strictChapterGuestRule = 'course_id.published = true && course_id.public = true';
+  const strictChapterStudentRuleParts = [strictChapterStudentEnrollmentRule, strictChapterGuestRule];
   const strictChapterStudentRule = strictChapterStudentRuleParts.map(p => `(${p})`).join(' || ');
-
-  if (publicStudentCourseName) {
-    console.log(`  → Public student course override enabled for: ${publicStudentCourseName}`);
-  }
-  if (publicGuestCourseName) {
-    console.log(`  → Public guest course override enabled for: ${publicGuestCourseName}`);
-  }
 
   await pb.collections.update('courses', {
     fields: customFields(await pb.collections.getOne('courses')),

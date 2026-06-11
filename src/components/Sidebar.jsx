@@ -71,6 +71,7 @@ export default function Sidebar({
     subtitle: '',
     language: 'nl',
     published: false,
+    public: false,
     subjectPrompt: '',
   });
 
@@ -81,6 +82,7 @@ export default function Sidebar({
         subtitle: '',
         language: 'nl',
         published: false,
+        public: false,
         subjectPrompt: '',
       });
       setShowCourseSettings(false);
@@ -93,6 +95,7 @@ export default function Sidebar({
       subtitle: course.subtitle ?? '',
       language: course.language ?? 'nl',
       published: !!course.published,
+      public: !!course.public,
       subjectPrompt: course.subjectPrompt ?? '',
     });
     setSaveMessage('');
@@ -186,6 +189,7 @@ export default function Sidebar({
         subtitle: courseForm.subtitle.trim(),
         language: courseForm.language,
         published: courseForm.published,
+        public: courseForm.public,
         subjectPrompt: courseForm.subjectPrompt.trim(),
       });
       setSaveMessage(t('sidebar_saved'));
@@ -360,25 +364,29 @@ export default function Sidebar({
         })}
       </nav>
       <div className="sidebar-footer">
-        {isTeacher && (
+        {(courses.length > 0 || isTeacher) && (
           <div className="sidebar-course-controls">
-            <label className="sidebar-course-label">
-              {t('sidebar_course')}
-              <select
-                className="sidebar-course-select"
-                value={activeCourseId ?? ''}
-                onChange={e => onSelectCourse?.(e.target.value)}
-              >
-                {courses.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            </label>
-            <button className="sidebar-auth-btn sidebar-course-create" onClick={onCreateCourse}>
-              {t('sidebar_new_course')}
-            </button>
-            {course && (
+            {courses.length > 0 && (
+              <label className="sidebar-course-label">
+                {t('sidebar_course')}
+                <select
+                  className="sidebar-course-select"
+                  value={activeCourseId ?? ''}
+                  onChange={e => onSelectCourse?.(e.target.value)}
+                >
+                  {courses.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {isTeacher && (
               <>
+                <button className="sidebar-auth-btn sidebar-course-create" onClick={onCreateCourse}>
+                  {t('sidebar_new_course')}
+                </button>
+                {course && (
+                  <>
                 <button
                   className="sidebar-auth-btn sidebar-course-settings-toggle"
                   onClick={() => setShowCourseSettings(prev => !prev)}
@@ -430,9 +438,23 @@ export default function Sidebar({
                           type="checkbox"
                           checked={courseForm.published}
                           disabled={!isCourseOwner}
-                          onChange={e => setCourseForm(prev => ({ ...prev, published: e.target.checked }))}
+                          onChange={e => setCourseForm(prev => ({
+                            ...prev,
+                            published: e.target.checked,
+                            public: e.target.checked ? prev.public : false,
+                          }))}
                         />
                         {t('sidebar_published')}
+                      </label>
+
+                      <label className="sidebar-course-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={courseForm.public}
+                          disabled={!isCourseOwner || !courseForm.published}
+                          onChange={e => setCourseForm(prev => ({ ...prev, public: e.target.checked }))}
+                        />
+                        {t('sidebar_public')}
                       </label>
 
                       <label className="sidebar-course-label">
@@ -582,6 +604,8 @@ export default function Sidebar({
                       </div>
                     )}
                   </div>
+                )}
+                  </>
                 )}
               </>
             )}

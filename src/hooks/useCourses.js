@@ -15,7 +15,7 @@ import {
   updateCourse,
 } from '../lib/api';
 
-export function useCourses(isTeacher) {
+export function useCourses(user) {
   const [courses, setCourses] = useState([]);
   const [activeCourseId, setActiveCourseId] = useState(null);
   const [loadingCourses, setLoadingCourses] = useState(true);
@@ -47,7 +47,7 @@ export function useCourses(isTeacher) {
     return () => {
       cancelled = true;
     };
-  }, [isTeacher]);
+  }, [user?.id, user?.role]);
 
   async function createNewCourse(name) {
     const created = await createCourse({ name });

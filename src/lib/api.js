@@ -18,6 +18,7 @@ function toCourse(record) {
     name:          record.name,
     subtitle:      record.subtitle ?? '',
     published:     !!record.published,
+    public:        !!record.public,
     language:      record.language ?? 'nl',
     subjectPrompt: record.subject_prompt ?? '',
     memberRole:    record.memberRole ?? null,
@@ -75,9 +76,10 @@ function toChapter(record) {
 
 export async function fetchCourses() {
   if (!isTeacher()) {
+    const filter = pb.authStore.model?.id ? 'published=true' : 'published=true && public=true';
     const records = await pb.collection('courses').getFullList({
       sort: 'name',
-      filter: 'published=true',
+      filter,
     });
     return records.map(toCourse);
   }
@@ -236,6 +238,7 @@ export async function createCourse(payload = {}) {
     name:           payload.name ?? 'Nieuwe cursus',
     subtitle:       payload.subtitle ?? '',
     published:      payload.published ?? false,
+    public:         payload.public ?? false,
     language:       payload.language ?? 'nl',
     subject_prompt: payload.subjectPrompt ?? '',
   });
@@ -264,6 +267,7 @@ export async function updateCourse(courseId, updates) {
     name:           updates.name,
     subtitle:       updates.subtitle,
     published:      updates.published,
+    public:         updates.public,
     language:       updates.language,
     subject_prompt: updates.subjectPrompt,
   });

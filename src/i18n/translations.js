@@ -13,7 +13,7 @@ export const translations = {
 
     main_no_course_teacher: 'Nog geen cursus gevonden.',
     main_create_first_course: '➕ Eerste cursus maken',
-    main_no_course_student: 'Geen gepubliceerde cursussen beschikbaar.',
+    main_no_course_student: 'Geen beschikbare cursussen.',
     main_no_chapters_teacher: 'Deze cursus heeft nog geen hoofdstukken.',
     main_create_first_chapter: '➕ Eerste hoofdstuk maken',
     main_no_chapters_student: 'Deze cursus heeft nog geen hoofdstukken.',
@@ -33,6 +33,7 @@ export const translations = {
     sidebar_subtitle: 'Subtitel',
     sidebar_language: 'Taal',
     sidebar_published: 'Gepubliceerd (zichtbaar voor studenten)',
+    sidebar_public: 'Publiek beschikbaar (zichtbaar zonder inloggen)',
     sidebar_subject_prompt: 'Subject prompt',
     sidebar_subject_prompt_placeholder: 'Bijv. Write in English. The subject is classical mechanics...',
     sidebar_prompt_hint: 'De vaste JSON- en formatteringsregels worden automatisch toegevoegd aan de prompt.',
@@ -219,7 +220,7 @@ export const translations = {
 
     main_no_course_teacher: 'No course found yet.',
     main_create_first_course: '➕ Create first course',
-    main_no_course_student: 'No published courses available.',
+    main_no_course_student: 'No courses available.',
     main_no_chapters_teacher: 'This course has no chapters yet.',
     main_create_first_chapter: '➕ Create first chapter',
     main_no_chapters_student: 'This course has no chapters yet.',
@@ -239,6 +240,7 @@ export const translations = {
     sidebar_subtitle: 'Subtitle',
     sidebar_language: 'Language',
     sidebar_published: 'Published (visible to students)',
+    sidebar_public: 'Publicly available (visible without sign-in)',
     sidebar_subject_prompt: 'Subject prompt',
     sidebar_subject_prompt_placeholder: 'E.g. Write in English. The subject is classical mechanics...',
     sidebar_prompt_hint: 'Fixed JSON and formatting rules are added automatically to the prompt.',

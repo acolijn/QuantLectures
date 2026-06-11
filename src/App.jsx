@@ -9,7 +9,7 @@ import { useChapters } from './hooks/useChapters';
 import { useCourseProgress } from './hooks/useCourseProgress';
 
 function AppContent() {
-  const { isTeacher, isAdmin } = useAuth();
+  const { user, isTeacher, isAdmin } = useAuth();
   const { t, syncWithCourseLanguage } = useLanguage();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -35,7 +35,7 @@ function AppContent() {
     refreshPendingTeachers,
     approveTeacher,
     rejectTeacher,
-  } = useCourses(isTeacher);
+  } = useCourses(user);
   const {
     chapters,
     activeChapter,
