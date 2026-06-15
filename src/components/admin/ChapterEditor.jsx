@@ -48,7 +48,6 @@ export default function ChapterEditor({ chapter, courseId, onClose, onSaved }) {
     try {
       const updated = await uploadChapterFigure(chapter.pbId, file);
       setFigureFiles(updated.figureFiles);
-      setFigureMeta(updated.figureMeta);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -67,8 +66,9 @@ export default function ChapterEditor({ chapter, courseId, onClose, onSaved }) {
     setError(null);
     try {
       const updated = await deleteChapterFigure(chapter.pbId, filename);
-      setFigureMeta(updated.figureMeta);
       setFigureFiles(updated.figureFiles);
+      // Remove metadata for this figure when file is deleted
+      setFigureMeta(prev => prev.filter((_, idx) => idx !== i));
     } catch (err) {
       setError(err.message);
     } finally {
