@@ -468,11 +468,11 @@ async function setup() {
       { name: 'caption', type: 'text', required: false },
       { name: 'file',    type: 'file', required: true },
     ],
-    listRule: null,
-    viewRule: null,
-    createRule: null,
-    updateRule: null,
-    deleteRule: null,
+    listRule: '@request.auth.role != ""',
+    viewRule: '@request.auth.role != ""',
+    createRule: '@request.auth.role = "teacher" || @request.auth.role = "admin"',
+    updateRule: '@request.auth.role = "teacher" || @request.auth.role = "admin"',
+    deleteRule: '@request.auth.role = "teacher" || @request.auth.role = "admin"',
   });
 
   // ── 8. Tighten student rules while allowing explicitly public guest courses ──
