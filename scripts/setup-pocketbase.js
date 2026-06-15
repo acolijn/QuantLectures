@@ -468,8 +468,8 @@ async function setup() {
       { name: 'caption', type: 'text', required: false },
       { name: 'file',    type: 'file', required: true },
     ],
-    listRule: '@request.auth.role != ""',
-    viewRule: '@request.auth.role != ""',
+    listRule: null,
+    viewRule: null,
     createRule: '@request.auth.role = "teacher" || @request.auth.role = "admin"',
     updateRule: '@request.auth.role = "teacher" || @request.auth.role = "admin"',
     deleteRule: '@request.auth.role = "teacher" || @request.auth.role = "admin"',
@@ -504,6 +504,21 @@ async function setup() {
     updateRule: chapterTeacherMemberRule,
     deleteRule: chapterTeacherMemberRule,
   });
+
+  // ── Update chapter_figures collection rules ──
+  try {
+    await pb.collections.update((await pb.collections.getOne('chapter_figures')).id, {
+      fields: customFields(await pb.collections.getOne('chapter_figures')),
+      listRule: null,
+      viewRule: null,
+      createRule: '@request.auth.role = "teacher" || @request.auth.role = "admin"',
+      updateRule: '@request.auth.role = "teacher" || @request.auth.role = "admin"',
+      deleteRule: '@request.auth.role = "teacher" || @request.auth.role = "admin"',
+    });
+    console.log('  → chapter_figures access rules updated.');
+  } catch {
+    // Skip if collection doesn't exist yet
+  }
 
   console.log('\nSetup complete!');
   console.log('\nNext steps:');
