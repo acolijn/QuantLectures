@@ -411,14 +411,22 @@ export async function fetchChapterFigures(chapterId) {
   }
 }
 
-// Upload a new figure to a chapter
-export async function uploadChapterFigure(chapterId, ref, caption, file) {
+// Upload/replace a figure. Creates new if figureId not provided, updates if it does.
+export async function uploadChapterFigure(chapterId, ref, caption, file, figureId = null) {
   const formData = new FormData();
   formData.append('chapter_id', chapterId);
   formData.append('ref', ref);
   formData.append('caption', caption);
   formData.append('file', file);
-  const record = await pb.collection('chapter_figures').create(formData);
+
+  let record;
+  if (figureId) {
+    // Update existing
+    record = await pb.collection('chapter_figures').update(figureId, formData);
+  } else {
+    // Create new
+    record = await pb.collection('chapter_figures').create(formData);
+  }
   return toFigure(record);
 }
 

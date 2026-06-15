@@ -58,15 +58,10 @@ export default function ChapterEditor({ chapter, courseId, onClose, onSaved }) {
     setError(null);
     try {
       const fig = figures[i];
-      // If placeholder (temp ID), create new figure in DB
-      if (fig.id?.startsWith('temp-')) {
-        const uploaded = await uploadChapterFigure(chapter.pbId, fig.ref, fig.caption, file);
-        setFigures(prev => prev.map((f, idx) => idx === i ? uploaded : f));
-      } else {
-        // Existing figure, just update the file
-        const uploaded = await uploadChapterFigure(chapter.pbId, fig.ref, fig.caption, file);
-        setFigures(prev => prev.map((f, idx) => idx === i ? uploaded : f));
-      }
+      // Pass figure ID only if it's a real DB record (not temp placeholder)
+      const figureId = fig.id?.startsWith('temp-') ? null : fig.id;
+      const uploaded = await uploadChapterFigure(chapter.pbId, fig.ref, fig.caption, file, figureId);
+      setFigures(prev => prev.map((f, idx) => idx === i ? uploaded : f));
     } catch (err) {
       setError(err.message);
     } finally {
