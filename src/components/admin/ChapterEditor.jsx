@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { updateChapter } from '../../lib/api';
+import { useState, useRef } from 'react';
+import { updateChapter, uploadChapterFigure, deleteChapterFigure } from '../../lib/api';
 import { MathBlock } from '../MathText';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { pb } from '../../lib/pocketbase';
 
 export default function ChapterEditor({ chapter, courseId, onClose, onSaved }) {
   const { t } = useLanguage();
@@ -9,21 +10,71 @@ export default function ChapterEditor({ chapter, courseId, onClose, onSaved }) {
   const [subtitle, setSubtitle] = useState(chapter.subtitle);
   const [concepts, setConcepts] = useState(chapter.concepts ?? []);
   const [formulas, setFormulas] = useState(chapter.formulas ?? []);
+  const [exercises, setExercises] = useState(chapter.exercises ?? []);
   const [quiz, setQuiz] = useState(chapter.quiz ?? []);
+  const [figureMeta, setFigureMeta] = useState(chapter.figureMeta ?? []);
+  const [figureFiles, setFigureFiles] = useState(chapter.figureFiles ?? []);
   const [tab, setTab] = useState('concepts');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [uploadingFig, setUploadingFig] = useState(null);
+  const fileInputRef = useRef(null);
+  const [pendingUploadIdx, setPendingUploadIdx] = useState(null);
 
   async function handleSave() {
     setSaving(true);
     setError(null);
     try {
-      const updated = await updateChapter(chapter.id, { title, subtitle, concepts, formulas, quiz }, courseId);
+      const updated = await updateChapter(chapter.id, { title, subtitle, concepts, formulas, exercises, quiz, figureMeta }, courseId);
       onSaved(updated);
     } catch (err) {
       setError(err.message);
     } finally {
       setSaving(false);
+    }
+  }
+
+  // ── Figure meta helpers ────────────────────────────────────
+  function updateFigMeta(i, field, value) {
+    setFigureMeta(prev => prev.map((f, idx) => idx === i ? { ...f, [field]: value } : f));
+  }
+  function addFigurePlaceholder() {
+    const ref = `fig${figureMeta.length + 1}`;
+    setFigureMeta(prev => [...prev, { ref, caption: '' }]);
+    setFigureFiles(prev => [...prev, null]);
+  }
+  async function handleFigureUpload(i, file) {
+    setUploadingFig(i);
+    setError(null);
+    try {
+      const updated = await uploadChapterFigure(chapter.pbId, file);
+      setFigureFiles(updated.figureFiles);
+      onSaved(updated);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUploadingFig(null);
+    }
+  }
+  async function handleFigureDelete(i) {
+    const filename = figureFiles[i];
+    if (!filename) {
+      // no file uploaded yet — just remove metadata
+      setFigureMeta(prev => prev.filter((_, idx) => idx !== i));
+      setFigureFiles(prev => prev.filter((_, idx) => idx !== i));
+      return;
+    }
+    setUploadingFig(i);
+    setError(null);
+    try {
+      const updated = await deleteChapterFigure(chapter.pbId, filename);
+      setFigureMeta(prev => prev.filter((_, idx) => idx !== i));
+      setFigureFiles(updated.figureFiles);
+      onSaved(updated);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUploadingFig(null);
     }
   }
 
@@ -56,6 +107,40 @@ export default function ChapterEditor({ chapter, courseId, onClose, onSaved }) {
   }
   function addFormula() {
     setFormulas(prev => [...prev, { name: 'Nieuwe formule', latex: '' }]);
+  }
+
+  // ── Exercise helpers ───────────────────────────────────────
+  function updateExercise(i, field, value) {
+    setExercises(prev => prev.map((e, idx) => idx === i ? { ...e, [field]: value } : e));
+  }
+  function updateExerciseStep(ei, si, field, value) {
+    setExercises(prev => prev.map((e, idx) => {
+      if (idx !== ei) return e;
+      const steps = [...e.steps];
+      steps[si] = { ...steps[si], [field]: value };
+      return { ...e, steps };
+    }));
+  }
+  function addExerciseStep(ei) {
+    setExercises(prev => prev.map((e, idx) => {
+      if (idx !== ei) return e;
+      return {
+        ...e,
+        steps: [...(e.steps ?? []), { question: 'Nieuwe stap', hints: [], answer: '', solution: '' }],
+      };
+    }));
+  }
+  function deleteExerciseStep(ei, si) {
+    setExercises(prev => prev.map((e, idx) => {
+      if (idx !== ei) return e;
+      return { ...e, steps: e.steps.filter((_, i) => i !== si) };
+    }));
+  }
+  function deleteExercise(i) {
+    setExercises(prev => prev.filter((_, idx) => idx !== i));
+  }
+  function addExercise() {
+    setExercises(prev => [...prev, { title: 'Nieuwe opgave', label: '', intro: '', steps: [] }]);
   }
 
   // ── Quiz helpers ───────────────────────────────────────────
@@ -110,11 +195,13 @@ export default function ChapterEditor({ chapter, courseId, onClose, onSaved }) {
 
       {/* ── Tabs ── */}
       <div className="tab-bar">
-        {['concepts', 'formulas', 'quiz'].map(tabName => (
+        {['concepts', 'formulas', 'exercises', 'quiz', 'figures'].map(tabName => (
           <button key={tabName} className={`tab ${tab === tabName ? 'active' : ''}`} onClick={() => setTab(tabName)}>
             {tabName === 'concepts' ? t('editor_concepts_tab', { count: concepts.length })
               : tabName === 'formulas' ? t('editor_formulas_tab', { count: formulas.length })
-              : t('editor_quiz_tab', { count: quiz.length })}
+              : tabName === 'exercises' ? t('editor_exercises_tab', { count: exercises.length })
+              : tabName === 'quiz' ? t('editor_quiz_tab', { count: quiz.length })
+              : t('editor_figures_tab', { count: figureMeta.length })}
           </button>
         ))}
       </div>
@@ -182,6 +269,57 @@ export default function ChapterEditor({ chapter, courseId, onClose, onSaved }) {
           </div>
         )}
 
+        {/* ── Exercises ── */}
+        {tab === 'exercises' && (
+          <div className="editor-list">
+            {exercises.map((ex, ei) => (
+              <div key={ei} className="editor-item editor-item-exercise">
+                <div className="editor-item-header">
+                  <span className="editor-item-number">O{ei + 1}</span>
+                  <button onClick={() => deleteExercise(ei)} className="btn-icon btn-delete" title={t('editor_delete')}>✕</button>
+                </div>
+                <label>
+                  {t('editor_title_field')}
+                  <input value={ex.title} onChange={e => updateExercise(ei, 'title', e.target.value)} />
+                </label>
+                <label>
+                  {t('editor_label_field')}
+                  <input value={ex.label ?? ''} onChange={e => updateExercise(ei, 'label', e.target.value)} placeholder="e.g., Exercise 1.1" />
+                </label>
+                <label>
+                  {t('editor_intro_field')}
+                  <textarea rows={2} value={ex.intro ?? ''} onChange={e => updateExercise(ei, 'intro', e.target.value)} />
+                </label>
+                <div className="exercise-steps">
+                  <h4>{t('editor_steps_label')}</h4>
+                  {(ex.steps ?? []).map((step, si) => (
+                    <div key={si} className="editor-item-step">
+                      <div className="step-header">
+                        <span className="step-number">{t('editor_step')} {si + 1}</span>
+                        <button onClick={() => deleteExerciseStep(ei, si)} className="btn-icon btn-delete" title={t('editor_delete')}>✕</button>
+                      </div>
+                      <label>
+                        {t('editor_question_field')}
+                        <textarea rows={2} value={step.question} onChange={e => updateExerciseStep(ei, si, 'question', e.target.value)} />
+                      </label>
+                      <label>
+                        {t('editor_answer_field')}
+                        <input value={step.answer ?? ''} onChange={e => updateExerciseStep(ei, si, 'answer', e.target.value)} placeholder="e.g., $2x + 3$" />
+                      </label>
+                      <label>
+                        {t('editor_solution_field')}
+                        <textarea rows={2} value={step.solution ?? ''} onChange={e => updateExerciseStep(ei, si, 'solution', e.target.value)} />
+                      </label>
+                    </div>
+                  ))}
+                  <button onClick={() => addExerciseStep(ei)} className="btn-add btn-add-step">{t('editor_add_step')}</button>
+                </div>
+              </div>
+            ))}
+            <button onClick={addExercise} className="btn-add">{t('editor_add_exercise')}</button>
+          </div>
+        )}
+
         {/* ── Quiz ── */}
         {tab === 'quiz' && (
           <div className="editor-list">
@@ -219,6 +357,65 @@ export default function ChapterEditor({ chapter, courseId, onClose, onSaved }) {
               </div>
             ))}
             <button onClick={addQuiz} className="btn-add">{t('editor_add_question')}</button>
+          </div>
+        )}
+
+        {/* ── Figures ── */}
+        {tab === 'figures' && (
+          <div className="editor-list">
+            <p className="editor-hint">{t('editor_figures_hint')}</p>
+            {figureMeta.map((fig, i) => {
+              const filename = figureFiles[i];
+              const thumbUrl = filename
+                ? pb.files.getURL({ collectionName: 'chapters', id: chapter.pbId }, filename, { thumb: '400x0' })
+                : null;
+              const isPdf = filename?.toLowerCase().endsWith('.pdf');
+              return (
+                <div key={i} className="editor-item editor-item-figure">
+                  <div className="editor-item-header">
+                    <span className="editor-item-number">[fig:{fig.ref}]</span>
+                    <button onClick={() => handleFigureDelete(i)} className="btn-icon btn-delete" title={t('editor_delete')} disabled={uploadingFig === i}>✕</button>
+                  </div>
+                  <label>
+                    {t('editor_figure_ref')}
+                    <input value={fig.ref} onChange={e => updateFigMeta(i, 'ref', e.target.value)} />
+                  </label>
+                  <label>
+                    {t('editor_figure_caption')}
+                    <input value={fig.caption} onChange={e => updateFigMeta(i, 'caption', e.target.value)} />
+                  </label>
+                  <div className="figure-upload-row">
+                    {thumbUrl && !isPdf && (
+                      <img src={thumbUrl} alt={fig.caption || fig.ref} className="figure-thumb-preview" />
+                    )}
+                    {isPdf && (
+                      <span className="figure-pdf-badge">📄 PDF</span>
+                    )}
+                    {!filename && (
+                      <span className="figure-pending-badge">{t('editor_figure_pending')}</span>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml,application/pdf"
+                      style={{ display: 'none' }}
+                      ref={pendingUploadIdx === i ? fileInputRef : null}
+                      onChange={e => { if (e.target.files[0]) handleFigureUpload(i, e.target.files[0]); }}
+                    />
+                    <button
+                      className="btn-secondary"
+                      disabled={uploadingFig === i}
+                      onClick={() => {
+                        setPendingUploadIdx(i);
+                        setTimeout(() => fileInputRef.current?.click(), 0);
+                      }}
+                    >
+                      {uploadingFig === i ? t('editor_figure_uploading') : t('editor_figure_upload')}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+            <button onClick={addFigurePlaceholder} className="btn-add">{t('editor_add_figure')}</button>
           </div>
         )}
 

@@ -12,7 +12,7 @@ function decodeEscapedUnicode(input) {
   });
 }
 
-export default function MathText({ text }) {
+export default function MathText({ text, figures }) {
   const containerRef = useRef(null);
 
   useEffect(() => {
@@ -69,9 +69,49 @@ export default function MathText({ text }) {
       });
     });
 
+    // Further split text tokens on [fig:ref] figure placeholders
+    const withFigs = [];
+    allTokens.forEach(token => {
+      if (token.type !== 'text') { withFigs.push(token); return; }
+      const figRegex = /\[fig:([\w-]+)\]/g;
+      let last = 0;
+      let fm;
+      while ((fm = figRegex.exec(token.value)) !== null) {
+        if (fm.index > last) withFigs.push({ type: 'text', value: token.value.slice(last, fm.index) });
+        withFigs.push({ type: 'figref', ref: fm[1] });
+        last = figRegex.lastIndex;
+      }
+      if (last < token.value.length) withFigs.push({ type: 'text', value: token.value.slice(last) });
+    });
+    const allTokensFinal = withFigs;
+
     // Render tokens
     containerRef.current.innerHTML = '';
-    allTokens.forEach(token => {
+    allTokensFinal.forEach(token => {
+      if (token.type === 'figref') {
+        const figMap = figures || {};
+        const fig = figMap[token.ref];
+        const wrapper = document.createElement('span');
+        wrapper.className = 'fig-inline';
+        if (fig?.url) {
+          const img = document.createElement('img');
+          img.src = fig.url;
+          img.alt = fig.caption || token.ref;
+          img.className = 'fig-inline-img';
+          wrapper.appendChild(img);
+          if (fig.caption) {
+            const cap = document.createElement('span');
+            cap.className = 'fig-inline-caption';
+            cap.textContent = fig.caption;
+            wrapper.appendChild(cap);
+          }
+        } else {
+          wrapper.className += ' fig-placeholder';
+          wrapper.textContent = `[fig:${token.ref}]`;
+        }
+        containerRef.current.appendChild(wrapper);
+        return;
+      }
       if (token.type === 'displaymath') {
         const div = document.createElement('div');
         div.className = 'math-block';
@@ -147,7 +187,7 @@ export default function MathText({ text }) {
         containerRef.current.appendChild(span);
       }
     });
-  }, [text]);
+  }, [text, figures]);
 
   return <span ref={containerRef} />;
 }
