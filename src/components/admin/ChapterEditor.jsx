@@ -46,8 +46,9 @@ export default function ChapterEditor({ chapter, courseId, onClose, onSaved }) {
     setUploadingFig(i);
     setError(null);
     try {
-      const updated = await uploadChapterFigure(chapter.pbId, file);
+      const updated = await uploadChapterFigure(chapter.pbId, file, figureMeta);
       setFigureFiles(updated.figureFiles);
+      setFigureMeta(updated.figureMeta);
     } catch (err) {
       setError(err.message);
     } finally {

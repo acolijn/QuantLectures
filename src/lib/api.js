@@ -400,10 +400,14 @@ export async function createChapter(chapterNumber, courseId) {
 }
 
 // Upload a single figure file to a chapter record.
+// Also saves figure_meta to keep them in sync.
 // Returns the updated chapter.
-export async function uploadChapterFigure(pbId, file) {
+export async function uploadChapterFigure(pbId, file, figureMeta) {
   const formData = new FormData();
   formData.append('figures', file);
+  if (figureMeta) {
+    formData.append('figure_meta', JSON.stringify(figureMeta));
+  }
   const record = await pb.collection('chapters').update(pbId, formData);
   return toChapter(record);
 }
