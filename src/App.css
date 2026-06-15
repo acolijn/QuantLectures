@@ -334,6 +334,46 @@ body {
   line-height: 1.7;
 }
 
+/* === Inline figures (from [fig:ref] in content) === */
+.fig-inline {
+  display: block;
+  margin: 16px 0;
+  text-align: center;
+}
+
+.fig-inline-img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+  border-radius: var(--radius);
+}
+
+.fig-inline-caption {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+.fig-placeholder {
+  display: inline-block;
+  padding: 2px 8px;
+  background: var(--color-border);
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
+/* === Figures tab + editor previews === */
+.figure-img,
+.figure-thumb-preview {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius);
+}
+
 /* === Math Tables === */
 .math-table {
   width: 100%;
