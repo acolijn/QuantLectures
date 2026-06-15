@@ -454,9 +454,6 @@ async function setup() {
 
   // ── 7b. Create/update 'chapter_figures' collection ────────
   console.log("Creating/updating 'chapter_figures' collection…");
-  const chapterTeacherRule = '(@request.auth.role = "teacher" || @request.auth.role = "admin") && @collection.chapters.course_id.id && @collection.course_members.course_id ?= @collection.chapters.course_id && @collection.course_members.user_id ?= @request.auth.id';
-  const chapterStudentRule = '@request.auth.role = "student" && @collection.chapters.course_id.published = true';
-  const chapterGuestRule = '@collection.chapters.course_id.published = true && @collection.chapters.course_id.public = true';
   await ensureCollection('chapter_figures', {
     fields: [
       {
@@ -471,11 +468,11 @@ async function setup() {
       { name: 'caption', type: 'text', required: false },
       { name: 'file',    type: 'file', required: true },
     ],
-    listRule: `(${chapterTeacherRule}) || (${chapterStudentRule}) || (${chapterGuestRule})`,
-    viewRule: `(${chapterTeacherRule}) || (${chapterStudentRule}) || (${chapterGuestRule})`,
-    createRule: chapterTeacherRule,
-    updateRule: chapterTeacherRule,
-    deleteRule: chapterTeacherRule,
+    listRule: null,
+    viewRule: null,
+    createRule: null,
+    updateRule: null,
+    deleteRule: null,
   });
 
   // ── 8. Tighten student rules while allowing explicitly public guest courses ──
