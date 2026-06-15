@@ -468,8 +468,8 @@ async function setup() {
       { name: 'caption', type: 'text', required: false },
       { name: 'file',    type: 'file', required: true },
     ],
-    listRule: null,
-    viewRule: null,
+    listRule: '',
+    viewRule: '',
     createRule: '@request.auth.role = "teacher" || @request.auth.role = "admin"',
     updateRule: '@request.auth.role = "teacher" || @request.auth.role = "admin"',
     deleteRule: '@request.auth.role = "teacher" || @request.auth.role = "admin"',
@@ -509,8 +509,8 @@ async function setup() {
   try {
     await pb.collections.update((await pb.collections.getOne('chapter_figures')).id, {
       fields: customFields(await pb.collections.getOne('chapter_figures')),
-      listRule: null,
-      viewRule: null,
+      listRule: '',
+      viewRule: '',
       createRule: '@request.auth.role = "teacher" || @request.auth.role = "admin"',
       updateRule: '@request.auth.role = "teacher" || @request.auth.role = "admin"',
       deleteRule: '@request.auth.role = "teacher" || @request.auth.role = "admin"',
