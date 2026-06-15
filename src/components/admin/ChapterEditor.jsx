@@ -62,6 +62,9 @@ export default function ChapterEditor({ chapter, courseId, onClose, onSaved }) {
       const figureId = fig.id?.startsWith('temp-') ? null : fig.id;
       const uploaded = await uploadChapterFigure(chapter.pbId, fig.ref, fig.caption, file, figureId);
       setFigures(prev => prev.map((f, idx) => idx === i ? uploaded : f));
+      // Re-fetch all figures to ensure UI is in sync with DB
+      const refreshed = await fetchChapterFigures(chapter.pbId);
+      setFigures(refreshed || []);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -81,6 +84,9 @@ export default function ChapterEditor({ chapter, courseId, onClose, onSaved }) {
       const updated = await updateChapterFigure(fig.id, editingFigRef, editingFigCaption);
       setFigures(prev => prev.map((f, idx) => idx === editingFigIdx ? updated : f));
       setEditingFigIdx(null);
+      // Re-fetch all figures to ensure UI is in sync
+      const refreshed = await fetchChapterFigures(chapter.pbId);
+      setFigures(refreshed || []);
     } catch (err) {
       setError(err.message);
     }
@@ -95,6 +101,9 @@ export default function ChapterEditor({ chapter, courseId, onClose, onSaved }) {
         await deleteChapterFigure(fig.id);
       }
       setFigures(prev => prev.filter((_, idx) => idx !== i));
+      // Re-fetch all figures to ensure UI is in sync
+      const refreshed = await fetchChapterFigures(chapter.pbId);
+      setFigures(refreshed || []);
     } catch (err) {
       setError(err.message);
     } finally {
