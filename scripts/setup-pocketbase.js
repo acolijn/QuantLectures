@@ -374,6 +374,8 @@ async function setup() {
       { name: 'concepts',       type: 'json',   required: false },
       { name: 'exercises',      type: 'json',   required: false },
       { name: 'quiz',           type: 'json',   required: false },
+      { name: 'figure_meta',    type: 'json',   required: false },
+      { name: 'figures',        type: 'file',   required: false },
     ],
     listRule:   `(${chapterTeacherMemberRule}) || (${chapterStudentPublishedRule}) || (${chapterGuestPublicRule})`,
     viewRule:   `(${chapterTeacherMemberRule}) || (${chapterStudentPublishedRule}) || (${chapterGuestPublicRule})`,
