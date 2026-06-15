@@ -18,8 +18,7 @@ export default function ChapterEditor({ chapter, courseId, onClose, onSaved }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [uploadingFig, setUploadingFig] = useState(null);
-  const fileInputRef = useRef(null);
-  const [pendingUploadIdx, setPendingUploadIdx] = useState(null);
+  const fileInputRefs = useRef({});
 
   async function handleSave() {
     setSaving(true);
@@ -398,16 +397,13 @@ export default function ChapterEditor({ chapter, courseId, onClose, onSaved }) {
                       type="file"
                       accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml,application/pdf"
                       style={{ display: 'none' }}
-                      ref={pendingUploadIdx === i ? fileInputRef : null}
+                      ref={el => { fileInputRefs.current[i] = el; }}
                       onChange={e => { if (e.target.files[0]) handleFigureUpload(i, e.target.files[0]); }}
                     />
                     <button
                       className="btn-secondary"
                       disabled={uploadingFig === i}
-                      onClick={() => {
-                        setPendingUploadIdx(i);
-                        setTimeout(() => fileInputRef.current?.click(), 0);
-                      }}
+                      onClick={() => fileInputRefs.current[i]?.click()}
                     >
                       {uploadingFig === i ? t('editor_figure_uploading') : t('editor_figure_upload')}
                     </button>
