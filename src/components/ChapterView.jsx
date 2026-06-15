@@ -27,8 +27,9 @@ export default function ChapterView({ chapter, progress, onProgressUpdate }) {
   const [tab, setTab] = useState('concepts');
   const [figures, setFigures] = useState([]);
   const { t } = useLanguage();
+  const hasFormulas = chapter.formulas && chapter.formulas.length > 0;
   const hasExercises = chapter.exercises && chapter.exercises.length > 0;
-  const hasFigures = figures && figures.length > 0;
+  const hasQuiz = chapter.quiz && chapter.quiz.length > 0;
   const figuresMap = buildFiguresMap(figures);
 
   useEffect(() => {
@@ -54,12 +55,14 @@ export default function ChapterView({ chapter, progress, onProgressUpdate }) {
         >
           {t('chapter_tab_concepts')}
         </button>
-        <button
-          className={`tab ${tab === 'formulas' ? 'active' : ''}`}
-          onClick={() => setTab('formulas')}
-        >
-          {t('chapter_tab_formulas')}
-        </button>
+        {hasFormulas && (
+          <button
+            className={`tab ${tab === 'formulas' ? 'active' : ''}`}
+            onClick={() => setTab('formulas')}
+          >
+            {t('chapter_tab_formulas')}
+          </button>
+        )}
         {hasExercises && (
           <button
             className={`tab ${tab === 'exercises' ? 'active' : ''}`}
@@ -68,23 +71,17 @@ export default function ChapterView({ chapter, progress, onProgressUpdate }) {
             {t('chapter_tab_exercises')}
           </button>
         )}
-        {hasFigures && (
+        {hasQuiz && (
           <button
-            className={`tab ${tab === 'figures' ? 'active' : ''}`}
-            onClick={() => setTab('figures')}
+            className={`tab ${tab === 'quiz' ? 'active' : ''}`}
+            onClick={() => setTab('quiz')}
           >
-            {t('chapter_tab_figures')}
+            {t('chapter_tab_quiz')}
+            {progress?.bestScore !== undefined && (
+              <span className="tab-badge">{Math.round(progress.bestScore)}%</span>
+            )}
           </button>
         )}
-        <button
-          className={`tab ${tab === 'quiz' ? 'active' : ''}`}
-          onClick={() => setTab('quiz')}
-        >
-          {t('chapter_tab_quiz')}
-          {progress?.bestScore !== undefined && (
-            <span className="tab-badge">{Math.round(progress.bestScore)}%</span>
-          )}
-        </button>
       </div>
 
       <div className="tab-content">
@@ -118,29 +115,7 @@ export default function ChapterView({ chapter, progress, onProgressUpdate }) {
           </div>
         )}
 
-        {tab === 'figures' && hasFigures && (
-          <div className="figures-list">
-            {figures.map((fig) => (
-                <div key={fig.id} className="figure-card">
-                  <div className="figure-ref-label">[fig:{fig.ref}]</div>
-                  {figuresMap[fig.ref]?.url && !figuresMap[fig.ref]?.isPdf && (
-                    <img src={figuresMap[fig.ref].url} alt={fig.caption || fig.ref} className="figure-img" />
-                  )}
-                  {figuresMap[fig.ref]?.isPdf && (
-                    <a href={figuresMap[fig.ref].fullUrl} target="_blank" rel="noopener noreferrer" className="figure-pdf-link">
-                      📄 {fig.caption || fig.ref}
-                    </a>
-                  )}
-                  {!figuresMap[fig.ref]?.url && (
-                    <div className="figure-pending">{t('chapter_figure_pending')}</div>
-                  )}
-                  {fig.caption && <p className="figure-caption">{fig.caption}</p>}
-                </div>
-            ))}
-          </div>
-        )}
-
-        {tab === 'quiz' && (
+        {tab === 'quiz' && hasQuiz && (
           <Quiz
             questions={chapter.quiz}
             chapterId={chapter.id}
