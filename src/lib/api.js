@@ -399,26 +399,12 @@ export async function createChapter(chapterNumber, courseId) {
 }
 
 // Fetch all figures for a chapter
-// Note: filters on relation fields cause 400 errors in PocketBase
-// Instead, fetch all and filter in JS
 export async function fetchChapterFigures(chapterId) {
-  try {
-    if (!chapterId) {
-      console.warn('fetchChapterFigures: chapterId is empty');
-      return [];
-    }
-    // Fetch all and filter in JS (PocketBase relation filters cause 400)
-    const allRecords = await pb.collection('chapter_figures').getFullList({
-      sort: 'created',
-    });
-    // Filter in JS by chapter_id
-    const records = allRecords.filter(r => r.chapter_id === chapterId);
-    console.log(`fetchChapterFigures(${chapterId}): found ${records.length} figures (from ${allRecords.length} total)`);
-    return records.map(toFigure);
-  } catch (err) {
-    console.error(`fetchChapterFigures(${chapterId}) error:`, err);
-    return [];
-  }
+  if (!chapterId) return [];
+  const records = await pb.collection('chapter_figures').getFullList({
+    filter: `chapter_id="${escapeFilterValue(chapterId)}"`,
+  });
+  return records.map(toFigure);
 }
 
 // Upload/replace a figure. Creates new if figureId not provided, updates if it does.

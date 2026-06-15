@@ -467,6 +467,8 @@ async function setup() {
       { name: 'ref',     type: 'text', required: true },
       { name: 'caption', type: 'text', required: false },
       { name: 'file',    type: 'file', required: true },
+      { name: 'created', type: 'autodate', onCreate: true, onUpdate: false },
+      { name: 'updated', type: 'autodate', onCreate: true, onUpdate: true },
     ],
     listRule: '',
     viewRule: '',
