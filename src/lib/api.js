@@ -61,13 +61,6 @@ async function getMyMembership(courseId) {
 // Map a raw PocketBase record to the shape the app expects.
 // The app uses chapter.id as the chapter number (1, 2, …).
 function toChapter(record) {
-  // figures is an array of filenames stored by PocketBase
-  const figureFiles = record.figures ?? [];
-  const figures = (record.figure_meta ?? []).map((meta, i) => ({
-    ref:      meta.ref,
-    caption:  meta.caption ?? '',
-    filename: figureFiles[i] ?? null,
-  }));
   return {
     pbId:        record.id,
     courseId:    record.course_id,
@@ -78,9 +71,15 @@ function toChapter(record) {
     concepts:    record.concepts   ?? [],
     exercises:   record.exercises  ?? [],
     quiz:        record.quiz       ?? [],
-    figureMeta:  record.figure_meta ?? [],
-    figureFiles: figureFiles,
-    figures,
+  };
+}
+
+function toFigure(record) {
+  return {
+    id:       record.id,
+    ref:      record.ref,
+    caption:  record.caption ?? '',
+    filename: record.file,
   };
 }
 
@@ -399,39 +398,42 @@ export async function createChapter(chapterNumber, courseId) {
   return toChapter(record);
 }
 
-// Upload a single figure file to a chapter record.
-// Also saves figure_meta to keep them in sync.
-// Returns the updated chapter.
-export async function uploadChapterFigure(pbId, file, figureMeta) {
-  // Get existing chapter to preserve current files
-  const existing = await pb.collection('chapters').getOne(pbId);
-  const formData = new FormData();
-
-  // Re-add existing files to preserve them
-  if (existing.figures && Array.isArray(existing.figures)) {
-    existing.figures.forEach(filename => {
-      formData.append('figures', filename);
+// Fetch all figures for a chapter
+export async function fetchChapterFigures(chapterId) {
+  try {
+    const records = await pb.collection('chapter_figures').getFullList({
+      filter: `chapter_id="${escapeFilterValue(chapterId)}"`,
+      sort: 'created',
     });
+    return records.map(toFigure);
+  } catch {
+    return [];
   }
-
-  // Add new file
-  formData.append('figures', file);
-
-  // Save metadata
-  if (figureMeta) {
-    formData.append('figure_meta', JSON.stringify(figureMeta));
-  }
-
-  const record = await pb.collection('chapters').update(pbId, formData);
-  return toChapter(record);
 }
 
-// Remove a figure filename from the chapter's figures field.
-export async function deleteChapterFigure(pbId, filename) {
-  const record = await pb.collection('chapters').update(pbId, {
-    [`figures-`]: filename,
+// Upload a new figure to a chapter
+export async function uploadChapterFigure(chapterId, ref, caption, file) {
+  const formData = new FormData();
+  formData.append('chapter_id', chapterId);
+  formData.append('ref', ref);
+  formData.append('caption', caption);
+  formData.append('file', file);
+  const record = await pb.collection('chapter_figures').create(formData);
+  return toFigure(record);
+}
+
+// Update figure metadata
+export async function updateChapterFigure(figureId, ref, caption) {
+  const record = await pb.collection('chapter_figures').update(figureId, {
+    ref,
+    caption,
   });
-  return toChapter(record);
+  return toFigure(record);
+}
+
+// Delete a figure
+export async function deleteChapterFigure(figureId) {
+  await pb.collection('chapter_figures').delete(figureId);
 }
 
 // Reassign chapter_number = index+1 for each chapter in the new order.

@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react';
-import { updateChapter, uploadChapterFigure, deleteChapterFigure } from '../../lib/api';
+import { useState, useRef, useEffect } from 'react';
+import { updateChapter, fetchChapterFigures, uploadChapterFigure, updateChapterFigure, deleteChapterFigure } from '../../lib/api';
 import { MathBlock } from '../MathText';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { pb } from '../../lib/pocketbase';
@@ -12,19 +12,32 @@ export default function ChapterEditor({ chapter, courseId, onClose, onSaved }) {
   const [formulas, setFormulas] = useState(chapter.formulas ?? []);
   const [exercises, setExercises] = useState(chapter.exercises ?? []);
   const [quiz, setQuiz] = useState(chapter.quiz ?? []);
-  const [figureMeta, setFigureMeta] = useState(chapter.figureMeta ?? []);
-  const [figureFiles, setFigureFiles] = useState(chapter.figureFiles ?? []);
+  const [figures, setFigures] = useState([]);
+  const [figuresLoading, setFiguresLoading] = useState(true);
   const [tab, setTab] = useState('concepts');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [uploadingFig, setUploadingFig] = useState(null);
+  const [editingFigIdx, setEditingFigIdx] = useState(null);
+  const [editingFigRef, setEditingFigRef] = useState('');
+  const [editingFigCaption, setEditingFigCaption] = useState('');
   const fileInputRefs = useRef({});
+
+  useEffect(() => {
+    async function loadFigures() {
+      setFiguresLoading(true);
+      const figs = await fetchChapterFigures(chapter.pbId);
+      setFigures(figs);
+      setFiguresLoading(false);
+    }
+    loadFigures();
+  }, [chapter.pbId]);
 
   async function handleSave() {
     setSaving(true);
     setError(null);
     try {
-      const updated = await updateChapter(chapter.id, { title, subtitle, concepts, formulas, exercises, quiz, figureMeta }, courseId);
+      const updated = await updateChapter(chapter.id, { title, subtitle, concepts, formulas, exercises, quiz }, courseId);
       onSaved(updated);
     } catch (err) {
       setError(err.message);
@@ -33,47 +46,57 @@ export default function ChapterEditor({ chapter, courseId, onClose, onSaved }) {
     }
   }
 
-  // ── Figure meta helpers ────────────────────────────────────
-  function updateFigMeta(i, field, value) {
-    setFigureMeta(prev => prev.map((f, idx) => idx === i ? { ...f, [field]: value } : f));
-  }
-  function addFigurePlaceholder() {
-    const ref = `fig${figureMeta.length + 1}`;
-    setFigureMeta(prev => [...prev, { ref, caption: '' }]);
-    setFigureFiles(prev => [...prev, null]);
-  }
+  // ── Figure helpers ────────────────────────────────────────
   async function handleFigureUpload(i, file) {
     setUploadingFig(i);
     setError(null);
     try {
-      const updated = await uploadChapterFigure(chapter.pbId, file, figureMeta);
-      setFigureFiles(updated.figureFiles);
-      setFigureMeta(updated.figureMeta);
+      const fig = figures[i];
+      const uploaded = await uploadChapterFigure(chapter.pbId, fig.ref, fig.caption, file);
+      setFigures(prev => prev.map((f, idx) => idx === i ? uploaded : f));
     } catch (err) {
       setError(err.message);
     } finally {
       setUploadingFig(null);
     }
   }
-  async function handleFigureDelete(i) {
-    const filename = figureFiles[i];
-    if (!filename) {
-      // no file uploaded yet — just remove metadata
-      setFigureMeta(prev => prev.filter((_, idx) => idx !== i));
-      setFigureFiles(prev => prev.filter((_, idx) => idx !== i));
-      return;
+  async function startEditFigure(i) {
+    const fig = figures[i];
+    setEditingFigIdx(i);
+    setEditingFigRef(fig.ref);
+    setEditingFigCaption(fig.caption);
+  }
+  async function saveFigureEdit() {
+    if (editingFigIdx === null) return;
+    const fig = figures[editingFigIdx];
+    try {
+      const updated = await updateChapterFigure(fig.id, editingFigRef, editingFigCaption);
+      setFigures(prev => prev.map((f, idx) => idx === editingFigIdx ? updated : f));
+      setEditingFigIdx(null);
+    } catch (err) {
+      setError(err.message);
     }
+  }
+  async function handleFigureDelete(i) {
+    const fig = figures[i];
     setUploadingFig(i);
     setError(null);
     try {
-      const updated = await deleteChapterFigure(chapter.pbId, filename);
-      setFigureFiles(updated.figureFiles);
-      // Remove metadata for this figure when file is deleted
-      setFigureMeta(prev => prev.filter((_, idx) => idx !== i));
+      await deleteChapterFigure(fig.id);
+      setFigures(prev => prev.filter((_, idx) => idx !== i));
     } catch (err) {
       setError(err.message);
     } finally {
       setUploadingFig(null);
+    }
+  }
+  async function addFigurePlaceholder() {
+    const ref = `fig${figures.length + 1}`;
+    try {
+      const fig = await uploadChapterFigure(chapter.pbId, ref, '', new File([''], 'placeholder.txt', { type: 'text/plain' }));
+      setFigures(prev => [...prev, fig]);
+    } catch (err) {
+      setError(err.message);
     }
   }
 
@@ -200,7 +223,7 @@ export default function ChapterEditor({ chapter, courseId, onClose, onSaved }) {
               : tabName === 'formulas' ? t('editor_formulas_tab', { count: formulas.length })
               : tabName === 'exercises' ? t('editor_exercises_tab', { count: exercises.length })
               : tabName === 'quiz' ? t('editor_quiz_tab', { count: quiz.length })
-              : t('editor_figures_tab', { count: figureMeta.length })}
+              : t('editor_figures_tab', { count: figures.length })}
           </button>
         ))}
       </div>
@@ -363,55 +386,84 @@ export default function ChapterEditor({ chapter, courseId, onClose, onSaved }) {
         {tab === 'figures' && (
           <div className="editor-list">
             <p className="editor-hint">{t('editor_figures_hint')}</p>
-            {figureMeta.map((fig, i) => {
-              const filename = figureFiles[i];
-              const thumbUrl = filename
-                ? pb.files.getURL({ collectionName: 'chapters', id: chapter.pbId }, filename, { thumb: '400x0' })
-                : null;
-              const isPdf = filename?.toLowerCase().endsWith('.pdf');
-              return (
-                <div key={i} className="editor-item editor-item-figure">
-                  <div className="editor-item-header">
-                    <span className="editor-item-number">[fig:{fig.ref}]</span>
-                    <button onClick={() => handleFigureDelete(i)} className="btn-icon btn-delete" title={t('editor_delete')} disabled={uploadingFig === i}>✕</button>
-                  </div>
-                  <label>
-                    {t('editor_figure_ref')}
-                    <input value={fig.ref} onChange={e => updateFigMeta(i, 'ref', e.target.value)} />
-                  </label>
-                  <label>
-                    {t('editor_figure_caption')}
-                    <input value={fig.caption} onChange={e => updateFigMeta(i, 'caption', e.target.value)} />
-                  </label>
-                  <div className="figure-upload-row">
-                    {thumbUrl && !isPdf && (
-                      <img src={thumbUrl} alt={fig.caption || fig.ref} className="figure-thumb-preview" />
-                    )}
-                    {isPdf && (
-                      <span className="figure-pdf-badge">📄 PDF</span>
-                    )}
-                    {!filename && (
-                      <span className="figure-pending-badge">{t('editor_figure_pending')}</span>
-                    )}
-                    <input
-                      type="file"
-                      accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml,application/pdf"
-                      style={{ display: 'none' }}
-                      ref={el => { fileInputRefs.current[i] = el; }}
-                      onChange={e => { if (e.target.files[0]) handleFigureUpload(i, e.target.files[0]); }}
-                    />
-                    <button
-                      className="btn-secondary"
-                      disabled={uploadingFig === i}
-                      onClick={() => fileInputRefs.current[i]?.click()}
-                    >
-                      {uploadingFig === i ? t('editor_figure_uploading') : t('editor_figure_upload')}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-            <button onClick={addFigurePlaceholder} className="btn-add">{t('editor_add_figure')}</button>
+            {figuresLoading ? (
+              <p>{t('common_loading')}</p>
+            ) : (
+              <>
+                {figures.map((fig, i) => {
+                  const isEditing = editingFigIdx === i;
+                  const thumbUrl = fig.filename
+                    ? pb.files.getURL({ collectionName: 'chapter_figures', id: fig.id }, fig.filename, { thumb: '400x0' })
+                    : null;
+                  const isPdf = fig.filename?.toLowerCase().endsWith('.pdf');
+                  return (
+                    <div key={fig.id} className="editor-item editor-item-figure">
+                      <div className="editor-item-header">
+                        <span className="editor-item-number">[fig:{isEditing ? editingFigRef : fig.ref}]</span>
+                        <div>
+                          {isEditing && (
+                            <button onClick={saveFigureEdit} className="btn-icon" title={t('common_save')}>✓</button>
+                          )}
+                          <button onClick={() => isEditing ? setEditingFigIdx(null) : startEditFigure(i)} className="btn-icon" title={isEditing ? t('common_cancel') : t('editor_edit')}>
+                            {isEditing ? '✕' : '✏️'}
+                          </button>
+                          <button onClick={() => handleFigureDelete(i)} className="btn-icon btn-delete" title={t('editor_delete')} disabled={uploadingFig === i}>🗑️</button>
+                        </div>
+                      </div>
+                      {isEditing ? (
+                        <>
+                          <label>
+                            {t('editor_figure_ref')}
+                            <input value={editingFigRef} onChange={e => setEditingFigRef(e.target.value)} />
+                          </label>
+                          <label>
+                            {t('editor_figure_caption')}
+                            <input value={editingFigCaption} onChange={e => setEditingFigCaption(e.target.value)} />
+                          </label>
+                        </>
+                      ) : (
+                        <>
+                          <label>
+                            {t('editor_figure_ref')}
+                            <input value={fig.ref} disabled />
+                          </label>
+                          <label>
+                            {t('editor_figure_caption')}
+                            <input value={fig.caption} disabled />
+                          </label>
+                        </>
+                      )}
+                      <div className="figure-upload-row">
+                        {thumbUrl && !isPdf && (
+                          <img src={thumbUrl} alt={fig.caption || fig.ref} className="figure-thumb-preview" />
+                        )}
+                        {isPdf && (
+                          <span className="figure-pdf-badge">📄 PDF</span>
+                        )}
+                        {!fig.filename && (
+                          <span className="figure-pending-badge">{t('editor_figure_pending')}</span>
+                        )}
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml,application/pdf"
+                          style={{ display: 'none' }}
+                          ref={el => { fileInputRefs.current[i] = el; }}
+                          onChange={e => { if (e.target.files[0]) handleFigureUpload(i, e.target.files[0]); }}
+                        />
+                        <button
+                          className="btn-secondary"
+                          disabled={uploadingFig === i}
+                          onClick={() => fileInputRefs.current[i]?.click()}
+                        >
+                          {uploadingFig === i ? t('editor_figure_uploading') : (fig.filename ? t('editor_figure_replace') : t('editor_figure_upload'))}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+                <button onClick={addFigurePlaceholder} className="btn-add">{t('editor_add_figure')}</button>
+              </>
+            )}
           </div>
         )}
 

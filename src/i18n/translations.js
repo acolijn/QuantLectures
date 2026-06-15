@@ -212,9 +212,11 @@ export const translations = {
     editor_figure_ref: 'Referentie (bijv. fig1)',
     editor_figure_caption: 'Bijschrift',
     editor_figure_upload: '⬆️ Bestand uploaden',
+    editor_figure_replace: '⬆️ Vervangen',
     editor_figure_uploading: 'Bezig...',
     editor_figure_pending: 'Nog niet geüpload',
     editor_add_figure: '+ Figuur toevoegen',
+    editor_edit: 'Bewerken',
 
     exercise_label_default: 'Opgave',
     exercise_hint: 'Hint {n}',
@@ -440,9 +442,11 @@ export const translations = {
     editor_figure_ref: 'Reference (e.g. fig1)',
     editor_figure_caption: 'Caption',
     editor_figure_upload: '⬆️ Upload file',
+    editor_figure_replace: '⬆️ Replace',
     editor_figure_uploading: 'Uploading...',
     editor_figure_pending: 'Not yet uploaded',
     editor_add_figure: '+ Add figure',
+    editor_edit: 'Edit',
 
     exercise_label_default: 'Exercise',
     exercise_hint: 'Hint {n}',

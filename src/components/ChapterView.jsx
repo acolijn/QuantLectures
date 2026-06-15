@@ -1,36 +1,43 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import MathText, { MathBlock } from './MathText';
 import Quiz from './Quiz';
 import GuidedExercise from './GuidedExercise';
 import { useLanguage } from '../contexts/LanguageContext';
+import { fetchChapterFigures } from '../lib/api';
 import { pb } from '../lib/pocketbase';
 
-function buildFiguresMap(chapter) {
-  if (!chapter.figureMeta?.length) return {};
+function buildFiguresMap(figures) {
+  if (!figures?.length) return {};
   const map = {};
-  chapter.figureMeta.forEach((meta, i) => {
-    const filename = chapter.figureFiles?.[i];
-    map[meta.ref] = {
-      caption: meta.caption ?? '',
-      url: filename
-        ? pb.files.getURL({ collectionName: 'chapters', id: chapter.pbId }, filename, { thumb: '400x0' })
-        : null,
-      fullUrl: filename
-        ? pb.files.getURL({ collectionName: 'chapters', id: chapter.pbId }, filename)
-        : null,
-      isPdf: filename?.toLowerCase().endsWith('.pdf') ?? false,
-      filename,
-    };
+  figures.forEach(fig => {
+    if (fig.filename) {
+      map[fig.ref] = {
+        caption: fig.caption,
+        url: pb.files.getURL({ collectionName: 'chapter_figures', id: fig.id }, fig.filename, { thumb: '400x0' }),
+        fullUrl: pb.files.getURL({ collectionName: 'chapter_figures', id: fig.id }, fig.filename),
+        isPdf: fig.filename.toLowerCase().endsWith('.pdf'),
+        filename: fig.filename,
+      };
+    }
   });
   return map;
 }
 
 export default function ChapterView({ chapter, progress, onProgressUpdate }) {
   const [tab, setTab] = useState('concepts');
+  const [figures, setFigures] = useState([]);
   const { t } = useLanguage();
   const hasExercises = chapter.exercises && chapter.exercises.length > 0;
-  const hasFigures = chapter.figureMeta && chapter.figureMeta.length > 0;
-  const figuresMap = buildFiguresMap(chapter);
+  const hasFigures = figures && figures.length > 0;
+  const figuresMap = buildFiguresMap(figures);
+
+  useEffect(() => {
+    async function loadFigures() {
+      const figs = await fetchChapterFigures(chapter.pbId);
+      setFigures(figs);
+    }
+    loadFigures();
+  }, [chapter.pbId]);
 
   return (
     <main className="chapter-view">
@@ -113,26 +120,23 @@ export default function ChapterView({ chapter, progress, onProgressUpdate }) {
 
         {tab === 'figures' && hasFigures && (
           <div className="figures-list">
-            {chapter.figureMeta.map((meta, i) => {
-              const fig = figuresMap[meta.ref];
-              return (
-                <div key={i} className="figure-card">
-                  <div className="figure-ref-label">[fig:{meta.ref}]</div>
-                  {fig?.url && !fig.isPdf && (
-                    <img src={fig.url} alt={meta.caption || meta.ref} className="figure-img" />
+            {figures.map((fig) => (
+                <div key={fig.id} className="figure-card">
+                  <div className="figure-ref-label">[fig:{fig.ref}]</div>
+                  {figuresMap[fig.ref]?.url && !figuresMap[fig.ref]?.isPdf && (
+                    <img src={figuresMap[fig.ref].url} alt={fig.caption || fig.ref} className="figure-img" />
                   )}
-                  {fig?.isPdf && (
-                    <a href={fig.fullUrl} target="_blank" rel="noopener noreferrer" className="figure-pdf-link">
-                      📄 {meta.caption || meta.ref}
+                  {figuresMap[fig.ref]?.isPdf && (
+                    <a href={figuresMap[fig.ref].fullUrl} target="_blank" rel="noopener noreferrer" className="figure-pdf-link">
+                      📄 {fig.caption || fig.ref}
                     </a>
                   )}
-                  {!fig?.url && (
+                  {!figuresMap[fig.ref]?.url && (
                     <div className="figure-pending">{t('chapter_figure_pending')}</div>
                   )}
-                  {meta.caption && <p className="figure-caption">{meta.caption}</p>}
+                  {fig.caption && <p className="figure-caption">{fig.caption}</p>}
                 </div>
-              );
-            })}
+            ))}
           </div>
         )}
 

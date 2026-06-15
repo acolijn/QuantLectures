@@ -374,8 +374,6 @@ async function setup() {
       { name: 'concepts',       type: 'json',   required: false },
       { name: 'exercises',      type: 'json',   required: false },
       { name: 'quiz',           type: 'json',   required: false },
-      { name: 'figure_meta',    type: 'json',   required: false },
-      { name: 'figures',        type: 'file',   required: false },
     ],
     listRule:   `(${chapterTeacherMemberRule}) || (${chapterStudentPublishedRule}) || (${chapterGuestPublicRule})`,
     viewRule:   `(${chapterTeacherMemberRule}) || (${chapterStudentPublishedRule}) || (${chapterGuestPublicRule})`,
@@ -452,6 +450,32 @@ async function setup() {
     createRule: '(@request.auth.role = "student" && user_id = @request.auth.id) || @request.auth.role = "admin"',
     updateRule: '@request.auth.role = "admin"',
     deleteRule: '@request.auth.role = "admin"',
+  });
+
+  // ── 7b. Create/update 'chapter_figures' collection ────────
+  console.log("Creating/updating 'chapter_figures' collection…");
+  const chapterTeacherRule = '(@request.auth.role = "teacher" || @request.auth.role = "admin") && @collection.chapters.course_id.id && @collection.course_members.course_id ?= @collection.chapters.course_id && @collection.course_members.user_id ?= @request.auth.id';
+  const chapterStudentRule = '@request.auth.role = "student" && @collection.chapters.course_id.published = true';
+  const chapterGuestRule = '@collection.chapters.course_id.published = true && @collection.chapters.course_id.public = true';
+  await ensureCollection('chapter_figures', {
+    fields: [
+      {
+        name: 'chapter_id',
+        type: 'relation',
+        required: true,
+        maxSelect: 1,
+        collectionId: (await pb.collections.getOne('chapters')).id,
+        cascadeDelete: true,
+      },
+      { name: 'ref',     type: 'text', required: true },
+      { name: 'caption', type: 'text', required: false },
+      { name: 'file',    type: 'file', required: true },
+    ],
+    listRule: `(${chapterTeacherRule}) || (${chapterStudentRule}) || (${chapterGuestRule})`,
+    viewRule: `(${chapterTeacherRule}) || (${chapterStudentRule}) || (${chapterGuestRule})`,
+    createRule: chapterTeacherRule,
+    updateRule: chapterTeacherRule,
+    deleteRule: chapterTeacherRule,
   });
 
   // ── 8. Tighten student rules while allowing explicitly public guest courses ──
