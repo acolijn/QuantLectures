@@ -401,12 +401,18 @@ export async function createChapter(chapterNumber, courseId) {
 // Fetch all figures for a chapter
 export async function fetchChapterFigures(chapterId) {
   try {
+    if (!chapterId) {
+      console.warn('fetchChapterFigures: chapterId is empty');
+      return [];
+    }
     const records = await pb.collection('chapter_figures').getFullList({
       filter: `chapter_id="${escapeFilterValue(chapterId)}"`,
       sort: 'created',
     });
+    console.log(`fetchChapterFigures(${chapterId}): found ${records.length} figures`);
     return records.map(toFigure);
-  } catch {
+  } catch (err) {
+    console.error(`fetchChapterFigures(${chapterId}) error:`, err);
     return [];
   }
 }
