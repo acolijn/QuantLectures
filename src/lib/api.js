@@ -61,16 +61,26 @@ async function getMyMembership(courseId) {
 // Map a raw PocketBase record to the shape the app expects.
 // The app uses chapter.id as the chapter number (1, 2, …).
 function toChapter(record) {
+  // figures is an array of filenames stored by PocketBase
+  const figureFiles = record.figures ?? [];
+  const figures = (record.figure_meta ?? []).map((meta, i) => ({
+    ref:      meta.ref,
+    caption:  meta.caption ?? '',
+    filename: figureFiles[i] ?? null,
+  }));
   return {
-    pbId:      record.id,
-    courseId:  record.course_id,
-    id:        record.chapter_number,
-    title:     record.title,
-    subtitle:  record.subtitle,
-    formulas:  record.formulas  ?? [],
-    concepts:  record.concepts  ?? [],
-    exercises: record.exercises ?? [],
-    quiz:      record.quiz      ?? [],
+    pbId:        record.id,
+    courseId:    record.course_id,
+    id:          record.chapter_number,
+    title:       record.title,
+    subtitle:    record.subtitle,
+    formulas:    record.formulas   ?? [],
+    concepts:    record.concepts   ?? [],
+    exercises:   record.exercises  ?? [],
+    quiz:        record.quiz       ?? [],
+    figureMeta:  record.figure_meta ?? [],
+    figureFiles: figureFiles,
+    figures,
   };
 }
 
@@ -355,13 +365,14 @@ export async function updateChapter(chapterNumber, updates, courseId) {
   const existing = await pb.collection('chapters')
     .getFirstListItem(filter);
   const record = await pb.collection('chapters').update(existing.id, {
-    course_id:  courseId,
-    title:     updates.title,
-    subtitle:  updates.subtitle,
-    formulas:  updates.formulas,
-    concepts:  updates.concepts,
-    exercises: updates.exercises,
-    quiz:      updates.quiz,
+    course_id:   courseId,
+    title:       updates.title,
+    subtitle:    updates.subtitle,
+    formulas:    updates.formulas,
+    concepts:    updates.concepts,
+    exercises:   updates.exercises,
+    quiz:        updates.quiz,
+    figure_meta: updates.figureMeta ?? [],
   });
   return toChapter(record);
 }
@@ -383,6 +394,24 @@ export async function createChapter(chapterNumber, courseId) {
     concepts:       [],
     exercises:      [],
     quiz:           [],
+    figure_meta:    [],
+  });
+  return toChapter(record);
+}
+
+// Upload a single figure file to a chapter record.
+// Returns the updated chapter.
+export async function uploadChapterFigure(pbId, file) {
+  const formData = new FormData();
+  formData.append('figures', file);
+  const record = await pb.collection('chapters').update(pbId, formData);
+  return toChapter(record);
+}
+
+// Remove a figure filename from the chapter's figures field.
+export async function deleteChapterFigure(pbId, filename) {
+  const record = await pb.collection('chapters').update(pbId, {
+    [`figures-`]: filename,
   });
   return toChapter(record);
 }
@@ -412,10 +441,11 @@ export async function upsertChapter(chapter, courseId) {
       chapter_number: chapter.id,
       title:          chapter.title,
       subtitle:       chapter.subtitle,
-      formulas:       chapter.formulas  ?? [],
-      concepts:       chapter.concepts  ?? [],
-      exercises:      chapter.exercises ?? [],
-      quiz:           chapter.quiz      ?? [],
+      formulas:       chapter.formulas   ?? [],
+      concepts:       chapter.concepts   ?? [],
+      exercises:      chapter.exercises  ?? [],
+      quiz:           chapter.quiz       ?? [],
+      figure_meta:    chapter.figures?.map(f => ({ ref: f.ref, caption: f.caption ?? '' })) ?? [],
     });
   } catch {
     record = await pb.collection('chapters').create({
@@ -423,10 +453,11 @@ export async function upsertChapter(chapter, courseId) {
       chapter_number: chapter.id,
       title:          chapter.title,
       subtitle:       chapter.subtitle,
-      formulas:       chapter.formulas  ?? [],
-      concepts:       chapter.concepts  ?? [],
-      exercises:      chapter.exercises ?? [],
-      quiz:           chapter.quiz      ?? [],
+      formulas:       chapter.formulas   ?? [],
+      concepts:       chapter.concepts   ?? [],
+      exercises:      chapter.exercises  ?? [],
+      quiz:           chapter.quiz       ?? [],
+      figure_meta:    chapter.figures?.map(f => ({ ref: f.ref, caption: f.caption ?? '' })) ?? [],
     });
   }
   return toChapter(record);

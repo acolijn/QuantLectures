@@ -3,11 +3,34 @@ import MathText, { MathBlock } from './MathText';
 import Quiz from './Quiz';
 import GuidedExercise from './GuidedExercise';
 import { useLanguage } from '../contexts/LanguageContext';
+import { pb } from '../lib/pocketbase';
+
+function buildFiguresMap(chapter) {
+  if (!chapter.figureMeta?.length) return {};
+  const map = {};
+  chapter.figureMeta.forEach((meta, i) => {
+    const filename = chapter.figureFiles?.[i];
+    map[meta.ref] = {
+      caption: meta.caption ?? '',
+      url: filename
+        ? pb.files.getURL({ collectionName: 'chapters', id: chapter.pbId }, filename, { thumb: '400x0' })
+        : null,
+      fullUrl: filename
+        ? pb.files.getURL({ collectionName: 'chapters', id: chapter.pbId }, filename)
+        : null,
+      isPdf: filename?.toLowerCase().endsWith('.pdf') ?? false,
+      filename,
+    };
+  });
+  return map;
+}
 
 export default function ChapterView({ chapter, progress, onProgressUpdate }) {
   const [tab, setTab] = useState('concepts');
   const { t } = useLanguage();
   const hasExercises = chapter.exercises && chapter.exercises.length > 0;
+  const hasFigures = chapter.figureMeta && chapter.figureMeta.length > 0;
+  const figuresMap = buildFiguresMap(chapter);
 
   return (
     <main className="chapter-view">
@@ -38,6 +61,14 @@ export default function ChapterView({ chapter, progress, onProgressUpdate }) {
             {t('chapter_tab_exercises')}
           </button>
         )}
+        {hasFigures && (
+          <button
+            className={`tab ${tab === 'figures' ? 'active' : ''}`}
+            onClick={() => setTab('figures')}
+          >
+            {t('chapter_tab_figures')}
+          </button>
+        )}
         <button
           className={`tab ${tab === 'quiz' ? 'active' : ''}`}
           onClick={() => setTab('quiz')}
@@ -54,8 +85,8 @@ export default function ChapterView({ chapter, progress, onProgressUpdate }) {
           <div className="concepts-grid">
             {chapter.concepts.map((concept, i) => (
               <div key={i} className="concept-card">
-                <h3><MathText text={concept.title} /></h3>
-                <p><MathText text={concept.content} /></p>
+                <h3><MathText text={concept.title} figures={figuresMap} /></h3>
+                <p><MathText text={concept.content} figures={figuresMap} /></p>
               </div>
             ))}
           </div>
@@ -75,8 +106,33 @@ export default function ChapterView({ chapter, progress, onProgressUpdate }) {
         {tab === 'exercises' && hasExercises && (
           <div className="exercises-list">
             {chapter.exercises.map((exercise, i) => (
-              <GuidedExercise key={i} exercise={exercise} />
+              <GuidedExercise key={i} exercise={exercise} figures={figuresMap} />
             ))}
+          </div>
+        )}
+
+        {tab === 'figures' && hasFigures && (
+          <div className="figures-list">
+            {chapter.figureMeta.map((meta, i) => {
+              const fig = figuresMap[meta.ref];
+              return (
+                <div key={i} className="figure-card">
+                  <div className="figure-ref-label">[fig:{meta.ref}]</div>
+                  {fig?.url && !fig.isPdf && (
+                    <img src={fig.url} alt={meta.caption || meta.ref} className="figure-img" />
+                  )}
+                  {fig?.isPdf && (
+                    <a href={fig.fullUrl} target="_blank" rel="noopener noreferrer" className="figure-pdf-link">
+                      📄 {meta.caption || meta.ref}
+                    </a>
+                  )}
+                  {!fig?.url && (
+                    <div className="figure-pending">{t('chapter_figure_pending')}</div>
+                  )}
+                  {meta.caption && <p className="figure-caption">{meta.caption}</p>}
+                </div>
+              );
+            })}
           </div>
         )}
 
