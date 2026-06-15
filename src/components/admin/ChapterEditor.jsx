@@ -26,12 +26,18 @@ export default function ChapterEditor({ chapter, courseId, onClose, onSaved }) {
   useEffect(() => {
     async function loadFigures() {
       setFiguresLoading(true);
-      const figs = await fetchChapterFigures(chapter.pbId);
-      setFigures(figs);
-      setFiguresLoading(false);
+      try {
+        const figs = await fetchChapterFigures(chapter.pbId);
+        setFigures(figs || []);
+      } catch (err) {
+        setError(err.message);
+        setFigures([]);
+      } finally {
+        setFiguresLoading(false);
+      }
     }
     loadFigures();
-  }, [chapter.pbId]);
+  }, [chapter.pbId, chapter.id]);
 
   async function handleSave() {
     setSaving(true);
@@ -52,8 +58,15 @@ export default function ChapterEditor({ chapter, courseId, onClose, onSaved }) {
     setError(null);
     try {
       const fig = figures[i];
-      const uploaded = await uploadChapterFigure(chapter.pbId, fig.ref, fig.caption, file);
-      setFigures(prev => prev.map((f, idx) => idx === i ? uploaded : f));
+      // If placeholder (temp ID), create new figure in DB
+      if (fig.id?.startsWith('temp-')) {
+        const uploaded = await uploadChapterFigure(chapter.pbId, fig.ref, fig.caption, file);
+        setFigures(prev => prev.map((f, idx) => idx === i ? uploaded : f));
+      } else {
+        // Existing figure, just update the file
+        const uploaded = await uploadChapterFigure(chapter.pbId, fig.ref, fig.caption, file);
+        setFigures(prev => prev.map((f, idx) => idx === i ? uploaded : f));
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -82,7 +95,10 @@ export default function ChapterEditor({ chapter, courseId, onClose, onSaved }) {
     setUploadingFig(i);
     setError(null);
     try {
-      await deleteChapterFigure(fig.id);
+      // Only delete from DB if it has a real ID (not temp placeholder)
+      if (!fig.id?.startsWith('temp-')) {
+        await deleteChapterFigure(fig.id);
+      }
       setFigures(prev => prev.filter((_, idx) => idx !== i));
     } catch (err) {
       setError(err.message);
@@ -92,12 +108,9 @@ export default function ChapterEditor({ chapter, courseId, onClose, onSaved }) {
   }
   async function addFigurePlaceholder() {
     const ref = `fig${figures.length + 1}`;
-    try {
-      const fig = await uploadChapterFigure(chapter.pbId, ref, '', new File([''], 'placeholder.txt', { type: 'text/plain' }));
-      setFigures(prev => [...prev, fig]);
-    } catch (err) {
-      setError(err.message);
-    }
+    // Add placeholder to UI - will be saved to DB on first upload
+    const placeholder = { id: `temp-${Date.now()}`, ref, caption: '', filename: null };
+    setFigures(prev => [...prev, placeholder]);
   }
 
   // ── Concept helpers ────────────────────────────────────────
