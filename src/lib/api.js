@@ -406,7 +406,7 @@ export async function fetchChapterFigures(chapterId) {
       return [];
     }
     const records = await pb.collection('chapter_figures').getFullList({
-      filter: `chapter_id="${escapeFilterValue(chapterId)}"`,
+      filter: `chapter_id=${chapterId}`,
       sort: 'created',
     });
     console.log(`fetchChapterFigures(${chapterId}): found ${records.length} figures`);
