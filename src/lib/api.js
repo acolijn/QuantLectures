@@ -403,11 +403,25 @@ export async function createChapter(chapterNumber, courseId) {
 // Also saves figure_meta to keep them in sync.
 // Returns the updated chapter.
 export async function uploadChapterFigure(pbId, file, figureMeta) {
+  // Get existing chapter to preserve current files
+  const existing = await pb.collection('chapters').getOne(pbId);
   const formData = new FormData();
+
+  // Re-add existing files to preserve them
+  if (existing.figures && Array.isArray(existing.figures)) {
+    existing.figures.forEach(filename => {
+      formData.append('figures', filename);
+    });
+  }
+
+  // Add new file
   formData.append('figures', file);
+
+  // Save metadata
   if (figureMeta) {
     formData.append('figure_meta', JSON.stringify(figureMeta));
   }
+
   const record = await pb.collection('chapters').update(pbId, formData);
   return toChapter(record);
 }
