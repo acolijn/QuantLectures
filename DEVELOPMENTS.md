@@ -19,7 +19,7 @@ Use this table as the single source of truth while we build. Update `Status`, `O
 | Step 4 | Subscription tiers + admin manual overrides | ⚪ Planned | 1-2 days | - | 2026-05-28 | Gate content by tier |
 | Step 5 | Payment integration (Paddle/Stripe) | ⚪ Planned | 2-3 days | - | 2026-05-28 | Requires webhook service |
 | Step 5a | Optional concept deep dives | ⚪ Planned | 0.5-1 day | - | 2026-05-29 | Add `deepDive` to AI JSON and show expandable block only when non-empty |
-| Step 6 | Image support in chapters | ⚪ Planned | 0.5-1 day | - | 2026-05-28 | URL-based references in JSON |
+| Step 6 | Figure support in chapters | ⚪ Planned | 1-1.5 days | - | 2026-06-15 | Figures stored as PocketBase file fields on the chapter record. AI generates `[fig:ref]` placeholder tags + captions in the JSON (usable in concept content, exercise intros/steps). Teacher uploads PNG/PDF per placeholder in the chapter editor. Renderer resolves `[fig:ref]` inline wherever it appears. |
 | Step 7 | GDPR compliance | ⚪ Planned | 0.5-1 day (tech) + legal drafting time | - | 2026-05-28 | Account deletion + policy docs |
 | Step 8 | Production deployment | ⚪ Planned | 0.5-1 day | - | 2026-05-28 | Domain, SSL, SMTP, backups |
 
@@ -347,6 +347,14 @@ last_attempt   (datetime)
 - Set up automated backups for the PocketBase `pb_data/` directory
 
 **Effort:** half a day to a day depending on hosting familiarity.
+
+---
+
+## Known Issues (Blocking)
+
+| Issue | Component | Status | Notes |
+|---|---|---|---|
+| Cannot add/delete exercises (Opgaven) | ChapterEditor | 🔴 Blocked | Opgaven section in chapter editor does not allow adding or removing exercises. Affects Step 6 figure support work. |
 
 ---
 

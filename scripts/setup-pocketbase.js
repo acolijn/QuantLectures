@@ -452,6 +452,31 @@ async function setup() {
     deleteRule: '@request.auth.role = "admin"',
   });
 
+  // ── 7b. Create/update 'chapter_figures' collection ────────
+  console.log("Creating/updating 'chapter_figures' collection…");
+  await ensureCollection('chapter_figures', {
+    fields: [
+      {
+        name: 'chapter_id',
+        type: 'relation',
+        required: true,
+        maxSelect: 1,
+        collectionId: (await pb.collections.getOne('chapters')).id,
+        cascadeDelete: true,
+      },
+      { name: 'ref',     type: 'text', required: true },
+      { name: 'caption', type: 'text', required: false },
+      { name: 'file',    type: 'file', required: true },
+      { name: 'created', type: 'autodate', onCreate: true, onUpdate: false },
+      { name: 'updated', type: 'autodate', onCreate: true, onUpdate: true },
+    ],
+    listRule: '',
+    viewRule: '',
+    createRule: '@request.auth.role = "teacher" || @request.auth.role = "admin"',
+    updateRule: '@request.auth.role = "teacher" || @request.auth.role = "admin"',
+    deleteRule: '@request.auth.role = "teacher" || @request.auth.role = "admin"',
+  });
+
   // ── 8. Tighten student rules while allowing explicitly public guest courses ──
   console.log('Applying enrollment-based student and public guest access rules…');
   const strictCourseStudentEnrollmentRule = '@request.auth.role = "student" && published = true && @collection.course_enrollments.course_id ?= id && @collection.course_enrollments.user_id ?= @request.auth.id';
@@ -481,6 +506,21 @@ async function setup() {
     updateRule: chapterTeacherMemberRule,
     deleteRule: chapterTeacherMemberRule,
   });
+
+  // ── Update chapter_figures collection rules ──
+  try {
+    await pb.collections.update((await pb.collections.getOne('chapter_figures')).id, {
+      fields: customFields(await pb.collections.getOne('chapter_figures')),
+      listRule: '',
+      viewRule: '',
+      createRule: '@request.auth.role = "teacher" || @request.auth.role = "admin"',
+      updateRule: '@request.auth.role = "teacher" || @request.auth.role = "admin"',
+      deleteRule: '@request.auth.role = "teacher" || @request.auth.role = "admin"',
+    });
+    console.log('  → chapter_figures access rules updated.');
+  } catch {
+    // Skip if collection doesn't exist yet
+  }
 
   console.log('\nSetup complete!');
   console.log('\nNext steps:');

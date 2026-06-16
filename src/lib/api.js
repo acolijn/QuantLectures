@@ -62,15 +62,24 @@ async function getMyMembership(courseId) {
 // The app uses chapter.id as the chapter number (1, 2, …).
 function toChapter(record) {
   return {
-    pbId:      record.id,
-    courseId:  record.course_id,
-    id:        record.chapter_number,
-    title:     record.title,
-    subtitle:  record.subtitle,
-    formulas:  record.formulas  ?? [],
-    concepts:  record.concepts  ?? [],
-    exercises: record.exercises ?? [],
-    quiz:      record.quiz      ?? [],
+    pbId:        record.id,
+    courseId:    record.course_id,
+    id:          record.chapter_number,
+    title:       record.title,
+    subtitle:    record.subtitle,
+    formulas:    record.formulas   ?? [],
+    concepts:    record.concepts   ?? [],
+    exercises:   record.exercises  ?? [],
+    quiz:        record.quiz       ?? [],
+  };
+}
+
+function toFigure(record) {
+  return {
+    id:       record.id,
+    ref:      record.ref,
+    caption:  record.caption ?? '',
+    filename: record.file,
   };
 }
 
@@ -355,13 +364,14 @@ export async function updateChapter(chapterNumber, updates, courseId) {
   const existing = await pb.collection('chapters')
     .getFirstListItem(filter);
   const record = await pb.collection('chapters').update(existing.id, {
-    course_id:  courseId,
-    title:     updates.title,
-    subtitle:  updates.subtitle,
-    formulas:  updates.formulas,
-    concepts:  updates.concepts,
-    exercises: updates.exercises,
-    quiz:      updates.quiz,
+    course_id:   courseId,
+    title:       updates.title,
+    subtitle:    updates.subtitle,
+    formulas:    updates.formulas,
+    concepts:    updates.concepts,
+    exercises:   updates.exercises,
+    quiz:        updates.quiz,
+    figure_meta: updates.figureMeta ?? [],
   });
   return toChapter(record);
 }
@@ -383,8 +393,51 @@ export async function createChapter(chapterNumber, courseId) {
     concepts:       [],
     exercises:      [],
     quiz:           [],
+    figure_meta:    [],
   });
   return toChapter(record);
+}
+
+// Fetch all figures for a chapter
+export async function fetchChapterFigures(chapterId) {
+  if (!chapterId) return [];
+  const records = await pb.collection('chapter_figures').getFullList({
+    filter: `chapter_id="${escapeFilterValue(chapterId)}"`,
+  });
+  return records.map(toFigure);
+}
+
+// Upload/replace a figure. Creates new if figureId not provided, updates if it does.
+export async function uploadChapterFigure(chapterId, ref, caption, file, figureId = null) {
+  const formData = new FormData();
+  formData.append('chapter_id', chapterId);
+  formData.append('ref', ref);
+  formData.append('caption', caption);
+  formData.append('file', file);
+
+  let record;
+  if (figureId) {
+    // Update existing
+    record = await pb.collection('chapter_figures').update(figureId, formData);
+  } else {
+    // Create new
+    record = await pb.collection('chapter_figures').create(formData);
+  }
+  return toFigure(record);
+}
+
+// Update figure metadata
+export async function updateChapterFigure(figureId, ref, caption) {
+  const record = await pb.collection('chapter_figures').update(figureId, {
+    ref,
+    caption,
+  });
+  return toFigure(record);
+}
+
+// Delete a figure
+export async function deleteChapterFigure(figureId) {
+  await pb.collection('chapter_figures').delete(figureId);
 }
 
 // Reassign chapter_number = index+1 for each chapter in the new order.
@@ -412,10 +465,11 @@ export async function upsertChapter(chapter, courseId) {
       chapter_number: chapter.id,
       title:          chapter.title,
       subtitle:       chapter.subtitle,
-      formulas:       chapter.formulas  ?? [],
-      concepts:       chapter.concepts  ?? [],
-      exercises:      chapter.exercises ?? [],
-      quiz:           chapter.quiz      ?? [],
+      formulas:       chapter.formulas   ?? [],
+      concepts:       chapter.concepts   ?? [],
+      exercises:      chapter.exercises  ?? [],
+      quiz:           chapter.quiz       ?? [],
+      figure_meta:    chapter.figures?.map(f => ({ ref: f.ref, caption: f.caption ?? '' })) ?? [],
     });
   } catch {
     record = await pb.collection('chapters').create({
@@ -423,10 +477,11 @@ export async function upsertChapter(chapter, courseId) {
       chapter_number: chapter.id,
       title:          chapter.title,
       subtitle:       chapter.subtitle,
-      formulas:       chapter.formulas  ?? [],
-      concepts:       chapter.concepts  ?? [],
-      exercises:      chapter.exercises ?? [],
-      quiz:           chapter.quiz      ?? [],
+      formulas:       chapter.formulas   ?? [],
+      concepts:       chapter.concepts   ?? [],
+      exercises:      chapter.exercises  ?? [],
+      quiz:           chapter.quiz       ?? [],
+      figure_meta:    chapter.figures?.map(f => ({ ref: f.ref, caption: f.caption ?? '' })) ?? [],
     });
   }
   return toChapter(record);

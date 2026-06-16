@@ -9,20 +9,23 @@ Genereer ALLEEN geldige JSON (geen markdown, geen uitleg erbuiten), in dit exact
 {
   "title": "Hoofdstuktitel",
   "subtitle": "Korte beschrijving van de onderwerpen",
+  "figures": [
+    { "ref": "fig1", "caption": "Korte beschrijving van de figuur" }
+  ],
   "formulas": [
     { "name": "Naam van de formule", "latex": "E = mc^2" }
   ],
   "concepts": [
     {
       "title": "Naam van het concept",
-      "content": "Uitgebreide uitleg in het Nederlands. Gebruik $...$ voor inline LaTeX en $$...$$ voor display LaTeX."
+      "content": "Uitgebreide uitleg in het Nederlands. Gebruik $...$ voor inline LaTeX en $$...$$ voor display LaTeX. Verwijs naar figuren met [fig:fig1]."
     }
   ],
   "exercises": [
     {
       "label": "Opgave 1",
       "title": "Titel van de opgave",
-      "intro": "Inleiding tot de opgave met context. Gebruik $...$ voor inline LaTeX.",
+      "intro": "Inleiding tot de opgave met context. Gebruik $...$ voor inline LaTeX. Verwijs naar figuren met [fig:fig1].",
       "steps": [
         {
           "question": "Eerste deelvraag met eventueel $LaTeX$.",
@@ -56,6 +59,12 @@ Genereer ALLEEN geldige JSON (geen markdown, geen uitleg erbuiten), in dit exact
     }
   ]
 }
+
+Figuur-regels:
+- Voeg een "figures" array toe met een entry voor elke figuur die in de aantekeningen voorkomt of nuttig zou zijn
+- Geef elke figuur een korte unieke ref (bijv. "fig1", "vec-addition", "energy-levels")
+- Gebruik [fig:ref] in concept-content, exercise-intro of step-question om naar een figuur te verwijzen
+- Als er geen figuren zijn, gebruik dan "figures": []
 
 LaTeX-regels (VERPLICHT — gebruik altijd echte LaTeX-commando's):
 - Griekse letters: \\alpha \\beta \\gamma \\psi \\Psi \\phi \\Phi \\omega \\Omega \\lambda \\Lambda \\hbar
@@ -119,6 +128,7 @@ function validateChapter(obj, t) {
   if (!Array.isArray(obj.concepts))  return t('import_array_expected', { field: 'concepts' });
   if (!Array.isArray(obj.exercises)) return t('import_array_expected', { field: 'exercises' });
   if (!Array.isArray(obj.quiz))      return t('import_array_expected', { field: 'quiz' });
+  if (obj.figures !== undefined && !Array.isArray(obj.figures)) return t('import_array_expected', { field: 'figures' });
   return null;
 }
 
