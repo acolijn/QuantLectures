@@ -466,7 +466,7 @@ async function setup() {
       },
       { name: 'ref',     type: 'text', required: true },
       { name: 'caption', type: 'text', required: false },
-      { name: 'file',    type: 'file', required: true },
+      { name: 'file',    type: 'file', required: false },
       { name: 'created', type: 'autodate', onCreate: true, onUpdate: false },
       { name: 'updated', type: 'autodate', onCreate: true, onUpdate: true },
     ],
@@ -507,17 +507,21 @@ async function setup() {
     deleteRule: chapterTeacherMemberRule,
   });
 
-  // ── Update chapter_figures collection rules ──
+  // ── Update chapter_figures collection rules + ensure file is optional ──
   try {
-    await pb.collections.update((await pb.collections.getOne('chapter_figures')).id, {
-      fields: customFields(await pb.collections.getOne('chapter_figures')),
+    const figCol = await pb.collections.getOne('chapter_figures');
+    const figFields = customFields(figCol).map(f =>
+      f.name === 'file' ? { ...f, required: false } : f
+    );
+    await pb.collections.update(figCol.id, {
+      fields: figFields,
       listRule: '',
       viewRule: '',
       createRule: '@request.auth.role = "teacher" || @request.auth.role = "admin"',
       updateRule: '@request.auth.role = "teacher" || @request.auth.role = "admin"',
       deleteRule: '@request.auth.role = "teacher" || @request.auth.role = "admin"',
     });
-    console.log('  → chapter_figures access rules updated.');
+    console.log('  → chapter_figures access rules updated (file optional).');
   } catch {
     // Skip if collection doesn't exist yet
   }
