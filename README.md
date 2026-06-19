@@ -22,14 +22,16 @@ QuantLectures/
 ├── src/
 │   ├── components/
 │   │   ├── admin/
+│   │   │   ├── ChapterEditor.jsx   # Teacher UI: edit chapter + figures tab
 │   │   │   └── ImportChapter.jsx   # Teacher UI: import chapter from Claude
 │   │   ├── app/
 │   │   │   ├── AppMainContent.jsx
 │   │   │   ├── AppOverlays.jsx
 │   │   │   └── TeacherToolbar.jsx
 │   │   ├── ChapterView.jsx
+│   │   ├── FigureUploadModal.jsx   # Inline figure upload from reading view
 │   │   ├── GuidedExercise.jsx
-│   │   ├── MathText.jsx            # KaTeX renderer ($...$ and $$...$$)
+│   │   ├── MathText.jsx            # KaTeX + [fig:ref] renderer
 │   │   ├── Quiz.jsx
 │   │   └── Sidebar.jsx
 │   ├── contexts/
@@ -108,6 +110,7 @@ It also creates/updates Step 2 collections and rules:
 - `courses` (with `published`, `language`, `subject_prompt`)
 - `course_members` (`owner` / `editor`)
 - `chapters.course_id` relation
+- `chapter_figures` (`chapter_id`, `ref`, `caption`, optional `file`) for figure support
 - membership-based access rules for teachers and published-only visibility for students
 
 ### 4. Start the dev server
@@ -232,6 +235,19 @@ UI localization (Step 2e):
 ```
 
 **LaTeX rules:** always wrap in `$...$` (inline) or `$$...$$` (display). Use proper LaTeX commands: `\alpha`, `\frac{a}{b}`, `|\psi\rangle`, `\hat{H}`. Never use plain text like `alpha` or `|psi>`.
+
+---
+
+## Figures
+
+Figures are referenced inline with `[fig:ref]` tags anywhere in chapter text (concept content, exercise intros/steps). Files are stored in the `chapter_figures` collection, not inline in the chapter JSON.
+
+**Workflow:**
+1. AI writes `[fig:ref]` placeholders + captions in the generated JSON. On import, placeholder records are auto-created (ref + caption, no file yet).
+2. Teacher uploads the file (PNG/JPEG/GIF/WEBP/SVG/PDF) per placeholder in the editor **Figures** tab — or directly from the reading view.
+3. `MathText` resolves each `[fig:ref]` to the uploaded image + caption inline.
+
+**Inline upload from reading view:** a `[fig:ref]` with no uploaded file shows to teachers as a **red clickable tag**. Clicking opens an upload modal (file + caption); if the ref was typed manually with no record, the record is created on upload. Students see a neutral, non-clickable placeholder.
 
 ---
 

@@ -19,7 +19,7 @@ Use this table as the single source of truth while we build. Update `Status`, `O
 | Step 4 | Subscription tiers + admin manual overrides | ⚪ Planned | 1-2 days | - | 2026-05-28 | Gate content by tier |
 | Step 5 | Payment integration (Paddle/Stripe) | ⚪ Planned | 2-3 days | - | 2026-05-28 | Requires webhook service |
 | Step 5a | Optional concept deep dives | ⚪ Planned | 0.5-1 day | - | 2026-05-29 | Add `deepDive` to AI JSON and show expandable block only when non-empty |
-| Step 6 | Figure support in chapters | ⚪ Planned | 1-1.5 days | - | 2026-06-15 | Figures stored as PocketBase file fields on the chapter record. AI generates `[fig:ref]` placeholder tags + captions in the JSON (usable in concept content, exercise intros/steps). Teacher uploads PNG/PDF per placeholder in the chapter editor. Renderer resolves `[fig:ref]` inline wherever it appears. |
+| Step 6 | Figure support in chapters | 🟢 Done | 1-1.5 days | AI + user | 2026-06-19 | `chapter_figures` collection (file field, ref, caption). AI generates `[fig:ref]` placeholders + captions; import auto-creates placeholder records. Teacher uploads PNG/JPEG/PDF per placeholder in the editor figures tab. Renderer resolves `[fig:ref]` inline. Teachers also see missing placeholders as red clickable tags in the reading view → inline upload modal. |
 | Step 7 | GDPR compliance | ⚪ Planned | 0.5-1 day (tech) + legal drafting time | - | 2026-05-28 | Account deletion + policy docs |
 | Step 8 | Production deployment | ⚪ Planned | 0.5-1 day | - | 2026-05-28 | Domain, SSL, SMTP, backups |
 
@@ -285,18 +285,29 @@ last_attempt   (datetime)
 
 ---
 
-## Step 6 — Image support
+## Step 6 — Figure support
 
-**What:** teachers can attach images to concepts and exercises.
+**What:** teachers can attach figures referenced inline anywhere in chapter text.
 
-**Approach:** URL references in JSON (not base64 inline).
+**Approach:** `[fig:ref]` placeholder tags in content, resolved to uploaded files at render time. Files live in a separate `chapter_figures` collection (not base64, not on the chapter record).
 
-**Changes:**
-- Add a file-upload field to PocketBase (`chapters` or a separate `images` collection)
-- Upload button per concept/exercise in `ChapterEditor`
-- `<img>` tag in the content renderer
-- JSON export includes image URLs as plain strings; AI round-trips preserve them unchanged
-- For AI-generated chapters: AI writes `"image": null`; teacher uploads manually afterwards
+**New collection:**
+```
+chapter_figures
+───────────────────────────────
+chapter_id  → links to a chapter
+ref         ("fig1") — matches [fig:ref] tags in content
+caption     (text)
+file        (optional file: PNG/JPEG/GIF/WEBP/SVG/PDF)
+```
+
+**Status (done, 2026-06-19):**
+- `chapter_figures` collection + access rules created in `setup-pocketbase.js`
+- AI generates `[fig:ref]` placeholders + captions in concept content, exercise intros/steps
+- Import auto-creates placeholder records (ref + caption, no file yet)
+- Editor "Figures" tab: upload/replace/delete, edit ref + caption, thumbnail/PDF preview
+- `MathText` resolves `[fig:ref]` inline wherever it appears (image + caption)
+- Teachers see unuploaded `[fig:ref]` as red clickable tags in the reading view → inline upload modal (`FigureUploadModal`); auto-creates the record if the ref was typed manually. Students see a neutral non-clickable placeholder.
 
 **Does not affect:** auth, routing, AI import/export logic.
 
@@ -352,9 +363,13 @@ last_attempt   (datetime)
 
 ## Known Issues (Blocking)
 
+_None._
+
+### Resolved
+
 | Issue | Component | Status | Notes |
 |---|---|---|---|
-| Cannot add/delete exercises (Opgaven) | ChapterEditor | 🔴 Blocked | Opgaven section in chapter editor does not allow adding or removing exercises. Affects Step 6 figure support work. |
+| Cannot add/delete exercises (Opgaven) | ChapterEditor | 🟢 Resolved | `addExercise` / `deleteExercise` wired into the Opgaven editor UI. |
 
 ---
 
