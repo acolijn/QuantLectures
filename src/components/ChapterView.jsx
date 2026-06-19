@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import MathText, { MathBlock } from './MathText';
 import Quiz from './Quiz';
 import GuidedExercise from './GuidedExercise';
+import FigureUploadModal from './FigureUploadModal';
 import { useLanguage } from '../contexts/LanguageContext';
 import { fetchChapterFigures } from '../lib/api';
 import { pb } from '../lib/pocketbase';
@@ -23,22 +24,26 @@ function buildFiguresMap(figures) {
   return map;
 }
 
-export default function ChapterView({ chapter, progress, onProgressUpdate }) {
+export default function ChapterView({ chapter, progress, onProgressUpdate, isTeacher }) {
   const [tab, setTab] = useState('concepts');
   const [figures, setFigures] = useState([]);
+  const [uploadRef, setUploadRef] = useState(null);
   const { t } = useLanguage();
   const hasFormulas = chapter.formulas && chapter.formulas.length > 0;
   const hasExercises = chapter.exercises && chapter.exercises.length > 0;
   const hasQuiz = chapter.quiz && chapter.quiz.length > 0;
   const figuresMap = buildFiguresMap(figures);
 
-  useEffect(() => {
-    async function loadFigures() {
-      const figs = await fetchChapterFigures(chapter.pbId);
-      setFigures(figs);
-    }
-    loadFigures();
+  const loadFigures = useCallback(async () => {
+    const figs = await fetchChapterFigures(chapter.pbId);
+    setFigures(figs);
   }, [chapter.pbId]);
+
+  useEffect(() => {
+    loadFigures();
+  }, [loadFigures]);
+
+  const onFigClick = useCallback(ref => setUploadRef(ref), []);
 
   return (
     <main className="chapter-view">
@@ -89,8 +94,8 @@ export default function ChapterView({ chapter, progress, onProgressUpdate }) {
           <div className="concepts-grid">
             {chapter.concepts.map((concept, i) => (
               <div key={i} className="concept-card">
-                <h3><MathText text={concept.title} figures={figuresMap} /></h3>
-                <p><MathText text={concept.content} figures={figuresMap} /></p>
+                <h3><MathText text={concept.title} figures={figuresMap} isTeacher={isTeacher} onFigClick={onFigClick} /></h3>
+                <p><MathText text={concept.content} figures={figuresMap} isTeacher={isTeacher} onFigClick={onFigClick} /></p>
               </div>
             ))}
           </div>
@@ -110,7 +115,7 @@ export default function ChapterView({ chapter, progress, onProgressUpdate }) {
         {tab === 'exercises' && hasExercises && (
           <div className="exercises-list">
             {chapter.exercises.map((exercise, i) => (
-              <GuidedExercise key={i} exercise={exercise} figures={figuresMap} />
+              <GuidedExercise key={i} exercise={exercise} figures={figuresMap} isTeacher={isTeacher} onFigClick={onFigClick} />
             ))}
           </div>
         )}
@@ -124,6 +129,16 @@ export default function ChapterView({ chapter, progress, onProgressUpdate }) {
           />
         )}
       </div>
+
+      {uploadRef && (
+        <FigureUploadModal
+          chapterPbId={chapter.pbId}
+          figRef={uploadRef}
+          existingFig={figures.find(f => f.ref === uploadRef) || null}
+          onClose={() => setUploadRef(null)}
+          onUploaded={loadFigures}
+        />
+      )}
     </main>
   );
 }

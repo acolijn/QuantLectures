@@ -69,6 +69,7 @@ export default function AppMainContent({
           chapter={chapter}
           progress={courseProgress[chapter.id]}
           onProgressUpdate={onProgressUpdate}
+          isTeacher={isTeacher}
         />
       </div>
     );

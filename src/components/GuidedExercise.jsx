@@ -2,7 +2,7 @@ import { useState } from 'react';
 import MathText, { MathBlock } from './MathText';
 import { useLanguage } from '../contexts/LanguageContext';
 
-export default function GuidedExercise({ exercise, figures }) {
+export default function GuidedExercise({ exercise, figures, isTeacher, onFigClick }) {
   const { t } = useLanguage();
   const [currentStep, setCurrentStep] = useState(0);
   const [revealedHints, setRevealedHints] = useState({});
@@ -81,9 +81,9 @@ export default function GuidedExercise({ exercise, figures }) {
     <div className="guided-exercise">
       <div className="exercise-header">
         <div className="exercise-label">{exercise.label || t('exercise_label_default')}</div>
-        <h3><MathText text={exercise.title} figures={figures} /></h3>
+        <h3><MathText text={exercise.title} figures={figures} isTeacher={isTeacher} onFigClick={onFigClick} /></h3>
         {exercise.intro && (
-          <div className="exercise-intro"><MathText text={exercise.intro} figures={figures} /></div>
+          <div className="exercise-intro"><MathText text={exercise.intro} figures={figures} isTeacher={isTeacher} onFigClick={onFigClick} /></div>
         )}
       </div>
 
@@ -101,7 +101,7 @@ export default function GuidedExercise({ exercise, figures }) {
 
       <div className="exercise-step">
         <div className="step-question">
-          <MathText text={step.question} figures={figures} />
+          <MathText text={step.question} figures={figures} isTeacher={isTeacher} onFigClick={onFigClick} />
         </div>
 
         {step.hints && step.hints.length > 0 && (

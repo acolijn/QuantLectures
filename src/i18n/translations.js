@@ -217,6 +217,8 @@ export const translations = {
     editor_figure_pending: 'Nog niet geüpload',
     editor_add_figure: '+ Figuur toevoegen',
     editor_edit: 'Bewerken',
+    figmodal_title: 'Figuur uploaden [fig:{ref}]',
+    figmodal_no_file: 'Selecteer eerst een bestand',
 
     exercise_label_default: 'Opgave',
     exercise_hint: 'Hint {n}',
@@ -447,6 +449,8 @@ export const translations = {
     editor_figure_pending: 'Not yet uploaded',
     editor_add_figure: '+ Add figure',
     editor_edit: 'Edit',
+    figmodal_title: 'Upload figure [fig:{ref}]',
+    figmodal_no_file: 'Select a file first',
 
     exercise_label_default: 'Exercise',
     exercise_hint: 'Hint {n}',
