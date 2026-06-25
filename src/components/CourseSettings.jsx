@@ -4,12 +4,6 @@ import { useLanguage } from '../contexts/LanguageContext';
 const LANGUAGE_OPTIONS = [
   { value: 'nl', label: 'Nederlands (NL)' },
   { value: 'en', label: 'English (EN)' },
-  { value: 'de', label: 'Deutsch (DE)' },
-  { value: 'fr', label: 'Français (FR)' },
-  { value: 'es', label: 'Español (ES)' },
-  { value: 'it', label: 'Italiano (IT)' },
-  { value: 'pt', label: 'Português (PT)' },
-  { value: 'pl', label: 'Polski (PL)' },
 ];
 
 export default function CourseSettings({

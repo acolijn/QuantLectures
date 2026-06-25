@@ -89,9 +89,9 @@ export default function Landing({
                 className="landing-card"
                 onClick={() => onSelectCourse(course.id)}
               >
-                <div className="landing-card-flag">{LANGUAGE_FLAGS[course.language] ?? '🌐'}</div>
                 <h3 className="landing-card-title">
                   <MathText text={course.name} />
+                  <span className="landing-card-flag">{LANGUAGE_FLAGS[course.language] ?? '🌐'}</span>
                 </h3>
                 {course.subtitle && (
                   <p className="landing-card-subtitle">
