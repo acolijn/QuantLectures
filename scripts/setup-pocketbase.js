@@ -493,7 +493,7 @@ async function setup() {
     fields: customFields(await pb.collections.getOne('courses')),
     listRule: `(${courseTeacherMemberRule}) || (${strictCourseStudentRule})`,
     viewRule: `(${courseTeacherMemberRule}) || (${strictCourseStudentRule})`,
-    createRule: '@request.auth.role = "teacher"',
+    createRule: '@request.auth.role = "teacher" || @request.auth.role = "admin"',
     updateRule: courseTeacherOwnerRule,
     deleteRule: courseTeacherOwnerRule,
   });

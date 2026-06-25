@@ -443,29 +443,8 @@ export default function Sidebar({
       )}
 
       <div className="sidebar-footer">
-        {(courses.length > 0 || isTeacher) && (
+        {isTeacher && course && (
           <div className="sidebar-course-controls">
-            {courses.length > 0 && (
-              <label className="sidebar-course-label">
-                {t('sidebar_course')}
-                <select
-                  className="sidebar-course-select"
-                  value={activeCourseId ?? ''}
-                  onChange={e => onSelectCourse?.(e.target.value)}
-                >
-                  {courses.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </label>
-            )}
-            {isTeacher && (
-              <>
-                <button className="sidebar-auth-btn sidebar-course-create" onClick={onCreateCourse}>
-                  {t('sidebar_new_course')}
-                </button>
-                {course && (
-                  <>
                 <button
                   className="sidebar-auth-btn sidebar-course-settings-toggle"
                   onClick={() => setShowCourseSettings(prev => !prev)}
@@ -721,10 +700,6 @@ export default function Sidebar({
                     )}
                   </div>
                 )}
-                  </>
-                )}
-              </>
-            )}
           </div>
         )}
 
