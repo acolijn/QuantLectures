@@ -1,36 +1,49 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import MathText, { MathBlock } from './MathText';
 import Quiz from './Quiz';
 import GuidedExercise from './GuidedExercise';
+import FigureUploadModal from './FigureUploadModal';
 import { useLanguage } from '../contexts/LanguageContext';
+import { fetchChapterFigures } from '../lib/api';
 import { pb } from '../lib/pocketbase';
 
-function buildFiguresMap(chapter) {
-  if (!chapter.figureMeta?.length) return {};
+function buildFiguresMap(figures) {
+  if (!figures?.length) return {};
   const map = {};
-  chapter.figureMeta.forEach((meta, i) => {
-    const filename = chapter.figureFiles?.[i];
-    map[meta.ref] = {
-      caption: meta.caption ?? '',
-      url: filename
-        ? pb.files.getURL({ collectionName: 'chapters', id: chapter.pbId }, filename, { thumb: '400x0' })
-        : null,
-      fullUrl: filename
-        ? pb.files.getURL({ collectionName: 'chapters', id: chapter.pbId }, filename)
-        : null,
-      isPdf: filename?.toLowerCase().endsWith('.pdf') ?? false,
-      filename,
-    };
+  figures.forEach(fig => {
+    if (fig.filename) {
+      map[fig.ref] = {
+        caption: fig.caption,
+        url: pb.files.getURL({ collectionName: 'chapter_figures', id: fig.id }, fig.filename, { thumb: '400x0' }),
+        fullUrl: pb.files.getURL({ collectionName: 'chapter_figures', id: fig.id }, fig.filename),
+        isPdf: fig.filename.toLowerCase().endsWith('.pdf'),
+        filename: fig.filename,
+      };
+    }
   });
   return map;
 }
 
-export default function ChapterView({ chapter, progress, onProgressUpdate }) {
+export default function ChapterView({ chapter, progress, onProgressUpdate, isTeacher }) {
   const [tab, setTab] = useState('concepts');
+  const [figures, setFigures] = useState([]);
+  const [uploadRef, setUploadRef] = useState(null);
   const { t } = useLanguage();
+  const hasFormulas = chapter.formulas && chapter.formulas.length > 0;
   const hasExercises = chapter.exercises && chapter.exercises.length > 0;
-  const hasFigures = chapter.figureMeta && chapter.figureMeta.length > 0;
-  const figuresMap = buildFiguresMap(chapter);
+  const hasQuiz = chapter.quiz && chapter.quiz.length > 0;
+  const figuresMap = buildFiguresMap(figures);
+
+  const loadFigures = useCallback(async () => {
+    const figs = await fetchChapterFigures(chapter.pbId);
+    setFigures(figs);
+  }, [chapter.pbId]);
+
+  useEffect(() => {
+    loadFigures();
+  }, [loadFigures]);
+
+  const onFigClick = useCallback(ref => setUploadRef(ref), []);
 
   return (
     <main className="chapter-view">
@@ -47,12 +60,14 @@ export default function ChapterView({ chapter, progress, onProgressUpdate }) {
         >
           {t('chapter_tab_concepts')}
         </button>
-        <button
-          className={`tab ${tab === 'formulas' ? 'active' : ''}`}
-          onClick={() => setTab('formulas')}
-        >
-          {t('chapter_tab_formulas')}
-        </button>
+        {hasFormulas && (
+          <button
+            className={`tab ${tab === 'formulas' ? 'active' : ''}`}
+            onClick={() => setTab('formulas')}
+          >
+            {t('chapter_tab_formulas')}
+          </button>
+        )}
         {hasExercises && (
           <button
             className={`tab ${tab === 'exercises' ? 'active' : ''}`}
@@ -61,23 +76,17 @@ export default function ChapterView({ chapter, progress, onProgressUpdate }) {
             {t('chapter_tab_exercises')}
           </button>
         )}
-        {hasFigures && (
+        {hasQuiz && (
           <button
-            className={`tab ${tab === 'figures' ? 'active' : ''}`}
-            onClick={() => setTab('figures')}
+            className={`tab ${tab === 'quiz' ? 'active' : ''}`}
+            onClick={() => setTab('quiz')}
           >
-            {t('chapter_tab_figures')}
+            {t('chapter_tab_quiz')}
+            {progress?.bestScore !== undefined && (
+              <span className="tab-badge">{Math.round(progress.bestScore)}%</span>
+            )}
           </button>
         )}
-        <button
-          className={`tab ${tab === 'quiz' ? 'active' : ''}`}
-          onClick={() => setTab('quiz')}
-        >
-          {t('chapter_tab_quiz')}
-          {progress?.bestScore !== undefined && (
-            <span className="tab-badge">{Math.round(progress.bestScore)}%</span>
-          )}
-        </button>
       </div>
 
       <div className="tab-content">
@@ -85,8 +94,8 @@ export default function ChapterView({ chapter, progress, onProgressUpdate }) {
           <div className="concepts-grid">
             {chapter.concepts.map((concept, i) => (
               <div key={i} className="concept-card">
-                <h3><MathText text={concept.title} figures={figuresMap} /></h3>
-                <p><MathText text={concept.content} figures={figuresMap} /></p>
+                <h3><MathText text={concept.title} figures={figuresMap} isTeacher={isTeacher} onFigClick={onFigClick} /></h3>
+                <p><MathText text={concept.content} figures={figuresMap} isTeacher={isTeacher} onFigClick={onFigClick} /></p>
               </div>
             ))}
           </div>
@@ -106,37 +115,12 @@ export default function ChapterView({ chapter, progress, onProgressUpdate }) {
         {tab === 'exercises' && hasExercises && (
           <div className="exercises-list">
             {chapter.exercises.map((exercise, i) => (
-              <GuidedExercise key={i} exercise={exercise} figures={figuresMap} />
+              <GuidedExercise key={i} exercise={exercise} figures={figuresMap} isTeacher={isTeacher} onFigClick={onFigClick} />
             ))}
           </div>
         )}
 
-        {tab === 'figures' && hasFigures && (
-          <div className="figures-list">
-            {chapter.figureMeta.map((meta, i) => {
-              const fig = figuresMap[meta.ref];
-              return (
-                <div key={i} className="figure-card">
-                  <div className="figure-ref-label">[fig:{meta.ref}]</div>
-                  {fig?.url && !fig.isPdf && (
-                    <img src={fig.url} alt={meta.caption || meta.ref} className="figure-img" />
-                  )}
-                  {fig?.isPdf && (
-                    <a href={fig.fullUrl} target="_blank" rel="noopener noreferrer" className="figure-pdf-link">
-                      📄 {meta.caption || meta.ref}
-                    </a>
-                  )}
-                  {!fig?.url && (
-                    <div className="figure-pending">{t('chapter_figure_pending')}</div>
-                  )}
-                  {meta.caption && <p className="figure-caption">{meta.caption}</p>}
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {tab === 'quiz' && (
+        {tab === 'quiz' && hasQuiz && (
           <Quiz
             questions={chapter.quiz}
             chapterId={chapter.id}
@@ -145,6 +129,16 @@ export default function ChapterView({ chapter, progress, onProgressUpdate }) {
           />
         )}
       </div>
+
+      {uploadRef && (
+        <FigureUploadModal
+          chapterPbId={chapter.pbId}
+          figRef={uploadRef}
+          existingFig={figures.find(f => f.ref === uploadRef) || null}
+          onClose={() => setUploadRef(null)}
+          onUploaded={loadFigures}
+        />
+      )}
     </main>
   );
 }
