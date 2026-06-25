@@ -19,6 +19,7 @@ export default function Landing({
   onSelectCourse,
   onCreateCourse,
   onLoginClick,
+  onOpenAdmin,
 }) {
   const { user, isTeacher, isAdmin, signOut } = useAuth();
   const { t, setUiLanguage } = useLanguage();
@@ -34,6 +35,11 @@ export default function Landing({
       <header className="landing-topbar">
         <div className="landing-brand">📐 MiniLectures.app</div>
         <div className="landing-topbar-actions">
+          {isAdmin && (
+            <button className="landing-btn landing-btn--ghost" onClick={onOpenAdmin}>
+              {t('admin_button')}
+            </button>
+          )}
           {isTeacher && (
             <button className="landing-btn landing-btn--ghost" onClick={onCreateCourse}>
               {t('sidebar_new_course')}

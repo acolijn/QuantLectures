@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import Sidebar from './components/Sidebar';
 import Landing from './components/Landing';
 import CourseSettings from './components/CourseSettings';
+import AdminPanel from './components/AdminPanel';
 import AppMainContent from './components/app/AppMainContent';
 import AppOverlays from './components/app/AppOverlays';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -18,6 +19,7 @@ function AppContent() {
   const [showLogin, setShowLogin] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [showCourseSettings, setShowCourseSettings] = useState(false);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
   const {
     courses,
     activeCourseId,
@@ -174,12 +176,23 @@ function AppContent() {
         onImported={handleImported}
       />
 
+      {showAdminPanel && isAdmin && (
+        <AdminPanel
+          onClose={() => setShowAdminPanel(false)}
+          pendingTeachers={pendingTeachers}
+          onLoadPendingTeachers={refreshPendingTeachers}
+          onApproveTeacher={approveTeacher}
+          onRejectTeacher={rejectTeacher}
+        />
+      )}
+
       {showLanding ? (
         <Landing
           courses={courses}
           onSelectCourse={handleSelectCourse}
           onCreateCourse={handleCreateCourse}
           onLoginClick={() => setShowLogin(true)}
+          onOpenAdmin={() => setShowAdminPanel(true)}
         />
       ) : (
       <>
@@ -196,10 +209,6 @@ function AppContent() {
           isAdmin={isAdmin}
           onGoHome={handleGoHome}
           onRedeemInvite={redeemStudentInvite}
-          pendingTeachers={pendingTeachers}
-          onLoadPendingTeachers={refreshPendingTeachers}
-          onApproveTeacher={approveTeacher}
-          onRejectTeacher={rejectTeacher}
           chapters={chapters}
           activeChapter={activeChapter}
           onSelectChapter={handleSelectChapter}

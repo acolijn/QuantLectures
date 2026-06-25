@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import MathText from './MathText';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -8,10 +8,6 @@ export default function Sidebar({
   isAdmin,
   onGoHome,
   onRedeemInvite,
-  pendingTeachers,
-  onLoadPendingTeachers,
-  onApproveTeacher,
-  onRejectTeacher,
   chapters,
   activeChapter,
   onSelectChapter,
@@ -27,22 +23,6 @@ export default function Sidebar({
   const [redeemCode, setRedeemCode] = useState('');
   const [redeemingInvite, setRedeemingInvite] = useState(false);
   const [redeemMessage, setRedeemMessage] = useState('');
-  const [pendingActionLoading, setPendingActionLoading] = useState(false);
-  const [pendingMessage, setPendingMessage] = useState('');
-  const [pendingLoading, setPendingLoading] = useState(false);
-
-  useEffect(() => {
-    if (!isAdmin) return;
-    if (pendingTeachers.length > 0) return;
-
-    setPendingLoading(true);
-    onLoadPendingTeachers?.()
-      .catch(err => {
-        console.error('Failed to load pending teachers:', err);
-        setPendingMessage(t('sidebar_pending_load_failed'));
-      })
-      .finally(() => setPendingLoading(false));
-  }, [isAdmin, pendingTeachers.length, onLoadPendingTeachers, t]);
 
   function handleDragStart(e, index) {
     setDraggedIndex(index);
@@ -89,36 +69,6 @@ export default function Sidebar({
       setRedeemMessage(err.message || t('sidebar_redeem_failed'));
     } finally {
       setRedeemingInvite(false);
-    }
-  }
-
-  async function handleApprovePending(userId) {
-    if (!onApproveTeacher) return;
-    setPendingActionLoading(true);
-    setPendingMessage('');
-    try {
-      await onApproveTeacher(userId);
-      setPendingMessage(t('sidebar_pending_approved'));
-    } catch (err) {
-      setPendingMessage(err.message || t('sidebar_pending_approve_failed'));
-    } finally {
-      setPendingActionLoading(false);
-    }
-  }
-
-  async function handleRejectPending(userId) {
-    if (!onRejectTeacher) return;
-    if (!window.confirm(t('sidebar_pending_reject_confirm'))) return;
-
-    setPendingActionLoading(true);
-    setPendingMessage('');
-    try {
-      await onRejectTeacher(userId, 'delete');
-      setPendingMessage(t('sidebar_pending_rejected'));
-    } catch (err) {
-      setPendingMessage(err.message || t('sidebar_pending_reject_failed'));
-    } finally {
-      setPendingActionLoading(false);
     }
   }
 
@@ -242,47 +192,6 @@ export default function Sidebar({
             </button>
           )}
         </div>
-
-        {isAdmin && (
-          <div className="sidebar-members-panel">
-            <h4 className="sidebar-members-title">{t('sidebar_pending_title')}</h4>
-            {pendingLoading ? (
-              <p className="sidebar-course-hint">{t('sidebar_loading_pending')}</p>
-            ) : (
-              <ul className="sidebar-members-list">
-                {pendingTeachers.map(item => (
-                  <li key={item.id} className="sidebar-members-item">
-                    <div>
-                      <div className="sidebar-members-email">{item.email}</div>
-                      <div className="sidebar-members-role">{item.name || t('sidebar_no_name')}</div>
-                    </div>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <button
-                        className="sidebar-auth-btn sidebar-members-remove"
-                        onClick={() => handleApprovePending(item.id)}
-                        disabled={pendingActionLoading}
-                      >
-                        {t('sidebar_pending_approve')}
-                      </button>
-                      <button
-                        className="sidebar-auth-btn sidebar-members-remove"
-                        onClick={() => handleRejectPending(item.id)}
-                        disabled={pendingActionLoading}
-                      >
-                        {t('sidebar_pending_reject')}
-                      </button>
-                    </div>
-                  </li>
-                ))}
-                {pendingTeachers.length === 0 && (
-                  <li className="sidebar-course-hint">{t('sidebar_no_pending')}</li>
-                )}
-              </ul>
-            )}
-            {pendingMessage && <p className="sidebar-course-save-message">{pendingMessage}</p>}
-          </div>
-        )}
-
       </div>
     </aside>
   );

@@ -45,6 +45,9 @@ export const translations = {
     settings_danger: 'Gevarenzone',
     settings_danger_hint: 'Dit verwijdert de cursus en alle hoofdstukken permanent.',
 
+    admin_button: '🛡️ Admin',
+    admin_title: 'Adminbeheer',
+
     sidebar_default_subtitle: 'Leeromgeving',
     sidebar_course: 'Cursus',
     sidebar_new_course: '+ Nieuwe cursus',
@@ -289,6 +292,9 @@ export const translations = {
     settings_ai: 'AI / Subject prompt',
     settings_danger: 'Danger zone',
     settings_danger_hint: 'This permanently deletes the course and all its chapters.',
+
+    admin_button: '🛡️ Admin',
+    admin_title: 'Admin',
 
     sidebar_default_subtitle: 'Learning environment',
     sidebar_course: 'Course',

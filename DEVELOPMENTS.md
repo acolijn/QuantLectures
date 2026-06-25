@@ -17,7 +17,8 @@ Use this table as the single source of truth while we build. Update `Status`, `O
 | Step 3c | Student invite codes + student signup flow | 🟢 Done | 1-1.5 days | AI + user | 2026-05-29 | `course_invites` + `course_enrollments` + student code redemption |
 | Step 3d | Student progress in PocketBase | ⚪ Planned | 1 day | - | 2026-05-28 | No grading; lightweight progress only |
 | Step 3e | Editor management — teacher picker | 🟢 Done | 2-3 hours | AI + user | 2026-06-25 | Course owner adds editors from a searchable dropdown of existing teachers instead of typing an email. `users` listRule already lets teachers list teachers; add-by-userId (PocketBase hides other users' email) |
-| Step 2f | Course settings as a page | 🟢 Done | 0.5 day | AI + user | 2026-06-25 | Settings moved out of the sidebar into a `CourseSettings.jsx` full-screen overlay opened from a ⚙️ toolbar button. Sectioned layout (General / Visibility / AI prompt / Editors / Invite codes / Danger zone). Sidebar slimmed to chapters + auth + admin |
+| Step 2f | Course settings as a page | 🟢 Done | 0.5 day | AI + user | 2026-06-25 | Settings moved out of the sidebar into a `CourseSettings.jsx` full-screen overlay opened from a ⚙️ toolbar button. Sectioned layout (General / Visibility / AI prompt / Editors / Invite codes / Danger zone). Sidebar slimmed to chapters + auth |
+| Step 3f | Admin panel on landing | 🟢 Done | 1-2 hours | AI + user | 2026-06-25 | Pending-teacher approvals moved from the course sidebar into an `AdminPanel.jsx` overlay opened from a 🛡️ Admin button on the landing top bar (admin-only). Sidebar no longer carries admin tasks |
 | Step 4 | Subscription tiers + admin manual overrides | ⚪ Planned | 1-2 days | - | 2026-05-28 | Gate content by tier |
 | Step 5 | Payment integration (Paddle/Stripe) | ⚪ Planned | 2-3 days | - | 2026-05-28 | Requires webhook service |
 | Step 5a | Optional concept deep dives | ⚪ Planned | 0.5-1 day | - | 2026-05-29 | Add `deepDive` to AI JSON and show expandable block only when non-empty |
@@ -265,6 +266,25 @@ last_attempt   (datetime)
 - Closes on ✕, backdrop click, or Escape.
 - Owner-only sections gated as before; non-owners see General read-only.
 - Sidebar slimmed to chapter list, progress, auth, student invite redeem, and the admin pending-teachers panel. Course selector + "new course" button already moved to the landing page (Step 9).
+
+---
+
+## Step 3f — Admin panel on landing
+
+**What:** global admin tasks live on the landing page, not inside a course.
+
+**Problem:** the pending-teacher approval panel ("Docentenaanvragen") sat in the course sidebar — but it's a global admin task, only reachable after entering some course. Wrong place.
+
+**Approach (done, 2026-06-25):**
+- New `AdminPanel.jsx` overlay (same pattern as `CourseSettings`), opened from a 🛡️ **Admin** button in the landing top bar, shown only when `isAdmin`.
+- Pending-teacher list + approve/reject moved there; removed from the sidebar entirely.
+- Closes on ✕, backdrop click, or Escape.
+- Scales: future admin tools (user management, tiers) go in the same overlay.
+
+**Clean split now:**
+- **Landing** = global (browse courses, create course, admin).
+- **Sidebar** = within a course (chapters, progress, auth, student invite redeem).
+- **CourseSettings** = one course's config.
 
 ---
 
