@@ -197,7 +197,7 @@ function AppContent() {
           onLoadCourseMembers={() => refreshCourseMembers(activeCourseId)}
           teachers={teachers}
           onLoadTeachers={refreshTeachers}
-          onAddEditor={email => addEditorToCourse(activeCourseId, email)}
+          onAddEditor={userId => addEditorToCourse(activeCourseId, userId)}
           onRemoveEditor={memberId => removeEditorFromCourse(activeCourseId, memberId)}
           courseInvites={courseInvitesByCourse[activeCourseId] ?? []}
           onLoadCourseInvites={() => refreshCourseInvites(activeCourseId)}

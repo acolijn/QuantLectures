@@ -2028,3 +2028,18 @@ body {
 .sidebar-teacher-name { font-size: 0.88rem; font-weight: 600; }
 .sidebar-teacher-email { font-size: 0.78rem; opacity: 0.7; }
 .sidebar-teacher-empty { padding: 8px 9px; }
+
+.sidebar-members-subhead {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-sidebar);
+  opacity: 0.6;
+  margin: 12px 0 6px;
+}
+
+.sidebar-teacher-more {
+  padding: 8px 9px;
+  opacity: 0.7;
+  font-style: italic;
+}

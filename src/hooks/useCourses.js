@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  addCourseEditorByEmail,
+  addCourseEditorById,
   approvePendingTeacher,
   createCourse,
   createCourseInvite,
@@ -84,8 +84,8 @@ export function useCourses(user) {
     return members;
   }
 
-  async function addEditorToCourse(courseId, email) {
-    const added = await addCourseEditorByEmail(courseId, email);
+  async function addEditorToCourse(courseId, userId) {
+    const added = await addCourseEditorById(courseId, userId);
     setCourseMembersByCourse(prev => {
       const existing = prev[courseId] ?? [];
       return { ...prev, [courseId]: [...existing, added] };

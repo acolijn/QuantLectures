@@ -324,20 +324,18 @@ export async function fetchCourseMembers(courseId) {
   return records.map(toMember);
 }
 
-export async function addCourseEditorByEmail(courseId, email) {
-  const normalizedEmail = String(email).trim().toLowerCase();
-  if (!normalizedEmail) {
-    throw new Error('Vul een geldig e-mailadres in.');
+export async function addCourseEditorById(courseId, userId) {
+  if (!userId) {
+    throw new Error('Geen docent geselecteerd.');
   }
 
-  const emailFilter = `email ~ "^${escapeRegex(normalizedEmail)}$"`;
-  const user = await pb.collection('users').getFirstListItem(emailFilter);
+  const user = await pb.collection('users').getOne(userId);
   if (user.role !== 'teacher') {
     throw new Error('Alleen gebruikers met rol teacher kunnen editor worden.');
   }
 
   const existing = await pb.collection('course_members').getFullList({
-    filter: `course_id="${escapeFilterValue(courseId)}" && user_id="${escapeFilterValue(user.id)}"`,
+    filter: `course_id="${escapeFilterValue(courseId)}" && user_id="${escapeFilterValue(userId)}"`,
   });
   if (existing.length > 0) {
     throw new Error('Deze gebruiker is al lid van de cursus.');
@@ -345,7 +343,7 @@ export async function addCourseEditorByEmail(courseId, email) {
 
   const created = await pb.collection('course_members').create({
     course_id: courseId,
-    user_id: user.id,
+    user_id: userId,
     role: 'editor',
   });
 
