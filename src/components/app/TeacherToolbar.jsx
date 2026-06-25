@@ -7,6 +7,7 @@ export default function TeacherToolbar({
   onImport,
   onExport,
   onDelete,
+  onOpenCourseSettings,
 }) {
   const { t } = useLanguage();
 
@@ -31,6 +32,11 @@ export default function TeacherToolbar({
       {onDelete && (
         <button className="btn-delete-chapter" onClick={onDelete}>
           {t('toolbar_delete_chapter')}
+        </button>
+      )}
+      {onOpenCourseSettings && (
+        <button className="btn-course-settings" onClick={onOpenCourseSettings}>
+          {t('toolbar_course_settings')}
         </button>
       )}
     </div>

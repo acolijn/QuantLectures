@@ -18,6 +18,7 @@ export default function AppMainContent({
   onShowImport,
   onExportChapter,
   onDeleteChapter,
+  onOpenCourseSettings,
   courseProgress,
   onProgressUpdate,
 }) {
@@ -62,6 +63,7 @@ export default function AppMainContent({
             onImport={onShowImport}
             onExport={onExportChapter}
             onDelete={onDeleteChapter}
+            onOpenCourseSettings={onOpenCourseSettings}
           />
         )}
         <ChapterView
@@ -81,6 +83,7 @@ export default function AppMainContent({
         <TeacherToolbar
           onNewChapter={onNewChapter}
           onImport={onShowImport}
+          onOpenCourseSettings={onOpenCourseSettings}
         />
       )}
       <div className="chapter-loading">

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import Sidebar from './components/Sidebar';
 import Landing from './components/Landing';
+import CourseSettings from './components/CourseSettings';
 import AppMainContent from './components/app/AppMainContent';
 import AppOverlays from './components/app/AppOverlays';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -16,6 +17,7 @@ function AppContent() {
   const [editMode, setEditMode] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [showCourseSettings, setShowCourseSettings] = useState(false);
   const {
     courses,
     activeCourseId,
@@ -144,11 +146,17 @@ function AppContent() {
     setActiveCourseId(null);
     setEditMode(false);
     setSidebarOpen(false);
+    setShowCourseSettings(false);
   }
 
   async function handleUpdateCourse(updates) {
     if (!activeCourseId) return;
     await updateExistingCourse(activeCourseId, updates);
+  }
+
+  async function handleDeleteCourseFromSettings() {
+    await handleDeleteCourse();
+    setShowCourseSettings(false);
   }
 
   const showLanding = !loadingCourses && !activeCourseId;
@@ -185,24 +193,8 @@ function AppContent() {
       <div className={`sidebar-wrapper ${sidebarOpen ? 'open' : ''}`}>
         <Sidebar
           course={course}
-          courses={courses}
-          activeCourseId={activeCourseId}
           isAdmin={isAdmin}
           onGoHome={handleGoHome}
-          onSelectCourse={handleSelectCourse}
-          onCreateCourse={handleCreateCourse}
-          onDeleteCourse={handleDeleteCourse}
-          onUpdateCourse={handleUpdateCourse}
-          courseMembers={courseMembersByCourse[activeCourseId] ?? []}
-          onLoadCourseMembers={() => refreshCourseMembers(activeCourseId)}
-          teachers={teachers}
-          onLoadTeachers={refreshTeachers}
-          onAddEditor={userId => addEditorToCourse(activeCourseId, userId)}
-          onRemoveEditor={memberId => removeEditorFromCourse(activeCourseId, memberId)}
-          courseInvites={courseInvitesByCourse[activeCourseId] ?? []}
-          onLoadCourseInvites={() => refreshCourseInvites(activeCourseId)}
-          onCreateInvite={payload => createInviteForCourse(activeCourseId, payload)}
-          onRevokeInvite={inviteId => revokeInviteForCourse(activeCourseId, inviteId)}
           onRedeemInvite={redeemStudentInvite}
           pendingTeachers={pendingTeachers}
           onLoadPendingTeachers={refreshPendingTeachers}
@@ -234,9 +226,29 @@ function AppContent() {
         onShowImport={() => setShowImport(true)}
         onExportChapter={handleExportChapter}
         onDeleteChapter={handleDeleteChapter}
+        onOpenCourseSettings={() => setShowCourseSettings(true)}
         courseProgress={courseProgress}
         onProgressUpdate={handleProgressUpdate}
       />
+
+      {showCourseSettings && course && isTeacher && (
+        <CourseSettings
+          course={course}
+          onClose={() => setShowCourseSettings(false)}
+          onUpdateCourse={handleUpdateCourse}
+          onDeleteCourse={handleDeleteCourseFromSettings}
+          courseMembers={courseMembersByCourse[activeCourseId] ?? []}
+          onLoadCourseMembers={() => refreshCourseMembers(activeCourseId)}
+          teachers={teachers}
+          onLoadTeachers={refreshTeachers}
+          onAddEditor={userId => addEditorToCourse(activeCourseId, userId)}
+          onRemoveEditor={memberId => removeEditorFromCourse(activeCourseId, memberId)}
+          courseInvites={courseInvitesByCourse[activeCourseId] ?? []}
+          onLoadCourseInvites={() => refreshCourseInvites(activeCourseId)}
+          onCreateInvite={payload => createInviteForCourse(activeCourseId, payload)}
+          onRevokeInvite={inviteId => revokeInviteForCourse(activeCourseId, inviteId)}
+        />
+      )}
       </>
       )}
     </div>

@@ -36,6 +36,14 @@ export const translations = {
     toolbar_import: '⬆️ Importeer',
     toolbar_export: '⬇️ Exporteer',
     toolbar_delete_chapter: '🗑️ Verwijder hoofdstuk',
+    toolbar_course_settings: '⚙️ Cursusinstellingen',
+
+    settings_title: 'Cursusinstellingen',
+    settings_general: 'Algemeen',
+    settings_visibility: 'Zichtbaarheid',
+    settings_ai: 'AI / Subject prompt',
+    settings_danger: 'Gevarenzone',
+    settings_danger_hint: 'Dit verwijdert de cursus en alle hoofdstukken permanent.',
 
     sidebar_default_subtitle: 'Leeromgeving',
     sidebar_course: 'Cursus',
@@ -273,6 +281,14 @@ export const translations = {
     toolbar_import: '⬆️ Import',
     toolbar_export: '⬇️ Export',
     toolbar_delete_chapter: '🗑️ Delete chapter',
+    toolbar_course_settings: '⚙️ Course settings',
+
+    settings_title: 'Course settings',
+    settings_general: 'General',
+    settings_visibility: 'Visibility',
+    settings_ai: 'AI / Subject prompt',
+    settings_danger: 'Danger zone',
+    settings_danger_hint: 'This permanently deletes the course and all its chapters.',
 
     sidebar_default_subtitle: 'Learning environment',
     sidebar_course: 'Course',
