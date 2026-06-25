@@ -34,11 +34,9 @@ export function useCourses(user) {
         setCourses(records);
         setCourseMembersByCourse({});
         setCourseInvitesByCourse({});
-        setActiveCourseId(prev => {
-          if (records.length === 0) return null;
-          if (prev && records.some(c => c.id === prev)) return prev;
-          return records[0].id;
-        });
+        // Do not auto-open a course; the landing page is the entry point.
+        // Keep the current course only if it still exists.
+        setActiveCourseId(prev => (prev && records.some(c => c.id === prev) ? prev : null));
       })
       .catch(err => console.error('Failed to load courses:', err))
       .finally(() => {

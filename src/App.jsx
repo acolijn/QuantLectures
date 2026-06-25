@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import Sidebar from './components/Sidebar';
+import Landing from './components/Landing';
 import AppMainContent from './components/app/AppMainContent';
 import AppOverlays from './components/app/AppOverlays';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -137,10 +138,18 @@ function AppContent() {
     setSidebarOpen(false);
   }
 
+  function handleGoHome() {
+    setActiveCourseId(null);
+    setEditMode(false);
+    setSidebarOpen(false);
+  }
+
   async function handleUpdateCourse(updates) {
     if (!activeCourseId) return;
     await updateExistingCourse(activeCourseId, updates);
   }
+
+  const showLanding = !loadingCourses && !activeCourseId;
 
   return (
     <div className="app">
@@ -155,6 +164,15 @@ function AppContent() {
         onImported={handleImported}
       />
 
+      {showLanding ? (
+        <Landing
+          courses={courses}
+          onSelectCourse={handleSelectCourse}
+          onCreateCourse={handleCreateCourse}
+          onLoginClick={() => setShowLogin(true)}
+        />
+      ) : (
+      <>
       <button
         className="mobile-menu-btn"
         onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -168,6 +186,7 @@ function AppContent() {
           courses={courses}
           activeCourseId={activeCourseId}
           isAdmin={isAdmin}
+          onGoHome={handleGoHome}
           onSelectCourse={handleSelectCourse}
           onCreateCourse={handleCreateCourse}
           onDeleteCourse={handleDeleteCourse}
@@ -214,6 +233,8 @@ function AppContent() {
         courseProgress={courseProgress}
         onProgressUpdate={handleProgressUpdate}
       />
+      </>
+      )}
     </div>
   );
 }

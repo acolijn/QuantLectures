@@ -61,6 +61,13 @@ async function getMyMembership(courseId) {
 // Map a raw PocketBase record to the shape the app expects.
 // The app uses chapter.id as the chapter number (1, 2, …).
 function toChapter(record) {
+  // figures is an array of filenames stored by PocketBase
+  const figureFiles = record.figures ?? [];
+  const figures = (record.figure_meta ?? []).map((meta, i) => ({
+    ref:      meta.ref,
+    caption:  meta.caption ?? '',
+    filename: figureFiles[i] ?? null,
+  }));
   return {
     pbId:        record.id,
     courseId:    record.course_id,
@@ -71,15 +78,9 @@ function toChapter(record) {
     concepts:    record.concepts   ?? [],
     exercises:   record.exercises  ?? [],
     quiz:        record.quiz       ?? [],
-  };
-}
-
-function toFigure(record) {
-  return {
-    id:       record.id,
-    ref:      record.ref,
-    caption:  record.caption ?? '',
-    filename: record.file,
+    figureMeta:  record.figure_meta ?? [],
+    figureFiles: figureFiles,
+    figures,
   };
 }
 
@@ -398,63 +399,21 @@ export async function createChapter(chapterNumber, courseId) {
   return toChapter(record);
 }
 
-// Fetch all figures for a chapter
-export async function fetchChapterFigures(chapterId) {
-  if (!chapterId) return [];
-  const records = await pb.collection('chapter_figures').getFullList({
-    filter: `chapter_id="${escapeFilterValue(chapterId)}"`,
-  });
-  return records.map(toFigure);
-}
-
-// Upload/replace a figure. Creates new if figureId not provided, updates if it does.
-export async function uploadChapterFigure(chapterId, ref, caption, file, figureId = null) {
+// Upload a single figure file to a chapter record.
+// Returns the updated chapter.
+export async function uploadChapterFigure(pbId, file) {
   const formData = new FormData();
-  formData.append('chapter_id', chapterId);
-  formData.append('ref', ref);
-  formData.append('caption', caption);
-  formData.append('file', file);
-
-  let record;
-  if (figureId) {
-    // Update existing
-    record = await pb.collection('chapter_figures').update(figureId, formData);
-  } else {
-    // Create new
-    record = await pb.collection('chapter_figures').create(formData);
-  }
-  return toFigure(record);
+  formData.append('figures', file);
+  const record = await pb.collection('chapters').update(pbId, formData);
+  return toChapter(record);
 }
 
-// Update figure metadata
-export async function updateChapterFigure(figureId, ref, caption) {
-  const record = await pb.collection('chapter_figures').update(figureId, {
-    ref,
-    caption,
+// Remove a figure filename from the chapter's figures field.
+export async function deleteChapterFigure(pbId, filename) {
+  const record = await pb.collection('chapters').update(pbId, {
+    [`figures-`]: filename,
   });
-  return toFigure(record);
-}
-
-// Delete a figure
-export async function deleteChapterFigure(figureId) {
-  await pb.collection('chapter_figures').delete(figureId);
-}
-
-// Create placeholder figure records (ref + caption, no file) for a chapter.
-// Skips refs that already exist so re-importing is safe.
-export async function createChapterFigurePlaceholders(chapterId, figureDefs) {
-  if (!chapterId || !Array.isArray(figureDefs) || figureDefs.length === 0) return;
-  const existing = await fetchChapterFigures(chapterId);
-  const existingRefs = new Set(existing.map(f => f.ref));
-  await Promise.all(
-    figureDefs
-      .filter(def => def?.ref && !existingRefs.has(def.ref))
-      .map(def => pb.collection('chapter_figures').create({
-        chapter_id: chapterId,
-        ref: def.ref,
-        caption: def.caption ?? '',
-      }))
-  );
+  return toChapter(record);
 }
 
 // Reassign chapter_number = index+1 for each chapter in the new order.
@@ -473,27 +432,33 @@ export async function reorderChapters(chapters, courseId) {
 
 export async function upsertChapter(chapter, courseId) {
   let record;
-  const payload = {
-    course_id:      courseId,
-    chapter_number: chapter.id,
-    title:          chapter.title,
-    subtitle:       chapter.subtitle,
-    formulas:       chapter.formulas   ?? [],
-    concepts:       chapter.concepts   ?? [],
-    exercises:      chapter.exercises  ?? [],
-    quiz:           chapter.quiz       ?? [],
-  };
   const filter = `chapter_number=${chapter.id} && course_id="${escapeFilterValue(courseId)}"`;
   try {
-    const existing = await pb.collection('chapters').getFirstListItem(filter);
-    record = await pb.collection('chapters').update(existing.id, payload);
+    const existing = await pb.collection('chapters')
+      .getFirstListItem(filter);
+    record = await pb.collection('chapters').update(existing.id, {
+      course_id:      courseId,
+      chapter_number: chapter.id,
+      title:          chapter.title,
+      subtitle:       chapter.subtitle,
+      formulas:       chapter.formulas   ?? [],
+      concepts:       chapter.concepts   ?? [],
+      exercises:      chapter.exercises  ?? [],
+      quiz:           chapter.quiz       ?? [],
+      figure_meta:    chapter.figures?.map(f => ({ ref: f.ref, caption: f.caption ?? '' })) ?? [],
+    });
   } catch {
-    record = await pb.collection('chapters').create(payload);
+    record = await pb.collection('chapters').create({
+      course_id:      courseId,
+      chapter_number: chapter.id,
+      title:          chapter.title,
+      subtitle:       chapter.subtitle,
+      formulas:       chapter.formulas   ?? [],
+      concepts:       chapter.concepts   ?? [],
+      exercises:      chapter.exercises  ?? [],
+      quiz:           chapter.quiz       ?? [],
+      figure_meta:    chapter.figures?.map(f => ({ ref: f.ref, caption: f.caption ?? '' })) ?? [],
+    });
   }
-
-  // Create placeholder figure records from the JSON figures array so the
-  // teacher only needs to upload files afterwards. Skips existing refs.
-  await createChapterFigurePlaceholders(record.id, chapter.figures);
-
   return toChapter(record);
 }

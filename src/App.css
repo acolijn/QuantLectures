@@ -1774,3 +1774,212 @@ body {
   .chapter-editor { margin-left: 0; padding: 20px; }
   .teacher-toolbar { padding: 12px 20px 0; }
 }
+
+/* === Landing page === */
+.landing {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.landing-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 32px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.landing-brand {
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+
+.landing-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.landing-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.landing-user-email {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+.landing-btn {
+  border: none;
+  background: var(--color-primary);
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 9px 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+.landing-btn:hover { filter: brightness(1.05); }
+
+.landing-btn--ghost {
+  background: transparent;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.landing-hero {
+  text-align: center;
+  padding: 64px 24px 40px;
+}
+
+.landing-title {
+  font-family: var(--font-serif);
+  font-size: 2.4rem;
+  margin: 0 0 12px;
+}
+
+.landing-tagline {
+  font-size: 1.1rem;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.landing-courses {
+  max-width: 1040px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 24px 24px;
+}
+
+.landing-section-title {
+  font-size: 1.3rem;
+  margin: 0 0 18px;
+}
+
+.landing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 18px;
+}
+
+.landing-card {
+  position: relative;
+  text-align: left;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 22px;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+  font-family: var(--font-sans);
+  color: var(--color-text);
+}
+
+.landing-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-primary);
+}
+
+.landing-card-flag {
+  font-size: 1.4rem;
+  margin-bottom: 10px;
+}
+
+.landing-card-title {
+  font-size: 1.15rem;
+  margin: 0 0 6px;
+}
+
+.landing-card-subtitle {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.92rem;
+}
+
+.landing-card-badge {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-secondary);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 3px 9px;
+}
+
+.landing-empty {
+  text-align: center;
+  padding: 40px 0;
+  color: var(--color-text-secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.landing-features {
+  max-width: 1040px;
+  width: 100%;
+  margin: 24px auto 0;
+  padding: 32px 24px 56px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 24px;
+  border-top: 1px solid var(--color-border);
+}
+
+.landing-feature { text-align: center; }
+
+.landing-feature-icon {
+  font-size: 1.8rem;
+  color: var(--color-primary);
+  margin-bottom: 8px;
+}
+
+.landing-feature h4 {
+  margin: 0 0 6px;
+  font-size: 1.05rem;
+}
+
+.landing-feature p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.92rem;
+}
+
+.sidebar-home-btn {
+  display: inline-block;
+  background: transparent;
+  border: none;
+  color: var(--color-text-sidebar);
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  padding: 0 0 8px;
+  cursor: pointer;
+  opacity: 0.8;
+  transition: opacity 0.15s;
+}
+
+.sidebar-home-btn:hover { opacity: 1; }
+
+@media (max-width: 768px) {
+  .landing-topbar { padding: 14px 18px; }
+  .landing-hero { padding: 40px 18px 28px; }
+  .landing-title { font-size: 1.8rem; }
+}

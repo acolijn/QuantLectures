@@ -19,6 +19,7 @@ export default function Sidebar({
   courses,
   activeCourseId,
   isAdmin,
+  onGoHome,
   onSelectCourse,
   onCreateCourse,
   onDeleteCourse,
@@ -324,6 +325,11 @@ export default function Sidebar({
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
+        {onGoHome && (
+          <button className="sidebar-home-btn" onClick={onGoHome}>
+            {t('sidebar_all_courses')}
+          </button>
+        )}
         <h1>{course?.name ?? 'MiniLectures'}</h1>
         <p className="sidebar-subtitle">{course?.subtitle ?? t('sidebar_default_subtitle')}</p>
       </div>

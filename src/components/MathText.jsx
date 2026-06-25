@@ -12,7 +12,7 @@ function decodeEscapedUnicode(input) {
   });
 }
 
-export default function MathText({ text, figures, isTeacher, onFigClick }) {
+export default function MathText({ text, figures }) {
   const containerRef = useRef(null);
 
   useEffect(() => {
@@ -108,17 +108,6 @@ export default function MathText({ text, figures, isTeacher, onFigClick }) {
         } else {
           wrapper.className += ' fig-placeholder';
           wrapper.textContent = `[fig:${token.ref}]`;
-          if (isTeacher && onFigClick) {
-            wrapper.className += ' fig-placeholder--missing';
-            wrapper.setAttribute('role', 'button');
-            wrapper.setAttribute('tabindex', '0');
-            wrapper.title = 'Upload figure';
-            const ref = token.ref;
-            wrapper.addEventListener('click', () => onFigClick(ref));
-            wrapper.addEventListener('keydown', e => {
-              if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onFigClick(ref); }
-            });
-          }
         }
         containerRef.current.appendChild(wrapper);
         return;
@@ -198,7 +187,7 @@ export default function MathText({ text, figures, isTeacher, onFigClick }) {
         containerRef.current.appendChild(span);
       }
     });
-  }, [text, figures, isTeacher, onFigClick]);
+  }, [text, figures]);
 
   return <span ref={containerRef} />;
 }

@@ -22,6 +22,8 @@ Use this table as the single source of truth while we build. Update `Status`, `O
 | Step 6 | Figure support in chapters | 🟢 Done | 1-1.5 days | AI + user | 2026-06-19 | `chapter_figures` collection (file field, ref, caption). AI generates `[fig:ref]` placeholders + captions; import auto-creates placeholder records. Teacher uploads PNG/JPEG/PDF per placeholder in the editor figures tab. Renderer resolves `[fig:ref]` inline. Teachers also see missing placeholders as red clickable tags in the reading view → inline upload modal. |
 | Step 7 | GDPR compliance | ⚪ Planned | 0.5-1 day (tech) + legal drafting time | - | 2026-05-28 | Account deletion + policy docs |
 | Step 8 | Production deployment | ⚪ Planned | 0.5-1 day | - | 2026-05-28 | Domain, SSL, SMTP, backups |
+| Step 9 | Landing page — min (hero + course grid + routing fix) | 🟢 Done | 0.5 day | AI + user | 2026-06-25 | `Landing.jsx` entry page: hero, published-course grid (flag/subtitle/draft badge), feature blurbs. `useCourses` no longer auto-opens first course; sidebar "← All courses" returns home. Brand "MiniLectures.app"; landing forced to English. NL/EN keys added |
+| Step 9a | Landing page — polish (progress bars, resume, blurbs, teacher tile) | ⚪ Planned | 0.5 day | - | 2026-06-25 | Builds on Step 9; ties to Step 3d progress |
 
 Status values: `⚪ Planned`, `🟡 In progress`, `🔴 Blocked`, `🟢 Done`.
 Step 1 is intentionally marked as complete because it represents the current app baseline.
@@ -358,6 +360,54 @@ file        (optional file: PNG/JPEG/GIF/WEBP/SVG/PDF)
 - Set up automated backups for the PocketBase `pb_data/` directory
 
 **Effort:** half a day to a day depending on hosting familiarity.
+
+---
+
+## Step 9 — Landing page
+
+**What:** a proper landing / welcome page as the app's entry point.
+
+**Problem:** the app used to open directly on the default course (QF1). Not a nice first impression — no context, branding, or course overview.
+
+**Wanted:**
+- Dedicated landing page shown on app start instead of jumping straight into a course
+- Welcome/intro content (title, short description, branding)
+- Overview of available courses with entry into a chosen course
+- Sensible entry points for logged-out vs. logged-in users (sign in / my courses)
+
+**Layout (logged-out):**
+```
+┌─────────────────────────────────────────┐
+│  [logo] MiniLectures.app     [Sign in]   │  ← top bar
+├─────────────────────────────────────────┤
+│   Hero title + 1-line tagline            │
+│   "Interactive lecture notes"            │
+├─────────────────────────────────────────┤
+│   Course cards grid (published only)     │
+│   ┌──────┐ ┌──────┐ ┌──────┐             │
+│   │ QF1  │ │ ...  │ │ ...  │             │
+│   │ subt │ │      │ │      │             │
+│   └──────┘ └──────┘ └──────┘             │
+├─────────────────────────────────────────┤
+│   3 feature blurbs (LaTeX / quizzes /    │
+│   self-study exercises)                  │
+└─────────────────────────────────────────┘
+```
+
+**Course card:** title + subtitle + language flag (+ draft badge for teachers). Click → open course.
+
+**Step 9 — min (done, 2026-06-25):**
+- `Landing.jsx`: top bar (brand "MiniLectures.app" + sign in/user), hero, published-course grid, 3 feature blurbs.
+- `useCourses` no longer auto-opens the first course → app starts on the landing page.
+- Selecting a course enters it; sidebar header "← All courses" button returns to landing.
+- Landing forces English UI; course language takes over once a course opens.
+- NL/EN `landing_*` translation keys added.
+- No persistence (reload → landing again).
+
+**Step 9a — polish (planned):**
+- Logged-in "My courses" first + per-card last-read chapter and progress bar (ties to Step 3d).
+- Remember last course in localStorage → optional "Resume" button (never auto-jump).
+- Teacher "+ New course" tile in the grid (currently a top-bar button).
 
 ---
 

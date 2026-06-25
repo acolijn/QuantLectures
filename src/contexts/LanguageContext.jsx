@@ -7,7 +7,7 @@ const LanguageContext = createContext(null);
 
 function normalizeUiLanguage(language) {
   if (SUPPORTED_UI_LANGUAGES.includes(language)) return language;
-  return 'nl';
+  return 'en';
 }
 
 function mapCourseLanguageToUiLanguage(courseLanguage) {
@@ -17,9 +17,9 @@ function mapCourseLanguageToUiLanguage(courseLanguage) {
 
 function loadUiLanguage() {
   try {
-    return normalizeUiLanguage(localStorage.getItem(STORAGE_UI_LANGUAGE) ?? 'nl');
+    return normalizeUiLanguage(localStorage.getItem(STORAGE_UI_LANGUAGE) ?? 'en');
   } catch {
-    return 'nl';
+    return 'en';
   }
 }
 
