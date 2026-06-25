@@ -124,27 +124,27 @@ export default function GuidedExercise({ exercise, figures, isTeacher, onFigClic
           </div>
         )}
 
-        {step.answer && !Array.isArray(step.answer) && (
+        {!Array.isArray(step.answer) && (
           <div className="step-answer-input">
             <input
               type="text"
               placeholder={t('exercise_your_answer')}
               value={answers[currentStep] || ''}
               onChange={e => handleAnswer(currentStep, e.target.value)}
-              disabled={checked[currentStep]}
-              className={checked[currentStep] ? (isCorrect(currentStep) ? 'correct' : 'incorrect') : ''}
+              disabled={!!step.answer && checked[currentStep]}
+              className={step.answer && checked[currentStep] ? (isCorrect(currentStep) ? 'correct' : 'incorrect') : ''}
             />
             {answers[currentStep] && (
               <div className="latex-preview">
                 <MathText text={`$${answers[currentStep]}$`} />
               </div>
             )}
-            {!checked[currentStep] && (
+            {step.answer && !checked[currentStep] && (
               <button className="btn-check" onClick={() => checkAnswer(currentStep)}>
                 {t('exercise_check')}
               </button>
             )}
-            {checked[currentStep] && (
+            {step.answer && checked[currentStep] && (
               <div className={`answer-feedback ${isCorrect(currentStep) ? 'correct' : 'incorrect'}`}>
                 {isCorrect(currentStep)
                   ? t('exercise_correct')
