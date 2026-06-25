@@ -9,6 +9,7 @@ import {
   fetchCourseInvites,
   fetchCourses,
   fetchPendingTeachers,
+  fetchTeachers,
   redeemInviteCode,
   rejectPendingTeacher,
   removeCourseEditor,
@@ -23,6 +24,7 @@ export function useCourses(user) {
   const [courseMembersByCourse, setCourseMembersByCourse] = useState({});
   const [courseInvitesByCourse, setCourseInvitesByCourse] = useState({});
   const [pendingTeachers, setPendingTeachers] = useState([]);
+  const [teachers, setTeachers] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -136,6 +138,12 @@ export function useCourses(user) {
     return courseId;
   }
 
+  async function refreshTeachers() {
+    const list = await fetchTeachers();
+    setTeachers(list);
+    return list;
+  }
+
   async function refreshPendingTeachers() {
     const pending = await fetchPendingTeachers();
     setPendingTeachers(pending);
@@ -159,6 +167,8 @@ export function useCourses(user) {
     courseMembersByCourse,
     courseInvitesByCourse,
     pendingTeachers,
+    teachers,
+    refreshTeachers,
     setActiveCourseId,
     createNewCourse,
     deleteExistingCourse,

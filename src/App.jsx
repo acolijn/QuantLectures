@@ -23,6 +23,8 @@ function AppContent() {
     courseMembersByCourse,
     courseInvitesByCourse,
     pendingTeachers,
+    teachers,
+    refreshTeachers,
     setActiveCourseId,
     createNewCourse,
     deleteExistingCourse,
@@ -193,6 +195,8 @@ function AppContent() {
           onUpdateCourse={handleUpdateCourse}
           courseMembers={courseMembersByCourse[activeCourseId] ?? []}
           onLoadCourseMembers={() => refreshCourseMembers(activeCourseId)}
+          teachers={teachers}
+          onLoadTeachers={refreshTeachers}
           onAddEditor={email => addEditorToCourse(activeCourseId, email)}
           onRemoveEditor={memberId => removeEditorFromCourse(activeCourseId, memberId)}
           courseInvites={courseInvitesByCourse[activeCourseId] ?? []}

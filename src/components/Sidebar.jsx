@@ -26,6 +26,8 @@ export default function Sidebar({
   onUpdateCourse,
   courseMembers,
   onLoadCourseMembers,
+  teachers,
+  onLoadTeachers,
   onAddEditor,
   onRemoveEditor,
   courseInvites,
@@ -52,7 +54,8 @@ export default function Sidebar({
   const [showCourseSettings, setShowCourseSettings] = useState(false);
   const [savingCourse, setSavingCourse] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
-  const [memberEmail, setMemberEmail] = useState('');
+  const [teacherQuery, setTeacherQuery] = useState('');
+  const [showTeacherList, setShowTeacherList] = useState(false);
   const [membersLoading, setMembersLoading] = useState(false);
   const [memberActionLoading, setMemberActionLoading] = useState(false);
   const [memberMessage, setMemberMessage] = useState('');
@@ -105,6 +108,19 @@ export default function Sidebar({
 
   const isCourseOwner = course?.memberRole === 'owner';
 
+  const memberEmails = new Set(
+    courseMembers.map(m => (m.email || '').toLowerCase()).filter(Boolean)
+  );
+  const query = teacherQuery.trim().toLowerCase();
+  const availableTeachers = (teachers ?? [])
+    .filter(teacher => !memberEmails.has((teacher.email || '').toLowerCase()))
+    .filter(teacher =>
+      !query ||
+      teacher.name.toLowerCase().includes(query) ||
+      teacher.email.toLowerCase().includes(query)
+    )
+    .slice(0, 8);
+
   useEffect(() => {
     if (!showCourseSettings || !course || course.memberRole !== 'owner') return;
     if (courseMembers.length > 0) return;
@@ -117,6 +133,11 @@ export default function Sidebar({
       })
         .finally(() => setMembersLoading(false));
       }, [showCourseSettings, course, courseMembers.length, t]);
+
+  useEffect(() => {
+    if (!showCourseSettings || !course || course.memberRole !== 'owner') return;
+    onLoadTeachers?.().catch(err => console.error('Failed to load teachers:', err));
+  }, [showCourseSettings, course, onLoadTeachers]);
 
   useEffect(() => {
     if (!showCourseSettings || !course || course.memberRole !== 'owner') return;
@@ -203,15 +224,15 @@ export default function Sidebar({
     }
   }
 
-  async function handleAddEditor(e) {
-    e.preventDefault();
-    if (!onAddEditor || !memberEmail.trim()) return;
+  async function handleAddEditor(email) {
+    if (!onAddEditor || !email) return;
 
     setMemberActionLoading(true);
     setMemberMessage('');
     try {
-      await onAddEditor(memberEmail.trim());
-      setMemberEmail('');
+      await onAddEditor(email);
+      setTeacherQuery('');
+      setShowTeacherList(false);
       setMemberMessage(t('sidebar_member_added'));
     } catch (err) {
       setMemberMessage(err.message || t('sidebar_member_add_failed'));
@@ -539,22 +560,40 @@ export default function Sidebar({
                     {isCourseOwner && (
                       <div className="sidebar-members-panel">
                         <h4 className="sidebar-members-title">{t('sidebar_members_title')}</h4>
-                        <form className="sidebar-members-form" onSubmit={handleAddEditor}>
+                        <div className="sidebar-teacher-picker">
                           <input
                             className="sidebar-course-input"
-                            type="email"
-                            placeholder={t('sidebar_member_email_placeholder')}
-                            value={memberEmail}
-                            onChange={e => setMemberEmail(e.target.value)}
+                            type="text"
+                            placeholder={t('sidebar_teacher_search_placeholder')}
+                            value={teacherQuery}
+                            onChange={e => { setTeacherQuery(e.target.value); setShowTeacherList(true); }}
+                            onFocus={() => setShowTeacherList(true)}
                           />
-                          <button
-                            className="sidebar-auth-btn sidebar-course-save"
-                            type="submit"
-                            disabled={memberActionLoading || !memberEmail.trim()}
-                          >
-                            {t('sidebar_add_editor')}
-                          </button>
-                        </form>
+                          {showTeacherList && (
+                            <ul className="sidebar-teacher-options">
+                              {availableTeachers.map(teacher => (
+                                <li key={teacher.id}>
+                                  <button
+                                    type="button"
+                                    className="sidebar-teacher-option"
+                                    disabled={memberActionLoading}
+                                    onClick={() => handleAddEditor(teacher.email)}
+                                  >
+                                    <span className="sidebar-teacher-name">{teacher.name}</span>
+                                    {teacher.email && teacher.email !== teacher.name && (
+                                      <span className="sidebar-teacher-email">{teacher.email}</span>
+                                    )}
+                                  </button>
+                                </li>
+                              ))}
+                              {availableTeachers.length === 0 && (
+                                <li className="sidebar-course-hint sidebar-teacher-empty">
+                                  {t('sidebar_teacher_no_match')}
+                                </li>
+                              )}
+                            </ul>
+                          )}
+                        </div>
 
                         {membersLoading ? (
                           <p className="sidebar-course-hint">{t('sidebar_loading_members')}</p>

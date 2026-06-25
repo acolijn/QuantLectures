@@ -226,6 +226,19 @@ export async function fetchPendingTeachers() {
   return records.map(toPendingTeacher);
 }
 
+export async function fetchTeachers() {
+  // users.listRule already allows teachers/admins to list users
+  const records = await pb.collection('users').getFullList({
+    filter: 'role="teacher"',
+    sort: 'name',
+  });
+  return records.map(record => ({
+    id: record.id,
+    email: record.email ?? '',
+    name: record.name ?? record.email ?? '',
+  }));
+}
+
 export async function approvePendingTeacher(userId) {
   if (!isAdmin()) throw new Error('Alleen admins kunnen docenten goedkeuren.');
   await pb.collection('users').update(userId, { role: 'teacher' });

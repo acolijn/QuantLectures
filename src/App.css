@@ -1983,3 +1983,48 @@ body {
   .landing-hero { padding: 40px 18px 28px; }
   .landing-title { font-size: 1.8rem; }
 }
+
+/* === Teacher picker (editor management) === */
+.sidebar-teacher-picker {
+  position: relative;
+  margin-bottom: 10px;
+}
+
+.sidebar-teacher-options {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 4px;
+  background: var(--color-sidebar-hover);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: var(--radius-sm);
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.sidebar-teacher-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--color-text-sidebar);
+  font-family: var(--font-sans);
+  text-align: left;
+  padding: 7px 9px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.sidebar-teacher-option:hover:not(:disabled) {
+  background: var(--color-sidebar-active);
+  color: #fff;
+}
+
+.sidebar-teacher-option:disabled { opacity: 0.5; cursor: default; }
+
+.sidebar-teacher-name { font-size: 0.88rem; font-weight: 600; }
+.sidebar-teacher-email { font-size: 0.78rem; opacity: 0.7; }
+.sidebar-teacher-empty { padding: 8px 9px; }

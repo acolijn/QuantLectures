@@ -16,6 +16,7 @@ Use this table as the single source of truth while we build. Update `Status`, `O
 | Step 3b | Proper teacher approval flow | 🟢 Done | 1 day | AI + user | 2026-05-29 | Admin panel in sidebar for approve/reject of pending teachers |
 | Step 3c | Student invite codes + student signup flow | 🟢 Done | 1-1.5 days | AI + user | 2026-05-29 | `course_invites` + `course_enrollments` + student code redemption |
 | Step 3d | Student progress in PocketBase | ⚪ Planned | 1 day | - | 2026-05-28 | No grading; lightweight progress only |
+| Step 3e | Editor management — teacher picker | 🟢 Done | 2-3 hours | AI + user | 2026-06-25 | Course owner adds editors from a searchable dropdown of existing teachers instead of typing an email. `users` listRule already lets teachers list teachers; reuses `addCourseEditorByEmail` |
 | Step 4 | Subscription tiers + admin manual overrides | ⚪ Planned | 1-2 days | - | 2026-05-28 | Gate content by tier |
 | Step 5 | Payment integration (Paddle/Stripe) | ⚪ Planned | 2-3 days | - | 2026-05-28 | Requires webhook service |
 | Step 5a | Optional concept deep dives | ⚪ Planned | 0.5-1 day | - | 2026-05-29 | Add `deepDive` to AI JSON and show expandable block only when non-empty |
@@ -248,6 +249,25 @@ last_attempt   (datetime)
 - PocketBase access rules: users can only read/write their own progress records
 
 **Effort:** ~1 day. Low priority until multi-user is live.
+
+---
+
+## Step 3e — Editor management (teacher picker)
+
+**What:** a course owner adds co-editors without typing an exact email.
+
+**Problem:** the only way to add an editor was a free-text email field — error-prone (typos, wrong address) and requires knowing the colleague's exact address.
+
+**Approach (done, 2026-06-25):**
+- Owner opens course settings → Members panel.
+- Searchable dropdown lists existing `teacher` accounts (filter by name/email as you type).
+- Pick a teacher → added as `editor`. Already-members and the owner are hidden from the list.
+- The `users` collection `listRule` already allows teachers to list teachers, so no rule change was needed.
+- Reuses the existing `addCourseEditorByEmail` add path; only a `fetchTeachers()` read was added.
+
+**Considered alternatives (not built):**
+- Editor invite link/code (like student invite codes) — better when the colleague has no account yet.
+- Request-to-join + owner approval — more UI than warranted at current scale.
 
 ---
 
