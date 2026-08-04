@@ -339,6 +339,21 @@ After updates that touch schema or rules, run:
 npm run setup
 ```
 
+### Server-side hooks
+
+`pb_hooks/` is mounted into the PocketBase container and holds JS routes that need
+privileges the browser cannot be given. Currently:
+
+| Route | Purpose |
+|---|---|
+| `POST /api/redeem-invite` | Look up an invite code and enroll the caller. Runs server-side because any rule letting a student find an invite by code would also let them list every code. |
+
+Hooks are loaded at startup, so after changing anything in `pb_hooks/`:
+
+```bash
+docker compose restart pocketbase
+```
+
 ### One-command safe upgrade (recommended)
 
 From the project root on the server:

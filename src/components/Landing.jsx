@@ -20,6 +20,7 @@ export default function Landing({
   onCreateCourse,
   onLoginClick,
   onOpenAdmin,
+  onJoinCourse,
 }) {
   const { user, isTeacher, isAdmin, signOut } = useAuth();
   const { t, setUiLanguage } = useLanguage();
@@ -43,6 +44,11 @@ export default function Landing({
           {isTeacher && (
             <button className="landing-btn landing-btn--ghost" onClick={onCreateCourse}>
               {t('sidebar_new_course')}
+            </button>
+          )}
+          {user && !isTeacher && !isAdmin && (
+            <button className="landing-btn landing-btn--ghost" onClick={onJoinCourse}>
+              {t('join_button')}
             </button>
           )}
           {user ? (
@@ -79,7 +85,11 @@ export default function Landing({
               <button className="landing-btn" onClick={onLoginClick}>
                 {t('sidebar_sign_in')}
               </button>
-            ) : null}
+            ) : (
+              <button className="landing-btn" onClick={onJoinCourse}>
+                {t('join_button')}
+              </button>
+            )}
           </div>
         ) : (
           <div className="landing-grid">

@@ -3,6 +3,7 @@ import Sidebar from './components/Sidebar';
 import Landing from './components/Landing';
 import CourseSettings from './components/CourseSettings';
 import AdminPanel from './components/AdminPanel';
+import JoinCourseModal from './components/JoinCourseModal';
 import AppMainContent from './components/app/AppMainContent';
 import AppOverlays from './components/app/AppOverlays';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -20,6 +21,7 @@ function AppContent() {
   const [showImport, setShowImport] = useState(false);
   const [showCourseSettings, setShowCourseSettings] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [joinCode, setJoinCode] = useState(null); // null = modal closed
   const {
     courses,
     activeCourseId,
@@ -67,6 +69,24 @@ function AppContent() {
   useEffect(() => {
     syncWithCourseLanguage(course?.language);
   }, [course?.language, syncWithCourseLanguage]);
+
+  // Teachers can share a join link (…/?invite=CODE); open the modal prefilled.
+  // Signing in is a prerequisite, so hold the code until there is a user.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('invite');
+    if (!code) return;
+
+    if (!user) {
+      setShowLogin(true);
+      return;
+    }
+
+    setJoinCode(code.toUpperCase());
+    params.delete('invite');
+    const query = params.toString();
+    window.history.replaceState({}, '', window.location.pathname + (query ? `?${query}` : ''));
+  }, [user]);
 
   function handleProgressUpdate(chapterId, score) {
     updateProgress(chapterId, score);
@@ -156,6 +176,11 @@ function AppContent() {
     await updateExistingCourse(activeCourseId, updates);
   }
 
+  function handleJoined(courseId) {
+    setJoinCode(null);
+    if (courseId) handleSelectCourse(courseId);
+  }
+
   async function handleDeleteCourseFromSettings() {
     await handleDeleteCourse();
     setShowCourseSettings(false);
@@ -186,6 +211,15 @@ function AppContent() {
         />
       )}
 
+      {joinCode !== null && (
+        <JoinCourseModal
+          initialCode={joinCode}
+          onRedeem={redeemStudentInvite}
+          onClose={() => setJoinCode(null)}
+          onJoined={handleJoined}
+        />
+      )}
+
       {showLanding ? (
         <Landing
           courses={courses}
@@ -193,6 +227,7 @@ function AppContent() {
           onCreateCourse={handleCreateCourse}
           onLoginClick={() => setShowLogin(true)}
           onOpenAdmin={() => setShowAdminPanel(true)}
+          onJoinCourse={() => setJoinCode('')}
         />
       ) : (
       <>
@@ -208,7 +243,6 @@ function AppContent() {
           course={course}
           isAdmin={isAdmin}
           onGoHome={handleGoHome}
-          onRedeemInvite={redeemStudentInvite}
           chapters={chapters}
           activeChapter={activeChapter}
           onSelectChapter={handleSelectChapter}

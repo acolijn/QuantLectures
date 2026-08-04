@@ -138,10 +138,16 @@ function toPendingTeacher(record) {
 export async function fetchCourseInvites(courseId) {
   if (!courseId) return [];
 
-  const records = await pb.collection('course_invites').getFullList({
-    filter: `course_id="${escapeFilterValue(courseId)}"`,
-    sort: '-created',
-  });
+  const filter = `course_id="${escapeFilterValue(courseId)}"`;
+
+  let records;
+  try {
+    records = await pb.collection('course_invites').getFullList({ filter, sort: '-created' });
+  } catch {
+    // Instances that predate the migration adding `created` reject the sort with a
+    // 400. Falling back keeps the list visible instead of silently showing nothing.
+    records = await pb.collection('course_invites').getFullList({ filter });
+  }
 
   return records.map(toInvite);
 }
@@ -171,50 +177,37 @@ export async function revokeCourseInvite(inviteId) {
   await pb.collection('course_invites').update(inviteId, { active: false });
 }
 
+/**
+ * Redeem an invite code. Looking up an invite by code needs privileges a student
+ * cannot be given without exposing every code, so this delegates to the
+ * /api/redeem-invite server hook.
+ *
+ * Rejects with an Error carrying a `reason` key (see pb_hooks/redeem_invite.pb.js)
+ * that the caller maps to a translated message.
+ */
 export async function redeemInviteCode(code) {
-  if (!pb.authStore.model?.id) {
-    throw new Error('Log eerst in om een invite code te gebruiken.');
+  const normalized = String(code ?? '').trim().toUpperCase();
+
+  if (!pb.authStore.model?.id) throw inviteError('not_authenticated');
+  if (!normalized) throw inviteError('empty_code');
+
+  let result;
+  try {
+    result = await pb.send('/api/redeem-invite', {
+      method: 'POST',
+      body: { code: normalized },
+    });
+  } catch (err) {
+    throw inviteError(err?.response?.reason ?? 'redeem_failed');
   }
 
-  const normalized = String(code).trim().toUpperCase();
-  if (!normalized) {
-    throw new Error('Voer een invite code in.');
-  }
+  return result?.courseId ?? null;
+}
 
-  const invite = await pb.collection('course_invites').getFirstListItem(
-    `code="${escapeFilterValue(normalized)}" && active=true`
-  );
-
-  if (invite.expires_at) {
-    const expiresAt = new Date(invite.expires_at).getTime();
-    if (!Number.isNaN(expiresAt) && Date.now() > expiresAt) {
-      throw new Error('Deze invite code is verlopen.');
-    }
-  }
-
-  if (typeof invite.max_uses === 'number' && invite.max_uses > 0 && (invite.used_count ?? 0) >= invite.max_uses) {
-    throw new Error('Deze invite code heeft het maximum aantal activaties bereikt.');
-  }
-
-  const existingEnrollments = await pb.collection('course_enrollments').getFullList({
-    filter: `course_id="${escapeFilterValue(invite.course_id)}" && user_id="${escapeFilterValue(pb.authStore.model.id)}"`,
-  });
-
-  if (existingEnrollments.length > 0) {
-    throw new Error('Je bent al ingeschreven voor deze cursus.');
-  }
-
-  await pb.collection('course_enrollments').create({
-    course_id: invite.course_id,
-    user_id: pb.authStore.model.id,
-    invite_id: invite.id,
-  });
-
-  await pb.collection('course_invites').update(invite.id, {
-    used_count: (invite.used_count ?? 0) + 1,
-  });
-
-  return invite.course_id;
+function inviteError(reason) {
+  const err = new Error(reason);
+  err.reason = reason;
+  return err;
 }
 
 export async function fetchPendingTeachers() {

@@ -38,6 +38,28 @@ function customFields(collection) {
   return (collection.fields ?? []).filter(f => !SYSTEM_FIELDS.has(f.name));
 }
 
+const STAFF = '(@request.auth.role = "teacher" || @request.auth.role = "admin")';
+
+// Each `@collection.x` reference in a rule is one join, and multiple `?=` conditions
+// on an *unaliased* reference are satisfied by different rows — so "I am the owner of
+// this course" would degrade into "the course has a member" AND "I am a member of
+// something" AND "an owner exists". Naming the join pins every condition to one row.
+function ownerOf(courseField) {
+  return `@collection.course_members:owner.course_id ?= ${courseField}`
+    + ' && @collection.course_members:owner.user_id ?= @request.auth.id'
+    + ' && @collection.course_members:owner.role ?= "owner"';
+}
+
+function memberOf(courseField) {
+  return `@collection.course_members:mine.course_id ?= ${courseField}`
+    + ' && @collection.course_members:mine.user_id ?= @request.auth.id';
+}
+
+function enrolledIn(courseField) {
+  return `@collection.course_enrollments:mine.course_id ?= ${courseField}`
+    + ' && @collection.course_enrollments:mine.user_id ?= @request.auth.id';
+}
+
 async function ensureCollection(name, definition) {
   let existing = null;
   try {
@@ -210,9 +232,11 @@ async function setup() {
 
   // ── 3. Create/update 'courses' collection ───────────────────
   console.log("Creating/updating 'courses' collection…");
-  const courseTeacherMemberRule = '(@request.auth.role = "teacher" || @request.auth.role = "admin") && @collection.course_members.course_id ?= id && @collection.course_members.user_id ?= @request.auth.id';
-  const courseTeacherOwnerRule = '(@request.auth.role = "teacher" || @request.auth.role = "admin") && @collection.course_members.course_id ?= id && @collection.course_members.user_id ?= @request.auth.id && @collection.course_members.role ?= "owner"';
+  const courseTeacherMemberRule = `${STAFF} && ${memberOf('id')}`;
+  const courseTeacherOwnerRule = `${STAFF} && ${ownerOf('id')}`;
   const courseTeacherBootstrapRule = '@request.auth.role = "teacher" || @request.auth.role = "admin"';
+  // Step 8 re-applies these with the enrolment requirement, once course_enrollments
+  // exists — a rule cannot reference a collection that has not been created yet.
   const courseStudentPublishedRule = '@request.auth.role = "student" && published = true';
   const courseGuestPublicRule = 'published = true && public = true';
   const hasCourseMembersCollection = await collectionExists('course_members');
@@ -240,8 +264,8 @@ async function setup() {
 
   // ── 4. Create/update 'course_members' collection ────────────
   console.log("Creating/updating 'course_members' collection…");
-  const ownerForTargetCourse = '(@request.auth.role = "teacher" || @request.auth.role = "admin") && @collection.course_members.course_id ?= course_id && @collection.course_members.user_id ?= @request.auth.id && @collection.course_members.role ?= "owner"';
-  const selfMembershipRule = '(@request.auth.role = "teacher" || @request.auth.role = "admin") && user_id = @request.auth.id';
+  const ownerForTargetCourse = `${STAFF} && ${ownerOf('course_id')}`;
+  const selfMembershipRule = `${STAFF} && user_id = @request.auth.id`;
   await ensureCollection('course_members', {
     fields: [
       {
@@ -270,7 +294,7 @@ async function setup() {
     ],
     listRule:   `(${selfMembershipRule}) || (${ownerForTargetCourse})`,
     viewRule:   `(${selfMembershipRule}) || (${ownerForTargetCourse})`,
-    createRule: '(@request.auth.role = "teacher" || @request.auth.role = "admin") && ((role = "owner" && user_id = @request.auth.id) || (@collection.course_members.course_id ?= course_id && @collection.course_members.user_id ?= @request.auth.id && @collection.course_members.role ?= "owner"))',
+    createRule: `${STAFF} && ((role = "owner" && user_id = @request.auth.id) || (${ownerOf('course_id')}))`,
     updateRule: `${ownerForTargetCourse} && role != "owner"`,
     deleteRule: `${ownerForTargetCourse} && role != "owner"`,
   });
@@ -354,7 +378,7 @@ async function setup() {
 
   // ── 5. Create/update 'chapters' collection ──────────────────
   console.log("Creating/updating 'chapters' collection…");
-  const chapterTeacherMemberRule = '(@request.auth.role = "teacher" || @request.auth.role = "admin") && @collection.course_members.course_id ?= course_id && @collection.course_members.user_id ?= @request.auth.id';
+  const chapterTeacherMemberRule = `${STAFF} && ${memberOf('course_id')}`;
   const chapterStudentPublishedRule = '@request.auth.role = "student" && course_id.published = true';
   const chapterGuestPublicRule = 'course_id.published = true && course_id.public = true';
   await ensureCollection('chapters', {
@@ -384,7 +408,7 @@ async function setup() {
 
   // ── 6. Create/update 'course_invites' collection ────────────
   console.log("Creating/updating 'course_invites' collection…");
-  const ownerInviteRule = '(@request.auth.role = "teacher" || @request.auth.role = "admin") && @collection.course_members.course_id ?= course_id && @collection.course_members.user_id ?= @request.auth.id && @collection.course_members.role ?= "owner"';
+  const ownerInviteRule = `${STAFF} && ${ownerOf('course_id')}`;
   await ensureCollection('course_invites', {
     fields: [
       {
@@ -408,6 +432,8 @@ async function setup() {
         collectionId: usersCollection.id,
         cascadeDelete: false,
       },
+      { name: 'created', type: 'autodate', onCreate: true, onUpdate: false },
+      { name: 'updated', type: 'autodate', onCreate: true, onUpdate: true },
     ],
     listRule: ownerInviteRule,
     viewRule: ownerInviteRule,
@@ -418,6 +444,7 @@ async function setup() {
 
   // ── 7. Create/update 'course_enrollments' collection ────────
   console.log("Creating/updating 'course_enrollments' collection…");
+  const enrollmentReadRule = `@request.auth.id = user_id || @request.auth.role = "admin" || (${STAFF} && ${memberOf('course_id')})`;
   await ensureCollection('course_enrollments', {
     fields: [
       {
@@ -444,9 +471,11 @@ async function setup() {
         collectionId: (await pb.collections.getOne('course_invites')).id,
         cascadeDelete: false,
       },
+      { name: 'created', type: 'autodate', onCreate: true, onUpdate: false },
+      { name: 'updated', type: 'autodate', onCreate: true, onUpdate: true },
     ],
-    listRule: '@request.auth.id = user_id || @request.auth.role = "admin" || ((@request.auth.role = "teacher" || @request.auth.role = "admin") && @collection.course_members.course_id ?= course_id && @collection.course_members.user_id ?= @request.auth.id)',
-    viewRule: '@request.auth.id = user_id || @request.auth.role = "admin" || ((@request.auth.role = "teacher" || @request.auth.role = "admin") && @collection.course_members.course_id ?= course_id && @collection.course_members.user_id ?= @request.auth.id)',
+    listRule: enrollmentReadRule,
+    viewRule: enrollmentReadRule,
     createRule: '(@request.auth.role = "student" && user_id = @request.auth.id) || @request.auth.role = "admin"',
     updateRule: '@request.auth.role = "admin"',
     deleteRule: '@request.auth.role = "admin"',
@@ -479,12 +508,12 @@ async function setup() {
 
   // ── 8. Tighten student rules while allowing explicitly public guest courses ──
   console.log('Applying enrollment-based student and public guest access rules…');
-  const strictCourseStudentEnrollmentRule = '@request.auth.role = "student" && published = true && @collection.course_enrollments.course_id ?= id && @collection.course_enrollments.user_id ?= @request.auth.id';
+  const strictCourseStudentEnrollmentRule = `@request.auth.role = "student" && published = true && ${enrolledIn('id')}`;
   const strictCourseGuestRule = 'published = true && public = true';
   const strictCourseStudentRuleParts = [strictCourseStudentEnrollmentRule, strictCourseGuestRule];
   const strictCourseStudentRule = strictCourseStudentRuleParts.map(p => `(${p})`).join(' || ');
 
-  const strictChapterStudentEnrollmentRule = '@request.auth.role = "student" && course_id.published = true && @collection.course_enrollments.course_id ?= course_id && @collection.course_enrollments.user_id ?= @request.auth.id';
+  const strictChapterStudentEnrollmentRule = `@request.auth.role = "student" && course_id.published = true && ${enrolledIn('course_id')}`;
   const strictChapterGuestRule = 'course_id.published = true && course_id.public = true';
   const strictChapterStudentRuleParts = [strictChapterStudentEnrollmentRule, strictChapterGuestRule];
   const strictChapterStudentRule = strictChapterStudentRuleParts.map(p => `(${p})`).join(' || ');

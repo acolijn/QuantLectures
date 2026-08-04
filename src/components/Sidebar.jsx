@@ -7,7 +7,6 @@ export default function Sidebar({
   course,
   isAdmin,
   onGoHome,
-  onRedeemInvite,
   chapters,
   activeChapter,
   onSelectChapter,
@@ -20,9 +19,6 @@ export default function Sidebar({
   const { t } = useLanguage();
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [overIndex, setOverIndex]       = useState(null);
-  const [redeemCode, setRedeemCode] = useState('');
-  const [redeemingInvite, setRedeemingInvite] = useState(false);
-  const [redeemMessage, setRedeemMessage] = useState('');
 
   function handleDragStart(e, index) {
     setDraggedIndex(index);
@@ -55,22 +51,6 @@ export default function Sidebar({
     setOverIndex(null);
   }
 
-  async function handleRedeemInvite(e) {
-    e.preventDefault();
-    if (!onRedeemInvite || !redeemCode.trim()) return;
-
-    setRedeemingInvite(true);
-    setRedeemMessage('');
-    try {
-      await onRedeemInvite(redeemCode.trim());
-      setRedeemCode('');
-      setRedeemMessage(t('sidebar_redeem_success'));
-    } catch (err) {
-      setRedeemMessage(err.message || t('sidebar_redeem_failed'));
-    } finally {
-      setRedeemingInvite(false);
-    }
-  }
 
   return (
     <aside className="sidebar">
@@ -165,26 +145,6 @@ export default function Sidebar({
               </span>
               <span className="sidebar-auth-email">{user.email}</span>
               <button className="sidebar-auth-btn" onClick={signOut}>{t('sidebar_sign_out')}</button>
-
-              {!isTeacher && !isAdmin && (
-                <form className="sidebar-members-form" onSubmit={handleRedeemInvite}>
-                  <input
-                    className="sidebar-course-input"
-                    type="text"
-                    placeholder={t('sidebar_redeem_code_placeholder')}
-                    value={redeemCode}
-                    onChange={e => setRedeemCode(e.target.value.toUpperCase())}
-                  />
-                  <button
-                    className="sidebar-auth-btn sidebar-course-save"
-                    type="submit"
-                    disabled={redeemingInvite || !redeemCode.trim()}
-                  >
-                    {t('sidebar_redeem_code')}
-                  </button>
-                  {redeemMessage && <p className="sidebar-course-save-message">{redeemMessage}</p>}
-                </form>
-              )}
             </div>
           ) : (
             <button className="sidebar-auth-btn sidebar-auth-btn--login" onClick={onLoginClick}>
