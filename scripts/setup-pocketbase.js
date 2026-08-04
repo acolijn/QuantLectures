@@ -44,6 +44,10 @@ const STAFF = '(@request.auth.role = "teacher" || @request.auth.role = "admin")'
 // on an *unaliased* reference are satisfied by different rows — so "I am the owner of
 // this course" would degrade into "the course has a member" AND "I am a member of
 // something" AND "an owner exists". Naming the join pins every condition to one row.
+//
+// Every alias below must be unique across all collections, not just within one:
+// the join is keyed on the alias, so reusing a name for two different collections
+// in the same rule merges them and the rule silently stops matching.
 function ownerOf(courseField) {
   return `@collection.course_members:owner.course_id ?= ${courseField}`
     + ' && @collection.course_members:owner.user_id ?= @request.auth.id'
@@ -51,13 +55,13 @@ function ownerOf(courseField) {
 }
 
 function memberOf(courseField) {
-  return `@collection.course_members:mine.course_id ?= ${courseField}`
-    + ' && @collection.course_members:mine.user_id ?= @request.auth.id';
+  return `@collection.course_members:member.course_id ?= ${courseField}`
+    + ' && @collection.course_members:member.user_id ?= @request.auth.id';
 }
 
 function enrolledIn(courseField) {
-  return `@collection.course_enrollments:mine.course_id ?= ${courseField}`
-    + ' && @collection.course_enrollments:mine.user_id ?= @request.auth.id';
+  return `@collection.course_enrollments:enrolled.course_id ?= ${courseField}`
+    + ' && @collection.course_enrollments:enrolled.user_id ?= @request.auth.id';
 }
 
 async function ensureCollection(name, definition) {
