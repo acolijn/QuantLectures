@@ -892,6 +892,39 @@ body {
   margin-bottom: 16px;
 }
 
+.step-scratchpad textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  outline: none;
+  resize: vertical;
+}
+
+.step-scratchpad textarea:focus {
+  border-color: var(--color-primary);
+}
+
+.scratchpad-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.scratchpad-hint {
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+.single-answer-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .multi-answer-row {
   display: flex;
   align-items: center;
@@ -1552,6 +1585,48 @@ body {
 .form-message {
   color: var(--color-primary);
   font-size: 0.84rem;
+}
+
+.form-warning {
+  background: #fff8e6;
+  border: 1px solid #f0d9a0;
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  font-size: 0.84rem;
+  color: #7a5a10;
+}
+
+.form-warning-title {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.form-warning ul {
+  margin: 0 0 6px;
+  padding-left: 18px;
+}
+
+.form-warning-note {
+  font-size: 0.78rem;
+  opacity: 0.8;
+}
+
+.editor-warning {
+  font-size: 0.78rem;
+  color: #a06b10;
+  background: #fff8e6;
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
+.editor-badge-warning {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #a06b10;
+  background: #fff3d4;
+  border-radius: 999px;
+  padding: 2px 10px;
+  margin-left: auto;
 }
 
 .form-actions {

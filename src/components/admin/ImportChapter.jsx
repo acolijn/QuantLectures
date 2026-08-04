@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { upsertChapter } from '../../lib/api';
+import { hasContent } from '../../lib/answerCheck';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 const BASE_PROMPT = `Je bent een assistent die college-aantekeningen omzet naar een gestructureerd JSON-hoofdstuk voor een leer-app.
@@ -42,7 +43,8 @@ Genereer ALLEEN geldige JSON (geen markdown, geen uitleg erbuiten), in dit exact
         {
           "question": "Tweede deelvraag. Bereken een numerieke waarde.",
           "hints": ["Hint voor berekening."],
-          "answer": ["numeriek antwoord"],
+          "answer": "$1.6 \\times 10^{-19}\\,\\text{C}$",
+          "tol": 0.01,
           "solution": [
             "Oplossing stap 1.",
             "Uitkomst: $x = 42$"
@@ -78,6 +80,15 @@ LaTeX-regels (VERPLICHT — gebruik altijd echte LaTeX-commando's):
 - Speciale symbolen: \\infty \\partial \\otimes \\dagger
 - FOUT: |psi>, alpha, sqrt(x) — dit zijn GEEN geldige LaTeX-commando's
 - GOED: |\\psi\\rangle, \\alpha, \\sqrt{x}
+
+Antwoord-regels (belangrijk — zonder "answer" kan de app de stap niet nakijken):
+- Geef ELKE stap met een controleerbaar resultaat een "answer"
+- Eén invulveld: "answer": "$42$"
+- Meerdere invulvelden in één stap: "answer": ["$42$", "$7$"] (één string per veld)
+- Meerdere geaccepteerde schrijfwijzen voor één veld: nest een array, bijv. "answer": [["$2x+3$", "$3+2x$"]]
+- Numeriek antwoord: zet de eenheid in \\text{...}, bijv. "$9.11 \\times 10^{-31}\\,\\text{kg}$"
+- "tol" is de relatieve tolerantie voor numerieke antwoorden (0.01 = 1%); laat weg voor de standaard van 1%
+- Is een stap puur beschouwend (afleiden, uitleggen, schetsen), laat "answer" dan helemaal weg — de app toont dan een kladveld in plaats van een nakijkveld
 
 Overige regels:
 - Geef 4-10 formules, 4-8 concepten, 2-4 opgaven met elk 3-6 stappen, 3-6 quizvragen
@@ -129,7 +140,35 @@ function validateChapter(obj, t) {
   if (!Array.isArray(obj.exercises)) return t('import_array_expected', { field: 'exercises' });
   if (!Array.isArray(obj.quiz))      return t('import_array_expected', { field: 'quiz' });
   if (obj.figures !== undefined && !Array.isArray(obj.figures)) return t('import_array_expected', { field: 'figures' });
+
+  for (const [i, ex] of obj.exercises.entries()) {
+    if (!Array.isArray(ex.steps) || ex.steps.length === 0) {
+      return t('import_exercise_no_steps', { n: i + 1 });
+    }
+    for (const [j, step] of ex.steps.entries()) {
+      if (typeof step.question !== 'string' || step.question.trim() === '') {
+        return t('import_step_no_question', { n: i + 1, step: j + 1 });
+      }
+    }
+  }
   return null;
+}
+
+/** Non-blocking quality warnings — steps without an answer render as a scratchpad. */
+function collectWarnings(obj, t) {
+  const warnings = [];
+  for (const [i, ex] of (obj.exercises ?? []).entries()) {
+    const unchecked = (ex.steps ?? [])
+      .map((s, j) => (hasContent(s.answer) ? null : j + 1))
+      .filter(Boolean);
+    if (unchecked.length > 0) {
+      warnings.push(t('import_warn_steps_unchecked', {
+        n: i + 1,
+        steps: unchecked.join(', '),
+      }));
+    }
+  }
+  return warnings;
 }
 
 export default function ImportChapter({ courseId, course, existingChapters, onClose, onImported }) {
@@ -139,6 +178,7 @@ export default function ImportChapter({ courseId, course, existingChapters, onCl
     existingChapters.length > 0 ? Math.max(...existingChapters.map(c => c.id)) + 1 : 1
   );
   const [error, setError]         = useState(null);
+  const [warnings, setWarnings]   = useState([]);
   const [saving, setSaving]       = useState(false);
   const [promptCopied, setPromptCopied] = useState(false);
   const [showPrompt, setShowPrompt] = useState(true);
@@ -191,6 +231,7 @@ export default function ImportChapter({ courseId, course, existingChapters, onCl
 
   async function handleImport() {
     setError(null);
+    setWarnings([]);
     let parsed;
     try {
       // Strip markdown code fences and extract the JSON object,
@@ -247,6 +288,13 @@ export default function ImportChapter({ courseId, course, existingChapters, onCl
     if (validationError) { setError(validationError); return; }
     if (!chapterNum || chapterNum < 1) { setError(t('import_invalid_chapter_num')); return; }
 
+    // Surface quality warnings once; a second click imports anyway.
+    const qualityWarnings = collectWarnings(parsed, t);
+    if (qualityWarnings.length > 0 && warnings.length === 0) {
+      setWarnings(qualityWarnings);
+      return;
+    }
+
     setSaving(true);
     try {
       const saved = await upsertChapter({ ...parsed, id: chapterNum }, courseId);
@@ -297,7 +345,7 @@ export default function ImportChapter({ courseId, course, existingChapters, onCl
             className="import-json-input"
             placeholder={'{\n  "title": "...",\n  "formulas": [...],\n  ...\n}'}
             value={json}
-            onChange={e => { setJson(e.target.value); setError(null); }}
+            onChange={e => { setJson(e.target.value); setError(null); setWarnings([]); }}
             rows={10}
             spellCheck={false}
           />
@@ -322,10 +370,20 @@ export default function ImportChapter({ courseId, course, existingChapters, onCl
 
         {error && <div className="form-error">{error}</div>}
 
+        {warnings.length > 0 && (
+          <div className="form-warning">
+            <div className="form-warning-title">{t('import_warnings_title')}</div>
+            <ul>{warnings.map((w, i) => <li key={i}>{w}</li>)}</ul>
+            <div className="form-warning-note">{t('import_warnings_note')}</div>
+          </div>
+        )}
+
         <div className="form-actions">
           <button className="btn-secondary" onClick={onClose}>{t('common_cancel')}</button>
           <button className="btn-primary" onClick={handleImport} disabled={saving || !json.trim()}>
-            {saving ? t('import_importing') : t('import_import_button')}
+            {saving
+              ? t('import_importing')
+              : warnings.length > 0 ? t('import_import_anyway') : t('import_import_button')}
           </button>
         </div>
       </div>

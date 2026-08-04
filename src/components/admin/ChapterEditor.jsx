@@ -3,6 +3,7 @@ import { updateChapter, fetchChapterFigures, uploadChapterFigure, updateChapterF
 import { MathBlock } from '../MathText';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { pb } from '../../lib/pocketbase';
+import { hasContent as hasAnswer } from '../../lib/answerCheck';
 
 export default function ChapterEditor({ chapter, courseId, onClose, onSaved }) {
   const { t } = useLanguage();
@@ -315,6 +316,12 @@ export default function ChapterEditor({ chapter, courseId, onClose, onSaved }) {
               <div key={ei} className="editor-item editor-item-exercise">
                 <div className="editor-item-header">
                   <span className="editor-item-number">O{ei + 1}</span>
+                  {(() => {
+                    const missing = (ex.steps ?? []).filter(s => !hasAnswer(s.answer)).length;
+                    return missing > 0
+                      ? <span className="editor-badge-warning">{t('editor_steps_unchecked', { n: missing })}</span>
+                      : null;
+                  })()}
                   <button onClick={() => deleteExercise(ei)} className="btn-icon btn-delete" title={t('editor_delete')}>✕</button>
                 </div>
                 <label>
@@ -343,8 +350,30 @@ export default function ChapterEditor({ chapter, courseId, onClose, onSaved }) {
                       </label>
                       <label>
                         {t('editor_answer_field')}
-                        <input value={step.answer ?? ''} onChange={e => updateExerciseStep(ei, si, 'answer', e.target.value)} placeholder="e.g., $2x + 3$" />
+                        <input
+                          value={Array.isArray(step.answer) ? step.answer.join(' | ') : (step.answer ?? '')}
+                          onChange={e => updateExerciseStep(ei, si, 'answer', e.target.value)}
+                          placeholder="e.g., $2x + 3$"
+                          disabled={Array.isArray(step.answer)}
+                        />
                       </label>
+                      {Array.isArray(step.answer) ? (
+                        <div className="label-hint">{t('editor_answer_multi_hint')}</div>
+                      ) : !hasAnswer(step.answer) ? (
+                        <div className="editor-warning">{t('editor_answer_missing_warning')}</div>
+                      ) : (
+                        <label>
+                          {t('editor_tolerance_field')} <span className="label-hint">{t('editor_tolerance_hint')}</span>
+                          <input
+                            type="number"
+                            step="0.001"
+                            min="0"
+                            value={typeof step.tol === 'number' ? step.tol : ''}
+                            onChange={e => updateExerciseStep(ei, si, 'tol', e.target.value === '' ? undefined : parseFloat(e.target.value))}
+                            placeholder="0.01"
+                          />
+                        </label>
+                      )}
                       <label>
                         {t('editor_solution_field')}
                         <textarea rows={2} value={step.solution ?? ''} onChange={e => updateExerciseStep(ei, si, 'solution', e.target.value)} />
