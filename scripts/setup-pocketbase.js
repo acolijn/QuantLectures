@@ -485,6 +485,66 @@ async function setup() {
     deleteRule: '@request.auth.role = "admin"',
   });
 
+  // ── 7a. Create/update 'course_progress' collection ─────────
+  console.log("Creating/updating 'course_progress' collection…");
+  // Students read and write their own rows; staff of the course read all of them,
+  // which is what a per-course progress overview will be built on. `course_id` is
+  // derivable from `chapter_id` but stored directly so that overview is one query.
+  const progressReadRule = `@request.auth.id = user_id || (${STAFF} && ${memberOf('course_id')})`;
+  const progressOwnRule = '@request.auth.id = user_id';
+  const courseProgress = await ensureCollection('course_progress', {
+    fields: [
+      {
+        name: 'user_id',
+        type: 'relation',
+        required: true,
+        maxSelect: 1,
+        collectionId: usersCollection.id,
+        cascadeDelete: true,
+      },
+      {
+        name: 'course_id',
+        type: 'relation',
+        required: true,
+        maxSelect: 1,
+        collectionId: courses.id,
+        cascadeDelete: true,
+      },
+      {
+        // Keyed on the chapter record, never on chapter_number: reordering a course
+        // renumbers chapters and would otherwise reassign progress to the wrong ones.
+        name: 'chapter_id',
+        type: 'relation',
+        required: true,
+        maxSelect: 1,
+        collectionId: (await pb.collections.getOne('chapters')).id,
+        cascadeDelete: true,
+      },
+      { name: 'quiz_completed', type: 'bool',   required: false },
+      { name: 'best_score',     type: 'number', required: false },
+      { name: 'attempts',       type: 'number', required: false },
+      { name: 'last_attempt',   type: 'date',   required: false },
+      { name: 'created', type: 'autodate', onCreate: true, onUpdate: false },
+      { name: 'updated', type: 'autodate', onCreate: true, onUpdate: true },
+    ],
+    listRule:   progressReadRule,
+    viewRule:   progressReadRule,
+    createRule: progressOwnRule,
+    updateRule: progressOwnRule,
+    deleteRule: `${progressOwnRule} || @request.auth.role = "admin"`,
+  });
+
+  // One row per user per chapter. Without this a double submit (or two tabs) races
+  // into duplicate rows; the client relies on the constraint to retry as an update.
+  const progressIndex = 'CREATE UNIQUE INDEX `idx_course_progress_user_chapter` ON `course_progress` (`user_id`, `chapter_id`)';
+  const existingProgressIndexes = (await pb.collections.getOne(courseProgress.id)).indexes ?? [];
+  if (!existingProgressIndexes.some(i => i.includes('idx_course_progress_user_chapter'))) {
+    await pb.collections.update(courseProgress.id, {
+      indexes: [...existingProgressIndexes, progressIndex],
+    });
+    console.log('  → unique index on (user_id, chapter_id) added.');
+  }
+
   // ── 7b. Create/update 'chapter_figures' collection ────────
   console.log("Creating/updating 'chapter_figures' collection…");
   await ensureCollection('chapter_figures', {

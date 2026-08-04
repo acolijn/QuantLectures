@@ -111,7 +111,9 @@ It also creates/updates Step 2 collections and rules:
 - `course_members` (`owner` / `editor`)
 - `chapters.course_id` relation
 - `chapter_figures` (`chapter_id`, `ref`, `caption`, optional `file`) for figure support
-- membership-based access rules for teachers and published-only visibility for students
+- `course_invites` / `course_enrollments` for invite-code access
+- `course_progress` (`user_id`, `course_id`, `chapter_id`, `best_score`, `attempts`) — quiz progress, one row per user per chapter
+- membership-based access rules for teachers and enrollment-based visibility for students
 
 ### 4. Start the dev server
 

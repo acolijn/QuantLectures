@@ -61,7 +61,7 @@ function AppContent() {
     courseProgress,
     updateProgress,
     resetCourseProgress,
-  } = useCourseProgress(activeCourseId, user?.id);
+  } = useCourseProgress(activeCourseId, user?.id, chapters);
 
   const course = courses.find(c => c.id === activeCourseId) ?? null;
   const chapter = chapters.find(c => c.id === activeChapter);

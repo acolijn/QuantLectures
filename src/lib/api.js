@@ -501,3 +501,87 @@ export async function upsertChapter(chapter, courseId) {
 
   return toChapter(record);
 }
+
+// ── Course progress ────────────────────────────────────────────
+// Rows are keyed on the chapter record id, not the chapter number, because
+// reordering a course renumbers its chapters.
+
+function toProgress(record) {
+  return {
+    id:            record.id,
+    courseId:      record.course_id,
+    chapterId:     record.chapter_id,
+    quizCompleted: !!record.quiz_completed,
+    bestScore:     record.best_score ?? 0,
+    attempts:      record.attempts ?? 0,
+    lastAttempt:   record.last_attempt ?? null,
+  };
+}
+
+export async function fetchMyCourseProgress(courseId) {
+  const userId = pb.authStore.model?.id;
+  if (!courseId || !userId) return [];
+
+  const records = await pb.collection('course_progress').getFullList({
+    filter: `course_id="${escapeFilterValue(courseId)}" && user_id="${escapeFilterValue(userId)}"`,
+  });
+
+  return records.map(toProgress);
+}
+
+export async function saveChapterProgress({ courseId, chapterId, score }) {
+  const userId = pb.authStore.model?.id;
+  if (!courseId || !chapterId || !userId) return null;
+
+  const filter = `chapter_id="${escapeFilterValue(chapterId)}" && user_id="${escapeFilterValue(userId)}"`;
+
+  const existing = await findProgressRow(filter);
+  if (existing) return applyAttempt(existing, score);
+
+  try {
+    const created = await pb.collection('course_progress').create({
+      user_id:        userId,
+      course_id:      courseId,
+      chapter_id:     chapterId,
+      quiz_completed: true,
+      best_score:     score,
+      attempts:       1,
+      last_attempt:   new Date().toISOString(),
+    });
+    return toProgress(created);
+  } catch (err) {
+    // The unique index rejects a second row — another tab got there first.
+    const row = await findProgressRow(filter);
+    if (!row) throw err;
+    return applyAttempt(row, score);
+  }
+}
+
+async function findProgressRow(filter) {
+  try {
+    return await pb.collection('course_progress').getFirstListItem(filter);
+  } catch {
+    return null;
+  }
+}
+
+async function applyAttempt(record, score) {
+  const updated = await pb.collection('course_progress').update(record.id, {
+    quiz_completed: true,
+    best_score:     Math.max(score, record.best_score ?? 0),
+    attempts:       (record.attempts ?? 0) + 1,
+    last_attempt:   new Date().toISOString(),
+  });
+  return toProgress(updated);
+}
+
+export async function clearMyCourseProgress(courseId) {
+  const userId = pb.authStore.model?.id;
+  if (!courseId || !userId) return;
+
+  const records = await pb.collection('course_progress').getFullList({
+    filter: `course_id="${escapeFilterValue(courseId)}" && user_id="${escapeFilterValue(userId)}"`,
+  });
+
+  await Promise.all(records.map(r => pb.collection('course_progress').delete(r.id)));
+}
