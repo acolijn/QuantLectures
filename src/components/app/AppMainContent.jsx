@@ -9,6 +9,7 @@ export default function AppMainContent({
   activeCourseId,
   isTeacher,
   chapter,
+  chapterLabel,
   parts,
   onAssignChapterPart,
   editMode,
@@ -48,6 +49,7 @@ export default function AppMainContent({
       return (
         <ChapterEditor
           chapter={chapter}
+          chapterLabel={chapterLabel}
           parts={parts}
           onAssignPart={onAssignChapterPart}
           courseId={activeCourseId}
@@ -73,6 +75,7 @@ export default function AppMainContent({
         <ChapterView
           key={chapter.id}
           chapter={chapter}
+          chapterLabel={chapterLabel}
           progress={courseProgress[chapter.id]}
           onProgressUpdate={onProgressUpdate}
           isTeacher={isTeacher}

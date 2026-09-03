@@ -24,7 +24,7 @@ function buildFiguresMap(figures) {
   return map;
 }
 
-export default function ChapterView({ chapter, progress, onProgressUpdate, isTeacher }) {
+export default function ChapterView({ chapter, chapterLabel, progress, onProgressUpdate, isTeacher }) {
   const [tab, setTab] = useState('concepts');
   const [figures, setFigures] = useState([]);
   const [uploadRef, setUploadRef] = useState(null);
@@ -48,7 +48,7 @@ export default function ChapterView({ chapter, progress, onProgressUpdate, isTea
   return (
     <main className="chapter-view">
       <header className="chapter-header">
-        <div className="chapter-header-number">{t('chapter_header', { id: chapter.id })}</div>
+        <div className="chapter-header-number">{t('chapter_header', { id: chapterLabel ?? chapter.id })}</div>
         <h2><MathText text={chapter.title} /></h2>
         <p className="chapter-subtitle"><MathText text={chapter.subtitle} /></p>
       </header>

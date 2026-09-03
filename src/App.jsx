@@ -8,6 +8,7 @@ import AppMainContent from './components/app/AppMainContent';
 import AppOverlays from './components/app/AppOverlays';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
+import { buildChapterLabels } from './lib/chapterOrder';
 import { useCourses } from './hooks/useCourses';
 import { useChapters } from './hooks/useChapters';
 import { useCourseProgress } from './hooks/useCourseProgress';
@@ -71,6 +72,9 @@ function AppContent() {
 
   const course = courses.find(c => c.id === activeCourseId) ?? null;
   const chapter = chapters.find(c => c.id === activeChapter);
+  // One label map for the whole app so the sidebar, the reading pane and the
+  // editor never disagree about how a chapter is numbered.
+  const chapterLabels = buildChapterLabels(parts, chapters, course?.numbering);
 
   useEffect(() => {
     syncWithCourseLanguage(course?.language);
@@ -258,6 +262,7 @@ function AppContent() {
           chapters={chapters}
           chapterGroups={chapterGroups}
           parts={parts}
+          chapterLabels={chapterLabels}
           activeChapter={activeChapter}
           onSelectChapter={handleSelectChapter}
           progress={courseProgress}
@@ -275,6 +280,7 @@ function AppContent() {
         activeCourseId={activeCourseId}
         isTeacher={isTeacher}
         chapter={chapter}
+        chapterLabel={chapterLabels.get(chapter?.pbId) ?? chapter?.id}
         parts={parts}
         onAssignChapterPart={handleAssignChapterPart}
         editMode={editMode}

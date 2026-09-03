@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import MathText from './MathText';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
-import { buildChapterLabels } from '../lib/chapterOrder';
 
 const COLLAPSE_KEY_PREFIX = 'minilectures:parts-collapsed:';
 
@@ -22,6 +21,7 @@ export default function Sidebar({
   chapters,
   chapterGroups,
   parts,
+  chapterLabels,
   activeChapter,
   onSelectChapter,
   progress,
@@ -54,7 +54,6 @@ export default function Sidebar({
     });
   }
 
-  const labels = buildChapterLabels(parts ?? [], chapters ?? [], course?.numbering);
   const visibleGroups = (chapterGroups ?? []).filter(g => g.part || g.chapters.length > 0);
 
   function clearDrag() {
@@ -186,7 +185,7 @@ export default function Sidebar({
                     onDragEnd={isTeacher ? clearDrag : undefined}
                   >
                     {isTeacher && <span className="drag-handle">⠿</span>}
-                    <span className="chapter-number">{labels.get(ch.pbId) ?? ch.id}</span>
+                    <span className="chapter-number">{chapterLabels?.get(ch.pbId) ?? ch.id}</span>
                     <span className="chapter-info">
                       <span className="chapter-title">
                         <MathText text={ch.title} />

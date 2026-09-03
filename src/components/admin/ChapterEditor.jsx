@@ -5,7 +5,7 @@ import { useLanguage } from '../../contexts/LanguageContext';
 import { pb } from '../../lib/pocketbase';
 import { hasContent as hasAnswer } from '../../lib/answerCheck';
 
-export default function ChapterEditor({ chapter, courseId, parts, onAssignPart, onClose, onSaved }) {
+export default function ChapterEditor({ chapter, chapterLabel, courseId, parts, onAssignPart, onClose, onSaved }) {
   const { t } = useLanguage();
   const [title, setTitle] = useState(chapter.title);
   const [subtitle, setSubtitle] = useState(chapter.subtitle);
@@ -211,7 +211,7 @@ export default function ChapterEditor({ chapter, courseId, parts, onAssignPart, 
     <div className="chapter-editor">
       {/* ── Header ── */}
       <div className="editor-header">
-        <h2>{t('editor_title', { id: chapter.id })}</h2>
+        <h2>{t('editor_title', { id: chapterLabel ?? chapter.id })}</h2>
         <div className="editor-header-actions">
           {error && <span className="editor-error">{error}</span>}
           <button onClick={onClose} className="btn-secondary">{t('common_cancel')}</button>
