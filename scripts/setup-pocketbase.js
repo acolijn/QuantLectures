@@ -6,6 +6,7 @@
  * - Creates/updates 'courses' collection
  * - Creates/updates 'course_members' collection
  * - Creates/updates 'chapters' collection with required 'course_id' relation
+ * - Creates/updates 'course_parts' collection and the optional chapters.part_id
  *
  * Usage:
  *   node --env-file=.env scripts/setup-pocketbase.js
@@ -258,6 +259,14 @@ async function setup() {
         values: ['nl', 'en', 'de', 'fr', 'es', 'it', 'pt', 'pl'],
       },
       { name: 'subject_prompt', type: 'text',   required: false },
+      {
+        // Display only: chapter_number stays continuous 1..N course-wide.
+        name: 'chapter_numbering',
+        type: 'select',
+        required: false,
+        maxSelect: 1,
+        values: ['continuous', 'per_part'],
+      },
     ],
     listRule:   `(${hasCourseMembersCollection ? courseTeacherMemberRule : courseTeacherBootstrapRule}) || (${courseStudentPublishedRule}) || (${courseGuestPublicRule})`,
     viewRule:   `(${hasCourseMembersCollection ? courseTeacherMemberRule : courseTeacherBootstrapRule}) || (${courseStudentPublishedRule}) || (${courseGuestPublicRule})`,
@@ -385,6 +394,29 @@ async function setup() {
   const chapterTeacherMemberRule = `${STAFF} && ${memberOf('course_id')}`;
   const chapterStudentPublishedRule = '@request.auth.role = "student" && course_id.published = true';
   const chapterGuestPublicRule = 'course_id.published = true && course_id.public = true';
+
+  // Parts group chapters by topic. They must exist before 'chapters' so the
+  // optional part_id relation can point at them.
+  console.log("Creating/updating 'course_parts' collection…");
+  const courseParts = await ensureCollection('course_parts', {
+    fields: [
+      {
+        name: 'course_id',
+        type: 'relation',
+        required: true,
+        maxSelect: 1,
+        collectionId: courses.id,
+        cascadeDelete: true,
+      },
+      { name: 'title',       type: 'text',   required: true },
+      { name: 'part_number', type: 'number', required: true },
+    ],
+    listRule:   `(${chapterTeacherMemberRule}) || (${chapterStudentPublishedRule}) || (${chapterGuestPublicRule})`,
+    viewRule:   `(${chapterTeacherMemberRule}) || (${chapterStudentPublishedRule}) || (${chapterGuestPublicRule})`,
+    createRule: chapterTeacherMemberRule,
+    updateRule: chapterTeacherMemberRule,
+    deleteRule: chapterTeacherMemberRule,
+  });
   await ensureCollection('chapters', {
     fields: [
       {
@@ -396,6 +428,17 @@ async function setup() {
         cascadeDelete: true,
       },
       { name: 'chapter_number', type: 'number', required: true },
+      {
+        // Optional: null = ungrouped, rendered above the parts.
+        // Deleting a part leaves its chapters in place and clears this field,
+        // so cascadeDelete stays off.
+        name: 'part_id',
+        type: 'relation',
+        required: false,
+        maxSelect: 1,
+        collectionId: courseParts.id,
+        cascadeDelete: false,
+      },
       { name: 'title',          type: 'text',   required: true },
       { name: 'subtitle',       type: 'text',   required: false },
       { name: 'formulas',       type: 'json',   required: false },

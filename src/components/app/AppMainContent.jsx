@@ -9,6 +9,8 @@ export default function AppMainContent({
   activeCourseId,
   isTeacher,
   chapter,
+  parts,
+  onAssignChapterPart,
   editMode,
   onStartEdit,
   onStopEdit,
@@ -46,6 +48,8 @@ export default function AppMainContent({
       return (
         <ChapterEditor
           chapter={chapter}
+          parts={parts}
+          onAssignPart={onAssignChapterPart}
           courseId={activeCourseId}
           onClose={onStopEdit}
           onSaved={onChapterSaved}

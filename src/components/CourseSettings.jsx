@@ -21,6 +21,11 @@ export default function CourseSettings({
   onLoadCourseInvites,
   onCreateInvite,
   onRevokeInvite,
+  parts,
+  onAddPart,
+  onRenamePart,
+  onDeletePart,
+  onMovePart,
 }) {
   const { t } = useLanguage();
   const [savingCourse, setSavingCourse] = useState(false);
@@ -37,6 +42,9 @@ export default function CourseSettings({
   const [invitesLoading, setInvitesLoading] = useState(false);
   const [inviteActionLoading, setInviteActionLoading] = useState(false);
   const [inviteMessage, setInviteMessage] = useState('');
+  const [newPartTitle, setNewPartTitle] = useState('');
+  const [partActionLoading, setPartActionLoading] = useState(false);
+  const [partMessage, setPartMessage] = useState('');
   const [courseForm, setCourseForm] = useState({
     name: course?.name ?? '',
     subtitle: course?.subtitle ?? '',
@@ -44,6 +52,7 @@ export default function CourseSettings({
     published: !!course?.published,
     public: !!course?.public,
     subjectPrompt: course?.subjectPrompt ?? '',
+    numbering: course?.numbering ?? 'continuous',
   });
 
   const isCourseOwner = course?.memberRole === 'owner';
@@ -56,6 +65,7 @@ export default function CourseSettings({
       published: !!course?.published,
       public: !!course?.public,
       subjectPrompt: course?.subjectPrompt ?? '',
+      numbering: course?.numbering ?? 'continuous',
     });
     setSaveMessage('');
   }, [course]);
@@ -120,6 +130,7 @@ export default function CourseSettings({
         published: courseForm.published,
         public: courseForm.public,
         subjectPrompt: courseForm.subjectPrompt.trim(),
+        numbering: courseForm.numbering,
       });
       setSaveMessage(t('sidebar_saved'));
     } catch (err) {
@@ -127,6 +138,65 @@ export default function CourseSettings({
       setSaveMessage(t('sidebar_save_failed'));
     } finally {
       setSavingCourse(false);
+    }
+  }
+
+  async function handleAddPart(e) {
+    e.preventDefault();
+    const title = newPartTitle.trim();
+    if (!onAddPart || !title) return;
+    setPartActionLoading(true);
+    setPartMessage('');
+    try {
+      await onAddPart(title);
+      setNewPartTitle('');
+    } catch (err) {
+      setPartMessage(err.message || t('settings_part_failed'));
+    } finally {
+      setPartActionLoading(false);
+    }
+  }
+
+  async function handleRenamePart(part) {
+    const title = window.prompt(t('settings_part_rename_prompt'), part.title);
+    if (title === null) return;
+    if (!title.trim()) return;
+    setPartActionLoading(true);
+    setPartMessage('');
+    try {
+      await onRenamePart?.(part.id, title.trim());
+    } catch (err) {
+      setPartMessage(err.message || t('settings_part_failed'));
+    } finally {
+      setPartActionLoading(false);
+    }
+  }
+
+  // Chapters are never deleted with the part; they fall back to ungrouped.
+  async function handleDeletePart(part) {
+    if (!window.confirm(t('settings_part_delete_confirm', { title: part.title }))) return;
+    setPartActionLoading(true);
+    setPartMessage('');
+    try {
+      await onDeletePart?.(part.id);
+    } catch (err) {
+      setPartMessage(err.message || t('settings_part_failed'));
+    } finally {
+      setPartActionLoading(false);
+    }
+  }
+
+  async function handleMovePart(index, delta) {
+    const target = index + delta;
+    if (target < 0 || target >= (parts ?? []).length) return;
+    setPartActionLoading(true);
+    setPartMessage('');
+    try {
+      await onMovePart?.(index, target);
+    } catch (err) {
+      setPartMessage(err.message || t('settings_part_failed'));
+    } finally {
+      setPartActionLoading(false);
     }
   }
 
@@ -245,7 +315,20 @@ export default function CourseSettings({
                   ))}
                 </select>
               </label>
+              <label className="course-settings-label">
+                {t('settings_numbering')}
+                <select
+                  className="course-settings-input"
+                  value={courseForm.numbering}
+                  disabled={!isCourseOwner}
+                  onChange={e => setCourseForm(prev => ({ ...prev, numbering: e.target.value }))}
+                >
+                  <option value="continuous">{t('settings_numbering_continuous')}</option>
+                  <option value="per_part">{t('settings_numbering_per_part')}</option>
+                </select>
+              </label>
             </div>
+            <p className="course-settings-hint">{t('settings_numbering_hint')}</p>
 
             <h3 className="course-settings-section-title">{t('settings_visibility')}</h3>
             <label className="course-settings-checkbox">
@@ -293,6 +376,66 @@ export default function CourseSettings({
             </div>
             {!isCourseOwner && <p className="course-settings-hint">{t('sidebar_owner_only_settings')}</p>}
           </form>
+
+          <section className="course-settings-section">
+            <h3 className="course-settings-section-title">{t('settings_parts_title')}</h3>
+            <p className="course-settings-hint">{t('settings_parts_hint')}</p>
+            <ul className="course-settings-list">
+              {(parts ?? []).map((part, index) => (
+                <li key={part.id} className="course-settings-list-item">
+                  <span className="course-settings-list-main">{index + 1}. {part.title}</span>
+                  <span className="course-settings-list-actions">
+                    <button
+                      className="course-settings-btn"
+                      type="button"
+                      disabled={partActionLoading || index === 0}
+                      onClick={() => handleMovePart(index, -1)}
+                      title={t('settings_part_move_up')}
+                    >↑</button>
+                    <button
+                      className="course-settings-btn"
+                      type="button"
+                      disabled={partActionLoading || index === (parts ?? []).length - 1}
+                      onClick={() => handleMovePart(index, 1)}
+                      title={t('settings_part_move_down')}
+                    >↓</button>
+                    <button
+                      className="course-settings-btn"
+                      type="button"
+                      disabled={partActionLoading}
+                      onClick={() => handleRenamePart(part)}
+                    >{t('settings_part_rename')}</button>
+                    <button
+                      className="course-settings-btn course-settings-btn--danger"
+                      type="button"
+                      disabled={partActionLoading}
+                      onClick={() => handleDeletePart(part)}
+                    >{t('editor_delete')}</button>
+                  </span>
+                </li>
+              ))}
+              {(parts ?? []).length === 0 && (
+                <li className="course-settings-list-empty">{t('settings_parts_empty')}</li>
+              )}
+            </ul>
+            <form className="course-settings-inline-form" onSubmit={handleAddPart}>
+              <input
+                className="course-settings-input"
+                type="text"
+                value={newPartTitle}
+                placeholder={t('settings_part_placeholder')}
+                onChange={e => setNewPartTitle(e.target.value)}
+              />
+              <button
+                className="course-settings-btn course-settings-btn--primary"
+                type="submit"
+                disabled={partActionLoading || !newPartTitle.trim()}
+              >
+                {t('settings_part_add')}
+              </button>
+            </form>
+            {partMessage && <span className="course-settings-message">{partMessage}</span>}
+          </section>
 
           {isCourseOwner && (
             <section className="course-settings-section">

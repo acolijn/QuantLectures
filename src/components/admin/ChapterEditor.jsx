@@ -5,7 +5,7 @@ import { useLanguage } from '../../contexts/LanguageContext';
 import { pb } from '../../lib/pocketbase';
 import { hasContent as hasAnswer } from '../../lib/answerCheck';
 
-export default function ChapterEditor({ chapter, courseId, onClose, onSaved }) {
+export default function ChapterEditor({ chapter, courseId, parts, onAssignPart, onClose, onSaved }) {
   const { t } = useLanguage();
   const [title, setTitle] = useState(chapter.title);
   const [subtitle, setSubtitle] = useState(chapter.subtitle);
@@ -231,6 +231,20 @@ export default function ChapterEditor({ chapter, courseId, onClose, onSaved }) {
           {t('editor_subtitle_field')}
           <input value={subtitle} onChange={e => setSubtitle(e.target.value)} />
         </label>
+        {(parts ?? []).length > 0 && (
+          <label>
+            {t('editor_part_field')}
+            <select
+              value={chapter.partId ?? ''}
+              onChange={e => onAssignPart?.(e.target.value || null)}
+            >
+              <option value="">{t('editor_part_none')}</option>
+              {parts.map(part => (
+                <option key={part.id} value={part.id}>{part.title}</option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
 
       {/* ── Tabs ── */}

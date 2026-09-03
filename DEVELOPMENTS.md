@@ -27,6 +27,7 @@ Use this table as the single source of truth while we build. Update `Status`, `O
 | Step 8 | Production deployment | ⚪ Planned | 0.5-1 day | - | 2026-05-28 | Domain, SSL, SMTP, backups |
 | Step 9 | Landing page — min (hero + course grid + routing fix) | 🟢 Done | 0.5 day | AI + user | 2026-06-25 | `Landing.jsx` entry page: hero, published-course grid (flag/subtitle/draft badge), feature blurbs. `useCourses` no longer auto-opens first course; sidebar "← All courses" returns home. Brand "MiniLectures.app"; landing forced to English. NL/EN keys added |
 | Step 9a | Landing page — polish (progress bars, resume, blurbs, teacher tile) | ⚪ Planned | 0.5 day | - | 2026-06-25 | Builds on Step 9; ties to Step 3d progress |
+| Step 10 | Topic-based parts (chapter grouping in sidebar) | 🟢 Done | 1-1.5 days | AI + user | 2026-09-03 | `course_parts` collection + nullable `chapters.part_id`. Collapsible groups in the sidebar with per-part progress, drag within/between parts, parts CRUD in course settings, part dropdown in the chapter editor, and a display-only `chapter_numbering` flag (continuous / per-part). Authorship metadata + "only my chapters" filter not built |
 
 Status values: `⚪ Planned`, `🟡 In progress`, `🔴 Blocked`, `🟢 Done`.
 Step 1 is intentionally marked as complete because it represents the current app baseline.
@@ -466,6 +467,111 @@ file        (optional file: PNG/JPEG/GIF/WEBP/SVG/PDF)
 - Teacher "+ New course" tile in the grid (currently a top-bar button).
 
 ---
+
+---
+
+## Step 10 — Topic-based parts
+
+**What:** chapters can be grouped into teacher-defined **parts** (e.g. "Part 1: Formalism", "Part 2: Perturbation theory"), rendered as collapsible groups in the sidebar.
+
+**Problem:** the sidebar is a flat chapter list ([`Sidebar.jsx`](src/components/Sidebar.jsx)). A 20-chapter course is one long scroll with no structure. Courses shared between teachers make this worse.
+
+**Decision — group by topic, not by author.** Considered grouping chapters per teacher ("Alice's lectures / Bob's lectures") and rejected it:
+- Students care about reading order, not authorship. Author grouping leaks the org chart into the curriculum.
+- Breaks on co-authored chapters and on handover when a teacher leaves.
+- Alternating teachers → students jump between groups, sequence lost.
+- Ownership is already data; it does not need to be structural.
+
+Authorship is surfaced as **metadata** instead (see below), and "show only my chapters" becomes a **filter**, not a structure.
+
+**New collection:**
+```
+course_parts
+───────────────────────────────
+course_id   → links to a course
+title       (text, e.g. "Formalism")
+part_number (number — order within the course)
+```
+
+**Chapter change:**
+```
+chapters
+───────────────────────────────
++ part_id   → links to course_parts (optional; null = ungrouped)
+```
+
+**Ordering rules (important):**
+- `chapter_number` stays **course-global** — it is also the app-level chapter id (`api.js` maps `record.chapter_number → chapter.id`, and lookups filter on it). Do **not** scope it per part; that would create duplicate ids.
+- Parts are ordered by `part_number`; chapters inside a part are ordered by `chapter_number`.
+- Reorder must keep parts contiguous: after any drag, renumber `chapter_number` across the whole course in part order (extension of the existing `reorderChapters` renumbering).
+- Ungrouped chapters (`part_id = null`) render at the top level, above the parts, so existing courses look unchanged.
+
+**Renumbering algorithm.** Any structural change flattens the course in part order and reassigns:
+
+```
+flat = [...ungrouped, ...parts.sortBy(part_number).flatMap(p => p.chapters)]
+flat.forEach((ch, i) => ch.chapter_number = i + 1)
+```
+
+Triggers: drag a chapter within a part, drag a chapter into another part, reorder parts, delete a part (chapters fall back to ungrouped), create a chapter, delete a chapter. This is today's `reorderChapters` with a different input order — the write path does not change.
+
+**Numbering vs. display.** `chapter_number` is *storage and identity*; the label shown to the reader is derived at render time from position:
+
+```
+storage:  chapter_number = 1..N, contiguous per part
+display:  'continuous' → "3"
+          'per_part'   → "2.1"   (partIndex + 1 . indexWithinPart + 1)
+```
+
+- Optional course field `chapter_numbering` (`continuous` | `per_part`, default `continuous`) controls the label only.
+- Nothing downstream sees the label: import upsert key (`chapter_number` + `course_id`), export filename `chapter<N>.json`, app-level `chapter.id`, and progress records (keyed on `pbId`) all keep the continuous number.
+- Switching the flag is reversible: display-only, no migration, no data touched.
+- Ungrouped chapters in `per_part` mode show the plain continuous number, no prefix.
+- Caveat: labels are positional, so moving a part relabels its chapters — the same instability reordering already has today, just more visible. Cross-references typed inside chapter content ("see chapter 5") are plain text and are not auto-updated (unchanged from today).
+
+**Rejected — per-part storage numbering** (`chapter_number` restarts at 1 inside each part): would break course-global uniqueness, forcing a new stable identity (`pbId` or a slug), a changed import upsert key, changed export filenames, and a rule for ungrouped chapters. The display flag above gives the same reader-facing "Part 2, chapter 1" without that blast radius.
+
+**Sidebar UI:**
+- Nested render: part header (title + collapse chevron + `3/5 done` progress rollup) → chapter rows indented under it.
+- Collapse state per part, persisted in localStorage per course.
+- Teacher drag-and-drop gains two levels: reorder parts, reorder chapters within a part, and drop a chapter into another part (sets `part_id` + renumbers).
+- Ungrouped chapters keep today's flat behaviour.
+
+**Teacher UI:**
+- Manage parts in `CourseSettings.jsx` (new "Parts" section): add/rename/delete/reorder parts. Deleting a part does not delete chapters — it sets their `part_id` to null.
+- Assign a chapter to a part from the chapter editor (dropdown) or by dragging in the sidebar.
+
+**Authorship (separate, smaller change):**
+- Add `authors` (relation, multiple) or `owner` (relation) to `chapters`.
+- Show initials/avatar on the chapter row and a "by …" line in the chapter header.
+- Teacher toolbar toggle "only my chapters" dims/hides rows — a view filter, no data-model impact.
+
+**Access rules:** `course_parts` follows the same `course_members` membership rules as `chapters` (members write, published/enrolled read).
+
+**Rollout (cheapest useful step first):**
+1. Collection + `part_id` field + rules; `part_id` nullable → existing courses unaffected.
+2. Sidebar nested render with collapse; parts read-only.
+3. Parts CRUD in course settings.
+4. Drag-and-drop across parts + renumbering.
+5. Authorship metadata + "only my chapters" filter (optional, can slip).
+
+### Step 10 status (done, 2026-09-03) — stages 1-4
+
+- `course_parts` collection (`course_id`, `title`, `part_number`) in `setup-pocketbase.js`, same membership rules as `chapters`; nullable `chapters.part_id` with `cascadeDelete: false` so deleting a part keeps its chapters; `courses.chapter_numbering` select.
+- `src/lib/chapterOrder.js`: `groupChapters`, `flattenCourse`, `moveChapter`, `moveParts`, `buildChapterLabels` — all pure. A chapter pointing at a deleted part falls back to ungrouped and its stale `part_id` is cleared on the next write.
+- `useChapters` loads parts alongside chapters and owns every structural write (`moveChapterTo`, `movePartTo`, `addPart`, `renamePart`, `removePart`), each ending in one flatten + renumber pass.
+- Sidebar renders collapsible groups (collapse state per course in localStorage), per-part `done/total`, drag chapters within and between parts, drag part headers to reorder.
+- Course settings gained a Parts section (add / rename / reorder / delete, editors included, not owner-only) and a numbering dropdown in General.
+- Chapter editor gained a part dropdown — the non-drag path for assigning a chapter, and the one that works on mobile.
+- New chapters land at the end of the part the teacher is currently reading.
+
+**Not built (stage 5):** chapter authorship metadata and the "only my chapters" filter. Nothing in stages 1-4 depends on it.
+
+**Deploy:** run `node --env-file=.env scripts/setup-pocketbase.js` against the target PocketBase before shipping the frontend — the new collection and fields do not exist yet.
+
+**Also unlocks:** per-part progress rollup, shorter sidebar on long courses, and a natural table-of-contents structure for a future course overview page.
+
+**Effort:** ~1-1.5 days. Main cost is the sidebar rewrite (flat map → nested) and cross-part drag logic.
 
 ## Known Issues (Blocking)
 

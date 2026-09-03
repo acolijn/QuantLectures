@@ -48,10 +48,16 @@ function AppContent() {
   } = useCourses(user);
   const {
     chapters,
+    parts,
+    chapterGroups,
     activeChapter,
     loadingChapters,
     setActiveChapter,
-    reorderAll,
+    moveChapterTo,
+    movePartTo,
+    addPart,
+    renamePart,
+    removePart,
     createNextChapter,
     deleteExistingChapter,
     applySavedChapter,
@@ -97,8 +103,14 @@ function AppContent() {
     setEditMode(false);
   }
 
-  async function handleReorderChapters(newOrder) {
-    await reorderAll(newOrder, chapter?.pbId);
+  async function handleMoveChapter(pbId, targetPartId, targetIndex) {
+    await moveChapterTo(pbId, targetPartId, targetIndex);
+  }
+
+  // The editor's part dropdown appends the chapter to the chosen part.
+  async function handleAssignChapterPart(targetPartId) {
+    if (!chapter) return;
+    await moveChapterTo(chapter.pbId, targetPartId, null);
   }
 
   async function handleCreateCourse() {
@@ -116,7 +128,7 @@ function AppContent() {
   }
 
   async function handleNewChapter() {
-    const newChapter = await createNextChapter();
+    const newChapter = await createNextChapter(chapter?.partId ?? null);
     if (!newChapter) return;
     setEditMode(true);
   }
@@ -244,12 +256,15 @@ function AppContent() {
           isAdmin={isAdmin}
           onGoHome={handleGoHome}
           chapters={chapters}
+          chapterGroups={chapterGroups}
+          parts={parts}
           activeChapter={activeChapter}
           onSelectChapter={handleSelectChapter}
           progress={courseProgress}
           onResetProgress={resetCourseProgress}
           onLoginClick={() => setShowLogin(true)}
-          onReorderChapters={handleReorderChapters}
+          onMoveChapter={handleMoveChapter}
+          onMovePart={movePartTo}
         />
       </div>
       {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
@@ -260,6 +275,8 @@ function AppContent() {
         activeCourseId={activeCourseId}
         isTeacher={isTeacher}
         chapter={chapter}
+        parts={parts}
+        onAssignChapterPart={handleAssignChapterPart}
         editMode={editMode}
         onStartEdit={() => setEditMode(true)}
         onStopEdit={() => setEditMode(false)}
@@ -290,6 +307,11 @@ function AppContent() {
           onLoadCourseInvites={() => refreshCourseInvites(activeCourseId)}
           onCreateInvite={payload => createInviteForCourse(activeCourseId, payload)}
           onRevokeInvite={inviteId => revokeInviteForCourse(activeCourseId, inviteId)}
+          parts={parts}
+          onAddPart={addPart}
+          onRenamePart={renamePart}
+          onDeletePart={removePart}
+          onMovePart={movePartTo}
         />
       )}
       </>

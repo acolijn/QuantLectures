@@ -21,6 +21,8 @@ function toCourse(record) {
     public:        !!record.public,
     language:      record.language ?? 'nl',
     subjectPrompt: record.subject_prompt ?? '',
+    // Display-only label mode; the stored chapter_number stays continuous.
+    numbering:     record.chapter_numbering || 'continuous',
     memberRole:    record.memberRole ?? null,
   };
 }
@@ -65,6 +67,7 @@ function toChapter(record) {
     pbId:        record.id,
     courseId:    record.course_id,
     id:          record.chapter_number,
+    partId:      record.part_id || null,
     title:       record.title,
     subtitle:    record.subtitle,
     formulas:    record.formulas   ?? [],
@@ -256,6 +259,7 @@ export async function createCourse(payload = {}) {
     public:         payload.public ?? false,
     language:       payload.language ?? 'nl',
     subject_prompt: payload.subjectPrompt ?? '',
+    chapter_numbering: payload.numbering ?? 'continuous',
   });
 
   // Best effort: if the course_members collection exists, register the creator as owner.
@@ -285,6 +289,7 @@ export async function updateCourse(courseId, updates) {
     public:         updates.public,
     language:       updates.language,
     subject_prompt: updates.subjectPrompt,
+    chapter_numbering: updates.numbering ?? 'continuous',
   });
   const myMembership = await getMyMembership(courseId);
   return toCourse({
@@ -387,10 +392,11 @@ export async function deleteChapter(chapterNumber, courseId) {
   await pb.collection('chapters').delete(existing.id);
 }
 
-export async function createChapter(chapterNumber, courseId) {
+export async function createChapter(chapterNumber, courseId, partId = null) {
   const record = await pb.collection('chapters').create({
     course_id:      courseId,
     chapter_number: chapterNumber,
+    part_id:        partId ?? '',
     title:          'Nieuw hoofdstuk',
     subtitle:       '',
     formulas:       [],
@@ -461,7 +467,10 @@ export async function createChapterFigurePlaceholders(chapterId, figureDefs) {
   );
 }
 
-// Reassign chapter_number = index+1 for each chapter in the new order.
+// Reassign chapter_number = index+1 for each chapter in the new order, and
+// persist its part membership. Callers pass the course flattened in part order
+// (see flattenCourse in lib/chapterOrder), which is what keeps every part's
+// chapters contiguous in the numbering.
 // No unique constraint exists, so parallel updates are safe.
 export async function reorderChapters(chapters, courseId) {
   const records = await Promise.all(
@@ -469,6 +478,7 @@ export async function reorderChapters(chapters, courseId) {
       pb.collection('chapters').update(ch.pbId, {
         course_id:      courseId,
         chapter_number: i + 1,
+        part_id:        ch.partId ?? '',
       })
     )
   );
@@ -500,6 +510,58 @@ export async function upsertChapter(chapter, courseId) {
   await createChapterFigurePlaceholders(record.id, chapter.figures);
 
   return toChapter(record);
+}
+
+// ── Course parts ───────────────────────────────────────────────
+// Topic-based grouping of chapters. A chapter with part_id = null is
+// ungrouped and renders above the parts.
+
+function toPart(record) {
+  return {
+    id:       record.id,
+    courseId: record.course_id,
+    title:    record.title ?? '',
+    number:   record.part_number ?? 0,
+  };
+}
+
+export async function fetchCourseParts(courseId) {
+  if (!courseId) return [];
+  const records = await pb.collection('course_parts').getFullList({
+    sort: 'part_number',
+    filter: `course_id="${escapeFilterValue(courseId)}"`,
+  });
+  return records.map(toPart);
+}
+
+export async function createCoursePart(courseId, title, partNumber) {
+  const record = await pb.collection('course_parts').create({
+    course_id:   courseId,
+    title:       title,
+    part_number: partNumber,
+  });
+  return toPart(record);
+}
+
+export async function renameCoursePart(partId, title) {
+  const record = await pb.collection('course_parts').update(partId, { title });
+  return toPart(record);
+}
+
+// Reassign part_number = index+1 for each part in the new order.
+export async function reorderCourseParts(parts) {
+  const records = await Promise.all(
+    parts.map((part, i) =>
+      pb.collection('course_parts').update(part.id, { part_number: i + 1 })
+    )
+  );
+  return records.map(toPart);
+}
+
+// Deleting a part never deletes its chapters; the caller clears their part_id
+// through reorderChapters first.
+export async function deleteCoursePart(partId) {
+  await pb.collection('course_parts').delete(partId);
 }
 
 // ── Course progress ────────────────────────────────────────────
