@@ -527,11 +527,19 @@ function toPart(record) {
 
 export async function fetchCourseParts(courseId) {
   if (!courseId) return [];
-  const records = await pb.collection('course_parts').getFullList({
-    sort: 'part_number',
-    filter: `course_id="${escapeFilterValue(courseId)}"`,
-  });
-  return records.map(toPart);
+  try {
+    const records = await pb.collection('course_parts').getFullList({
+      sort: 'part_number',
+      filter: `course_id="${escapeFilterValue(courseId)}"`,
+    });
+    return records.map(toPart);
+  } catch (err) {
+    // During an upgrade the new frontend can go live before the schema setup
+    // has created the collection. Degrade to "no parts" instead of taking the
+    // chapter list down with it.
+    console.warn('Course parts unavailable:', err);
+    return [];
+  }
 }
 
 export async function createCoursePart(courseId, title, partNumber) {
