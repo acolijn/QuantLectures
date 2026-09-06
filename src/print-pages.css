@@ -1,0 +1,85 @@
+/* === Paged.js page geometry ======================================= *
+ * Handed to Paged.js as a stylesheet URL, never loaded into the document:
+ * Paged.js processes only the stylesheets it is passed, and these rules
+ * must sit outside @media print because it paginates on screen.
+ * ------------------------------------------------------------------ */
+
+@page {
+  size: A4;
+  margin: 22mm 32mm 24mm;
+
+  /* Running heads. Chrome's own header/footer is a separate thing the
+     reader turns off in the print dialog — these are ours. */
+  @top-left {
+    content: string(course-name);
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-size: 8pt;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #1f3a6e;
+    vertical-align: bottom;
+    padding-bottom: 4mm;
+  }
+  @top-right {
+    content: string(chapter-title);
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-size: 8pt;
+    color: #4a5164;
+    vertical-align: bottom;
+    padding-bottom: 4mm;
+  }
+  @bottom-center {
+    content: counter(page);
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-size: 9pt;
+    color: #4a5164;
+    vertical-align: top;
+    padding-top: 6mm;
+  }
+}
+
+/* A cover carries no running heads and no folio. */
+@page cover {
+  @top-left { content: none; }
+  @top-right { content: none; }
+  @bottom-center { content: none; }
+}
+.print-titlepage { page: cover; }
+
+/* Chapters open on a fresh page; the running head follows the chapter. */
+.print-toc,
+.print-part-title,
+.print-chapter,
+.print-formula-sheet { break-before: page; }
+.print-part-title + .print-chapter { break-before: auto; }
+
+/* content(text), not content(): Paged.js needs the explicit argument.
+   The course name comes from a hidden element rather than .print-course,
+   which is not rendered when the cover title already is the course name. */
+.print-running-meta { string-set: course-name content(text); }
+/* One rule, one selector list: separate rules setting the same string name
+   overwrite each other in Paged.js, and only the last one survives. */
+.print-chapter-title,
+.print-part-title,
+.print-formula-sheet > h1 { string-set: chapter-title content(text); }
+
+/* Contents entries get a dot leader and the page the chapter starts on. */
+.print-toc-entry { display: flex; align-items: baseline; }
+.print-toc-title { flex: 1; }
+.print-toc-title::after {
+  content: target-counter(attr(href), page);
+  float: right;
+  color: #4a5164;
+}
+
+h1, h2, h3 { break-after: avoid; }
+.print-chapter-opener { break-after: avoid; }
+.print-formula,
+.print-exercise,
+.print-step,
+.fig-inline,
+.math-block,
+.math-table { break-inside: avoid; }
+.print-concept, .print-toc-entry { break-inside: avoid-page; }
+p, .text-para { orphans: 3; widows: 3; }
+.print-doc .fig-inline-img { max-width: 100%; max-height: 95mm; }

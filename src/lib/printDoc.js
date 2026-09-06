@@ -6,6 +6,21 @@
 // ordering and label rules the sidebar and reading pane already agree on.
 import { buildChapterLabels, groupChapters } from './chapterOrder';
 
+// Every [fig:ref] a chapter's text actually references.
+export function referencedFigureRefs(chapter) {
+  const refs = new Set();
+  const scan = text => {
+    if (typeof text !== 'string') return;
+    for (const m of text.matchAll(/\[fig:([\w-]+)\]/g)) refs.add(m[1]);
+  };
+  chapter.concepts?.forEach(c => { scan(c.title); scan(c.content); });
+  chapter.exercises?.forEach(ex => {
+    scan(ex.title); scan(ex.intro);
+    ex.steps?.forEach(step => { scan(step.question); step.hints?.forEach(scan); });
+  });
+  return [...refs];
+}
+
 // scope: { kind: 'course' } | { kind: 'part', partId } | { kind: 'chapter', pbId }
 export function selectChapters(parts, chapters, scope) {
   const groups = groupChapters(parts, chapters);

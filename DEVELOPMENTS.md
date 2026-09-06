@@ -30,6 +30,7 @@ Use this table as the single source of truth while we build. Update `Status`, `O
 | Step 10 | Topic-based parts (chapter grouping in sidebar) | 🟢 Done | 1-1.5 days | AI + user | 2026-09-03 | `course_parts` collection + nullable `chapters.part_id`. Collapsible groups in the sidebar with per-part progress, drag within/between parts, parts CRUD in course settings, part dropdown in the chapter editor, and a display-only `chapter_numbering` flag (continuous / per-part). Authorship metadata + "only my chapters" filter not built |
 | Step 6a | Figure format normalization (PDF upload → PNG) | 🟡 In progress | 3 hours left | AI + user | 2026-09-06 | Stage 1 (guard) done: PDF removed from both upload accept lists and rejected at runtime with an explanation, since it uploaded fine and then rendered as a broken `<img>`. Stages 2-4 (convert with `pdfjs-dist`, `source` field, backfill) still open |
 | Step 11 | Printable notes / PDF export | 🟢 Done | 0.5 day | AI + user | 2026-09-06 | `PrintDialog` (scope + includes) → `PrintView` full-screen document → browser Save as PDF. Cover, TOC, formula sheets placed per chapter or collected at the back (a choice, not both), opt-in exercises with hints/solutions inlined. Quizzes never printed. Figures use `fullUrl`; print waits on fonts + `img.decode()`. Paged.js not added |
+| Step 11a | Print typography pass (paragraphs, measure, Paged.js) | 🟢 Done | 1 day | AI + user | 2026-09-06 | Justification bug fixed via a `blocks` mode in `MathText`; measure cut to ~70 characters; navy accent palette; cover, chapter openers and a two-column formula sheet redesigned; optional Paged.js "book layout" adds running heads, folios and a contents list with page numbers; `document.title` set while printing; teachers warned about unuploaded figures |
 
 Status values: `⚪ Planned`, `🟡 In progress`, `🔴 Blocked`, `🟢 Done`.
 Step 1 is intentionally marked as complete because it represents the current app baseline.
@@ -674,6 +675,57 @@ Force the light palette with explicit colors — the screen theme must not leak 
 **Verified** by rendering the components against fixture data in a scratch Vite harness and driving headless Chrome `--print-to-pdf`: cover, TOC, page breaks between chapters and parts, the combined formula sheet, KaTeX in headings and tables, and the exercises layout. Not yet exercised against production data — figures in particular were only checked through the "figure fetch failed" path, since no local PocketBase was running.
 
 **Optional later:** Paged.js for running headers and real page numbers, lazy-loaded on the print route only.
+
+---
+
+## Step 11a — Print typography pass
+
+**What prompted it:** the first real print of two chapters (Kosmologie 1.1 and 1.2). Content and page breaks were right; the page read as a web page dumped onto A4.
+
+### The justification bug (a real defect, not taste)
+
+Every stretched line in that PDF is the line immediately before a display formula — "…een algemenere formulering&nbsp;&nbsp;&nbsp;is", "ing&nbsp;&nbsp;&nbsp;beweegt,&nbsp;&nbsp;&nbsp;geldt".
+
+`MathText` renders a concept into a single `<span>`: paragraphs are `<br/><br/>`, and display math is a `<div class="math-block">` dropped into that inline flow. A block-level child splits the inline content into anonymous block boxes, and the line before the split is no longer the paragraph's last line, so `text-align: justify` stretches it edge to edge. Hyphenation was working ("be-weegt", "formu-lering"); it was never the cause.
+
+The fix is structural, and only for print: split concept content into real `<p>` blocks on blank lines, with display math as a sibling block rather than an inline interloper. Also set `lang` from `course.language` — `hyphens: auto` needs it to pick Dutch patterns.
+
+### Measure
+
+174mm at 11pt is roughly 100 characters per line against a comfortable 60-75. This is the main reason the page read as a web page, and it makes every justification gap worse. Margins go to ~28mm with the body at 11.5pt, landing near 72 characters.
+
+### Browser headers
+
+The "Quantum Physics I — Learning App / https://minilectures.app/ / Page 1 of 11" running heads are Chrome's own, printing `document.title` and the URL. CSS cannot suppress them — it is the "Headers and footers" checkbox in the print dialog. Two responses: set a useful `document.title` while the print view is open, and once Paged.js supplies better running heads, tell the reader in the toolbar to switch Chrome's off.
+
+### Scope
+
+1. **Block structure + `lang`** — kills the stretched lines.
+2. **Typography** — margins and measure, chapter openers (the number sits above the title; the inline `min-width: 2.5em` is what opened that gap in "1.1&nbsp;&nbsp;&nbsp;Van klassieke mechanica"), a formula sheet in two columns rather than name-left/formula-centred with a tall rule, a cover with a long-form date and the part name, TOC on its own page, chapters always starting fresh.
+3. **Paged.js** — running headers, page numbers, TOC page references. Lazy-loaded on the print route only so students never fetch it.
+4. **`document.title`** while printing.
+5. **Missing-figure warning** — that print exposed two broken sentences ("zoals in ,", "het gedachtenexperiment in .") where a `[fig:…]` placeholder has no uploaded file and print hides the placeholder. Print is when a teacher finds out, so the dialog should say so first.
+
+---
+
+### Step 11a status (done, 2026-09-06)
+
+- **`MathText` gained a `blocks` prop.** In that mode it emits real `<p>` elements with display math, tables and resolved figures as siblings; the reading view keeps the old inline behaviour untouched. This is what killed the stretched lines — justification is safe again and orphan/widow control finally has paragraphs to work on. `lang` comes from `course.language`, so `hyphens: auto` picks Dutch patterns.
+- **Measure and colour.** `.print-doc` is 145mm at 11.5pt (~70 characters) inside 22/32/24mm margins. One navy accent (`#1f3a6e`) with a tint for formula cards, all dark enough to survive a greyscale printer.
+- **Layout.** Cover with a long-form date and origin; chapter openers put the number above the title; the formula sheet is a two-column grid — one entry used to eat ~35mm of height and a sheet was mostly air.
+- **`document.title`** is set while the print view is open, so Chrome's own running head names the document instead of "Quantum Physics I — Learning App".
+- **Missing-figure warning** in the toolbar, teacher-only, listing every `[fig:…]` with no uploaded file.
+
+**Paged.js ("Book layout", opt-in).** Lazy-loaded — it lands in its own ~505KB chunk that no student ever fetches. Four things had to be right, each of which fails silently:
+
+1. **Paged.js honours only the stylesheets it is handed.** `preview(content, [], target)` processes *none* — no `@page`, no breaks, no running heads, while still producing page boxes that look plausible. The page geometry therefore lives in its own `print-pages.css`, outside `@media print` (Paged.js paginates on screen, so print-only rules never reach it), while `print-paged.css` styles the preview inside the document.
+2. **It must arrive as raw text in a blob URL.** In dev Vite serves a `.css?url` import as a JavaScript module, so Paged.js fetches JS and parses no rules.
+3. **It flows the *children* of what it is given.** Passing the `<article class="print-doc">` directly drops that element and every rule scoped under it — the giveaway was the cover title losing its serif. It is wrapped in a plain div now.
+4. **Two `string-set` rules for the same string name overwrite each other**, and only the last selector survives — which is why the chapter running head stayed blank while the course name worked. They share one selector list now.
+
+Contents entries are real anchors so `target-counter(attr(href), page)` can resolve; `attr(href url)` and `leader()` are not supported and silently void the whole declaration.
+
+**Verified** with headless Chrome driven over CDP (`--print-to-pdf` prints before Paged.js finishes, so the run has to wait on an explicit condition): plain and book layouts, cover, contents with correct page numbers, running heads, folios, page breaks, the formula sheet, exercises, and the missing-figure warning. Still not exercised against production data — no local PocketBase, so figures were only seen through the failed-fetch path.
 
 ---
 

@@ -48,6 +48,11 @@ export const translations = {
     print_chapter_formulas: 'Formules',
     print_chapter_exercises: 'Opgaven',
     print_solution: 'Uitwerking',
+    print_missing_figures: '{count} figuur/figuren ontbreken en worden niet afgedrukt:',
+    print_book_layout: '📖 Boekopmaak',
+    print_paginating: 'Pagineren…',
+    print_book_failed: 'Boekopmaak mislukt — gewone opmaak wordt afgedrukt.',
+    print_disable_browser_headers: 'Zet in het printvenster "Kop- en voetteksten" uit.',
 
     main_no_course_teacher: 'Nog geen cursus gevonden.',
     main_create_first_course: '➕ Eerste cursus maken',
@@ -374,6 +379,11 @@ export const translations = {
     print_chapter_formulas: 'Formulas',
     print_chapter_exercises: 'Exercises',
     print_solution: 'Solution',
+    print_missing_figures: '{count} figure(s) missing — they will not be printed:',
+    print_book_layout: '📖 Book layout',
+    print_paginating: 'Paginating…',
+    print_book_failed: 'Book layout failed — printing the plain layout.',
+    print_disable_browser_headers: 'Turn off "Headers and footers" in the print dialog.',
 
     main_no_course_teacher: 'No course found yet.',
     main_create_first_course: '➕ Create first course',

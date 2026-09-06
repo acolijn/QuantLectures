@@ -12,7 +12,12 @@ function decodeEscapedUnicode(input) {
   });
 }
 
-export default function MathText({ text, figures, isTeacher, onFigClick }) {
+// `blocks` renders the text as real <p> elements with display math, tables and
+// figures as siblings, instead of one inline run held together by <br/>.
+// Print needs it: a block-level child inside an inline flow splits it into
+// anonymous blocks, so the line before every formula stopped counting as a
+// paragraph's last line and justification stretched it across the measure.
+export default function MathText({ text, figures, isTeacher, onFigClick, blocks = false }) {
   const containerRef = useRef(null);
 
   useEffect(() => {
@@ -86,7 +91,26 @@ export default function MathText({ text, figures, isTeacher, onFigClick }) {
     const allTokensFinal = withFigs;
 
     // Render tokens
-    containerRef.current.innerHTML = '';
+    const root = containerRef.current;
+    root.innerHTML = '';
+
+    // In blocks mode inline content accumulates into a paragraph, which any
+    // block-level token closes.
+    let para = null;
+    const inlineTarget = () => {
+      if (!blocks) return root;
+      if (!para) {
+        para = document.createElement('p');
+        para.className = 'text-para';
+        root.appendChild(para);
+      }
+      return para;
+    };
+    const appendBlock = el => {
+      para = null;
+      root.appendChild(el);
+    };
+
     allTokensFinal.forEach(token => {
       if (token.type === 'figref') {
         const figMap = figures || {};
@@ -120,7 +144,8 @@ export default function MathText({ text, figures, isTeacher, onFigClick }) {
             });
           }
         }
-        containerRef.current.appendChild(wrapper);
+        if (blocks && fig?.url) appendBlock(wrapper);
+        else inlineTarget().appendChild(wrapper);
         return;
       }
       if (token.type === 'displaymath') {
@@ -131,7 +156,7 @@ export default function MathText({ text, figures, isTeacher, onFigClick }) {
         } catch (e) {
           div.textContent = token.value;
         }
-        containerRef.current.appendChild(div);
+        appendBlock(div);
       } else if (token.type === 'inlinemath') {
         const span = document.createElement('span');
         try {
@@ -139,7 +164,7 @@ export default function MathText({ text, figures, isTeacher, onFigClick }) {
         } catch (e) {
           span.textContent = token.value;
         }
-        containerRef.current.appendChild(span);
+        inlineTarget().appendChild(span);
       } else if (token.type === 'table') {
         const tableLines = token.value;
         const table = document.createElement('table');
@@ -178,7 +203,7 @@ export default function MathText({ text, figures, isTeacher, onFigClick }) {
           });
           table.appendChild(tr);
         });
-        containerRef.current.appendChild(table);
+        appendBlock(table);
       } else {
         // Process regular text: normalize escaped newlines and handle formatting
         const span = document.createElement('span');
@@ -187,20 +212,41 @@ export default function MathText({ text, figures, isTeacher, onFigClick }) {
           .replace(/\\n/g, '\n')
           .replace(/\\r/g, '\n');
 
-        let html = normalizedPlainText
+        const inlineHtml = raw => raw
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/\n/g, '<br/>')
+          .replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>');
+
+        if (blocks) {
+          // A blank line ends the paragraph; whitespace-only runs around a
+          // formula must not open an empty one.
+          normalizedPlainText.split(/\n[ \t]*\n/).forEach((chunk, i) => {
+            if (i > 0) para = null;
+            if (!chunk.trim()) return;
+            const part = document.createElement('span');
+            part.innerHTML = inlineHtml(chunk);
+            inlineTarget().appendChild(part);
+          });
+          return;
+        }
+
+        span.innerHTML = normalizedPlainText
           .replace(/&/g, '&amp;')
           .replace(/</g, '&lt;')
           .replace(/>/g, '&gt;')
           .replace(/\n\n/g, '<br/><br/>')
           .replace(/\n/g, '<br/>')
           .replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>');
-        span.innerHTML = html;
-        containerRef.current.appendChild(span);
+        root.appendChild(span);
       }
     });
-  }, [text, figures, isTeacher, onFigClick]);
+  }, [text, figures, isTeacher, onFigClick, blocks]);
 
-  return <span ref={containerRef} />;
+  return blocks
+    ? <div ref={containerRef} className="mathtext-blocks" />
+    : <span ref={containerRef} />;
 }
 
 export function MathBlock({ latex }) {

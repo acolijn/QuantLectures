@@ -1,16 +1,26 @@
-/* === Printable notes (Step 11) ===================================== *
+/* === Printable notes (Steps 11 / 11a) ============================== *
  * On screen the print view is a full-page overlay so the reader can check
  * the document before committing paper; @media print then drops the app
  * chrome and lays the same markup out for A4.
+ *
+ * Colour is deliberately restrained and dark enough to survive a greyscale
+ * printer: one navy accent for structure, a tint for formula cards.
  * ------------------------------------------------------------------- */
 
 .print-root {
+  --pr-ink: #16181d;
+  --pr-muted: #4a5164;
+  --pr-accent: #1f3a6e;
+  --pr-accent-soft: #eff3fa;
+  --pr-rule: #c6d0e3;
+  --pr-rule-faint: #dfe5f0;
+
   position: fixed;
   inset: 0;
   z-index: 300;
   overflow-y: auto;
   background: #ffffff;
-  color: #111111;
+  color: var(--pr-ink);
 }
 
 .print-toolbar {
@@ -32,115 +42,189 @@
   color: var(--color-text-secondary);
 }
 
+.print-hint {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.print-warning {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-width: 170mm;
+  margin: 1rem auto -1rem;
+  padding: 0.75rem 1rem;
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  color: #7a4b00;
+  background: #fdf6e3;
+  border: 1px solid #e8d9a8;
+  border-radius: var(--radius-sm);
+}
+
 /* The document itself. Sized in millimetres so what shows on screen is
-   already the paper measure — a reader checking line breaks here sees
-   roughly what comes out of the printer. */
+   already the paper measure. 145mm at 11.5pt lands near 70 characters a
+   line; the old full-width 174mm ran to about 100, which is what made the
+   first print read like a web page on A4. */
 .print-doc {
-  width: 170mm;
+  width: 145mm;
   margin: 0 auto;
   padding: 2rem 0 4rem;
   font-family: var(--font-serif);
-  font-size: 11pt;
-  line-height: 1.55;
-  color: #111111;
+  font-size: 11.5pt;
+  line-height: 1.58;
+  color: var(--pr-ink);
+  hyphens: auto;
 }
 
-.print-titlepage {
-  padding: 3rem 0 2rem;
-  border-bottom: 2px solid #111111;
-  margin-bottom: 2rem;
+/* Source for the running head string; never seen in the document itself. */
+.print-running-meta {
+  height: 0;
+  overflow: hidden;
+  font-size: 0;
+  line-height: 0;
 }
+
+/* ── Cover ── */
+.print-titlepage { padding: 3rem 0 2rem; }
 
 .print-course {
   font-family: var(--font-sans);
-  font-size: 0.9rem;
-  letter-spacing: 0.08em;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #555555;
+  color: var(--pr-accent);
 }
 
 .print-titlepage h1 {
-  font-size: 2rem;
-  line-height: 1.2;
-  margin: 0.5rem 0;
+  font-size: 2.1rem;
+  line-height: 1.15;
+  margin: 0.6rem 0 0;
+  color: var(--pr-ink);
 }
 
-.print-subtitle { color: #444444; }
-.print-date {
+.print-subtitle {
+  margin-top: 0.5rem;
+  font-size: 1.05rem;
+  color: var(--pr-muted);
+}
+
+.print-titlepage-rule {
+  height: 3px;
+  margin: 1.5rem 0 1rem;
+  background: var(--pr-accent);
+}
+
+.print-date,
+.print-origin {
   font-family: var(--font-sans);
   font-size: 0.85rem;
-  color: #666666;
-  margin-top: 1rem;
+  color: var(--pr-muted);
 }
+.print-origin { margin-top: 0.15rem; color: var(--pr-accent); }
 
 /* ── Table of contents ── */
 .print-toc h2 {
   font-family: var(--font-sans);
-  font-size: 1.1rem;
+  font-size: 1.15rem;
+  color: var(--pr-accent);
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--pr-rule);
   margin-bottom: 1rem;
 }
-.print-toc-group { margin-bottom: 1rem; }
+.print-toc-group { margin-bottom: 0.75rem; }
 .print-toc-part {
   font-family: var(--font-sans);
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #555555;
-  margin: 1rem 0 0.35rem;
+  letter-spacing: 0.08em;
+  color: var(--pr-accent);
+  margin: 1.1rem 0 0.4rem;
 }
 .print-toc-entry {
   display: flex;
   gap: 0.75rem;
-  padding: 0.15rem 0;
+  align-items: baseline;
+  padding: 0.2rem 0;
 }
 .print-toc-number {
-  min-width: 3em;
+  min-width: 3.2em;
+  font-family: var(--font-sans);
+  font-size: 0.9em;
   font-variant-numeric: tabular-nums;
-  color: #555555;
+  color: var(--pr-accent);
+}
+/* The entry is a link only so Paged.js can resolve its page number; it must
+   not look like one. The leader and folio are added in print-pages.css,
+   which only Paged.js sees — without it the entry simply reads as a title. */
+.print-toc-title {
+  color: inherit;
+  text-decoration: none;
 }
 
-/* ── Chapters ── */
+/* ── Parts and chapters ── */
 .print-part-title {
   font-family: var(--font-sans);
-  font-size: 1.8rem;
+  font-size: 1.9rem;
+  color: var(--pr-accent);
   padding-bottom: 0.5rem;
-  border-bottom: 1px solid #111111;
+  border-bottom: 2px solid var(--pr-accent);
   margin-bottom: 1.5rem;
 }
 
 .print-chapter { margin-bottom: 2.5rem; }
 
+.print-chapter-opener {
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 2px solid var(--pr-accent);
+}
+/* The number sits above the title. Inline with a min-width it opened an
+   awkward gap between "1.1" and the words. */
+.print-chapter-number {
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--pr-accent);
+}
 .print-chapter-title {
   font-family: var(--font-sans);
-  font-size: 1.5rem;
-  line-height: 1.25;
-  margin-bottom: 0.35rem;
-}
-.print-chapter-number {
-  display: inline-block;
-  min-width: 2.5em;
-  color: #555555;
+  font-size: 1.65rem;
+  line-height: 1.2;
+  margin-top: 0.15rem;
+  color: var(--pr-ink);
 }
 .print-chapter-subtitle {
-  color: #444444;
+  color: var(--pr-muted);
   font-style: italic;
   margin-bottom: 1.25rem;
 }
 
 /* Concepts print as continuous prose. The reading view's card grid is a
    screen affordance and reads badly on paper. */
-.print-concept { margin-bottom: 1.25rem; }
+.print-concept { margin-bottom: 1.4rem; }
 .print-concept h2 {
   font-family: var(--font-sans);
-  font-size: 1.05rem;
-  margin-bottom: 0.35rem;
+  font-size: 1.02rem;
+  color: var(--pr-accent);
+  margin-bottom: 0.4rem;
 }
-.print-concept-body { text-align: justify; hyphens: auto; }
+/* Justification is safe now that MathText emits real paragraphs in blocks
+   mode — before, the line ahead of every formula stretched to the measure. */
+.print-concept-body .text-para {
+  margin: 0 0 0.7rem;
+  text-align: justify;
+}
+.print-concept-body .text-para:last-child { margin-bottom: 0; }
+
+.print-doc .math-block { margin: 0.9rem 0; }
 
 .print-doc .fig-inline {
   display: block;
-  margin: 1rem auto;
+  margin: 1.1rem auto;
   text-align: center;
 }
 .print-doc .fig-inline-img {
@@ -151,9 +235,9 @@
 .print-doc .fig-inline-caption {
   display: block;
   font-family: var(--font-sans);
-  font-size: 0.85rem;
-  color: #555555;
-  margin-top: 0.35rem;
+  font-size: 0.82rem;
+  color: var(--pr-muted);
+  margin-top: 0.4rem;
 }
 /* A figure whose file was never uploaded must not print as a raw [fig:ref]
    token — it is noise to a reader holding paper. */
@@ -161,52 +245,80 @@
 
 /* The table styling in App.css is built for the dark sidebar-era surfaces:
    white borders and a muted body colour, both of which disappear on paper. */
+.print-doc .math-table { font-size: 0.92em; }
 .print-doc .math-table th,
 .print-doc .math-table td {
-  border: 1px solid #bbbbbb;
-  color: #000000;
+  border: 1px solid var(--pr-rule);
+  color: var(--pr-ink);
+  padding: 7px 10px;
 }
-.print-doc .math-table th { background: #f0f0f0; }
-.print-doc .math-table tr:nth-child(even) { background: #fafafa; }
+.print-doc .math-table th {
+  background: var(--pr-accent-soft);
+  color: var(--pr-accent);
+}
+.print-doc .math-table tr:nth-child(even) { background: #fbfcfe; }
 
-/* ── Formulas ── */
+/* ── Formulas ──
+   Name and formula share a row: the old layout put the name at the left and
+   centred the formula, so one entry ate ~35mm of height and a sheet was
+   mostly air. */
 .print-formulas h2,
 .print-exercises h2 {
   font-family: var(--font-sans);
-  font-size: 1.05rem;
-  margin: 1.5rem 0 0.75rem;
+  font-size: 1rem;
+  color: var(--pr-accent);
+  margin: 1.6rem 0 0.75rem;
   padding-bottom: 0.25rem;
-  border-bottom: 1px solid #cccccc;
+  border-bottom: 1px solid var(--pr-rule);
 }
+
 .print-formula {
-  margin-bottom: 0.75rem;
-  padding-left: 0.75rem;
-  border-left: 2px solid #dddddd;
+  display: grid;
+  grid-template-columns: 42mm 1fr;
+  gap: 0.5rem 1rem;
+  align-items: baseline;
+  padding: 0.35rem 0.6rem;
+  border-left: 3px solid var(--pr-rule);
+  background: var(--pr-accent-soft);
+  margin-bottom: 0.3rem;
 }
 .print-formula-name {
   font-family: var(--font-sans);
-  font-size: 0.85rem;
-  color: #555555;
+  font-size: 0.82rem;
+  color: var(--pr-accent);
 }
-.print-formula-group { margin-bottom: 1.5rem; }
-.print-formula-group h2 {
+/* KaTeX centres display math through .katex-display; in a formula row the
+   equation should sit against its name instead. */
+.print-formula .math-block { margin: 0; }
+.print-formula .katex-display { margin: 0; text-align: left; }
+.print-formula .katex-display > .katex { text-align: left; }
+
+.print-formula-group { margin-bottom: 1.4rem; }
+.print-formula-group-title {
   font-family: var(--font-sans);
-  font-size: 1.05rem;
+  font-size: 1rem;
+  color: var(--pr-ink);
   margin-bottom: 0.5rem;
+}
+.print-formula-group-number {
+  color: var(--pr-accent);
+  font-weight: 700;
+  margin-right: 0.5rem;
 }
 .print-formula-sheet > h1 {
   font-family: var(--font-sans);
-  font-size: 1.8rem;
+  font-size: 1.9rem;
+  color: var(--pr-accent);
   padding-bottom: 0.5rem;
-  border-bottom: 1px solid #111111;
+  border-bottom: 2px solid var(--pr-accent);
   margin-bottom: 1.5rem;
 }
 
 /* ── Exercises (opt-in) ── */
 .print-exercise {
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px dashed #dddddd;
+  margin-bottom: 1.4rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid var(--pr-rule-faint);
 }
 .print-exercise h3 {
   font-family: var(--font-sans);
@@ -216,36 +328,43 @@
 .print-exercise-label {
   display: inline-block;
   margin-right: 0.5rem;
-  color: #555555;
+  color: var(--pr-accent);
 }
-.print-exercise-intro { margin-bottom: 0.75rem; }
-.print-step { margin: 0.75rem 0 0.75rem 1.25rem; }
+.print-exercise-intro { margin-bottom: 0.7rem; }
+.print-step { margin: 0.7rem 0 0.7rem 1.2rem; }
+.print-step-question { display: flex; gap: 0.5rem; }
 .print-step-letter {
-  display: inline-block;
-  min-width: 1.5em;
-  font-weight: 600;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  color: var(--pr-accent);
 }
 .print-step-hint,
 .print-step-solution {
-  margin: 0.35rem 0 0 1.5rem;
+  margin: 0.35rem 0 0 1.4rem;
   font-size: 0.95em;
-  color: #333333;
+  color: var(--pr-muted);
 }
+.print-step-solution { color: var(--pr-ink); }
 .print-step-hint-label,
 .print-step-solution-label {
   font-family: var(--font-sans);
-  font-size: 0.8rem;
+  font-size: 0.72rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #666666;
+  letter-spacing: 0.08em;
+  color: var(--pr-accent);
   margin-right: 0.4rem;
 }
+.print-doc .text-para { margin: 0 0 0.6rem; }
+.print-doc .text-para:last-child { margin-bottom: 0; }
 
 /* === Paper ========================================================= */
 @media print {
   @page {
     size: A4;
-    margin: 20mm 18mm;
+    /* Wider than the 18mm first draft: the measure, not the paper, decides
+       readability, and this leaves room for Paged.js running heads. */
+    margin: 22mm 32mm 24mm;
   }
 
   /* The app is still mounted behind the overlay; none of it belongs on
@@ -266,33 +385,24 @@
   .app { display: block; }
   .print-root { width: 100%; }
 
-  /* The screen theme must not leak into print — dark surfaces cost ink and
-     light greys vanish on paper. */
-  .print-root, .print-doc { color: #000000; }
-
   .print-doc {
     width: 100%;
     margin: 0;
     padding: 0;
   }
 
-  .print-titlepage,
-  .print-toc,
-  .print-part,
-  .print-chapter,
-  .print-formula-sheet { break-after: auto; }
+  .print-titlepage { padding-top: 1rem; }
 
   .print-toc,
   .print-part-title,
   .print-chapter,
   .print-formula-sheet { break-before: page; }
 
-  /* The first chapter follows the title page or the contents; it does not
-     need a page break of its own on top of theirs. */
-  .print-part > .print-chapter:first-child,
+  /* Only a chapter opening straight after its part title shares that page. */
   .print-part-title + .print-chapter { break-before: auto; }
 
   h1, h2, h3 { break-after: avoid; }
+  .print-chapter-opener { break-after: avoid; }
   .print-concept h2 + .print-concept-body { break-before: avoid; }
 
   .print-formula,
@@ -304,8 +414,7 @@
 
   .print-concept, .print-toc-entry { break-inside: avoid-page; }
 
-  p, .print-concept-body { orphans: 3; widows: 3; }
+  p, .text-para { orphans: 3; widows: 3; }
 
-  /* Figures are laid out for a 170mm measure; let them use it. */
-  .print-doc .fig-inline-img { max-width: 100%; max-height: 90mm; }
+  .print-doc .fig-inline-img { max-width: 100%; max-height: 95mm; }
 }

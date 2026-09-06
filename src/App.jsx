@@ -223,6 +223,7 @@ function AppContent() {
           chapters={chapters}
           scope={printJob.scope}
           options={printJob.options}
+          isTeacher={isTeacher}
           onClose={() => setPrintJob(null)}
         />
       )}
