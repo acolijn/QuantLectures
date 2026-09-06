@@ -29,7 +29,7 @@ Use this table as the single source of truth while we build. Update `Status`, `O
 | Step 9a | Landing page — polish (progress bars, resume, blurbs, teacher tile) | ⚪ Planned | 0.5 day | - | 2026-06-25 | Builds on Step 9; ties to Step 3d progress |
 | Step 10 | Topic-based parts (chapter grouping in sidebar) | 🟢 Done | 1-1.5 days | AI + user | 2026-09-03 | `course_parts` collection + nullable `chapters.part_id`. Collapsible groups in the sidebar with per-part progress, drag within/between parts, parts CRUD in course settings, part dropdown in the chapter editor, and a display-only `chapter_numbering` flag (continuous / per-part). Authorship metadata + "only my chapters" filter not built |
 | Step 6a | Figure format normalization (PDF upload → PNG) | 🟡 In progress | 3 hours left | AI + user | 2026-09-06 | Stage 1 (guard) done: PDF removed from both upload accept lists and rejected at runtime with an explanation, since it uploaded fine and then rendered as a broken `<img>`. Stages 2-4 (convert with `pdfjs-dist`, `source` field, backfill) still open |
-| Step 11 | Printable notes / PDF export | 🟢 Done | 0.5 day | AI + user | 2026-09-06 | `PrintDialog` (scope + includes) → `PrintView` full-screen document → browser Save as PDF. Cover, TOC, per-chapter formula sheets, combined sheet at the back, opt-in exercises with hints/solutions inlined. Quizzes never printed. Figures use `fullUrl`; print waits on fonts + `img.decode()`. Paged.js not added |
+| Step 11 | Printable notes / PDF export | 🟢 Done | 0.5 day | AI + user | 2026-09-06 | `PrintDialog` (scope + includes) → `PrintView` full-screen document → browser Save as PDF. Cover, TOC, formula sheets placed per chapter or collected at the back (a choice, not both), opt-in exercises with hints/solutions inlined. Quizzes never printed. Figures use `fullUrl`; print waits on fonts + `img.decode()`. Paged.js not added |
 
 Status values: `⚪ Planned`, `🟡 In progress`, `🔴 Blocked`, `🟢 Done`.
 Step 1 is intentionally marked as complete because it represents the current app baseline.
@@ -659,7 +659,8 @@ Force the light palette with explicit colors — the screen theme must not leak 
 ### Step 11 status (done, 2026-09-06)
 
 - `src/lib/printDoc.js`: `selectChapters` / `buildPrintDoc` — pure. Reuses `groupChapters` and `buildChapterLabels` so a single-chapter print still carries its course-wide label ("2.1"), and a part scope keeps its part header.
-- `src/components/PrintView.jsx`: full-screen document — cover, TOC (only above one chapter), chapters as continuous prose, per-chapter formula section, opt-in exercises with every step, hint and solution already open, and a combined formula sheet at the back (only when more than one chapter contributes formulas).
+- `src/components/PrintView.jsx`: full-screen document — cover, TOC (only above one chapter), chapters as continuous prose, opt-in exercises with every step, hint and solution already open, and formula sheets in whichever place the dialog asked for.
+- Formula placement is one setting with three values (`per_chapter` / `end` / `none`), not a boolean. The first version rendered both the per-chapter sections and the collected sheet, which printed every formula twice.
 - `src/components/PrintDialog.jsx`: scope (chapter / part / whole course) plus include toggles. Parts with no chapters are not offered.
 - `src/print.css`: A4 `@page`, break rules, orphan/widow control, forced light palette. Table borders and body colour are restated because the App.css table styling uses white borders that vanish on paper.
 - `src/lib/figures.js`: `buildFiguresMap` moved out of `ChapterView` and shared; `full: true` gives print the original file instead of the 400px thumbnail.

@@ -9,7 +9,7 @@ export default function PrintDialog({ course, parts, chapters, currentChapter, o
   const { t } = useLanguage();
   const [kind, setKind] = useState(currentChapter ? 'chapter' : 'course');
   const [partId, setPartId] = useState(parts?.[0]?.id ?? null);
-  const [includeFormulas, setIncludeFormulas] = useState(true);
+  const [formulas, setFormulas] = useState('per_chapter');
   const [includeExercises, setIncludeExercises] = useState(false);
 
   const groups = groupChapters(parts, chapters);
@@ -75,12 +75,12 @@ export default function PrintDialog({ course, parts, chapters, currentChapter, o
         <div className="printdialog-section">
           <div className="printdialog-legend">{t('print_include')}</div>
           <label className="printdialog-option">
-            <input
-              type="checkbox"
-              checked={includeFormulas}
-              onChange={e => setIncludeFormulas(e.target.checked)}
-            />
             <span>{t('print_include_formulas')}</span>
+            <select value={formulas} onChange={e => setFormulas(e.target.value)}>
+              <option value="per_chapter">{t('print_formulas_per_chapter')}</option>
+              <option value="end">{t('print_formulas_end')}</option>
+              <option value="none">{t('print_formulas_none')}</option>
+            </select>
           </label>
           <label className="printdialog-option">
             <input
@@ -98,7 +98,7 @@ export default function PrintDialog({ course, parts, chapters, currentChapter, o
           <button
             className="btn-primary"
             disabled={count === 0}
-            onClick={() => onPrint(scope, { includeFormulas, includeExercises })}
+            onClick={() => onPrint(scope, { formulas, includeExercises })}
           >
             {count === 1 ? t('print_open_one') : t('print_open', { count })}
           </button>

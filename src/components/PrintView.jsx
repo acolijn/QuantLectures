@@ -133,7 +133,7 @@ export default function PrintView({ course, parts, chapters, scope, options, onC
                 chapter={ch}
                 label={doc.labels.get(ch.pbId) ?? ch.id}
                 figures={figureMaps[ch.pbId] ?? {}}
-                includeFormulas={doc.includeFormulas}
+                includeFormulas={doc.showChapterFormulas}
                 includeExercises={doc.includeExercises}
               />
             ))}

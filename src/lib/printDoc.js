@@ -34,7 +34,9 @@ export function buildPrintDoc(course, parts, chapters, scope, options = {}) {
   const labels = buildChapterLabels(parts, chapters, course?.numbering);
   const flat = groups.flatMap(g => g.chapters);
 
-  const includeFormulas = options.includeFormulas ?? true;
+  // 'per_chapter' | 'end' | 'none'. Printing both places the same formulas
+  // twice in one document, which is what the first version did.
+  const formulas = options.formulas ?? 'per_chapter';
   const includeExercises = options.includeExercises ?? false;
 
   return {
@@ -42,15 +44,13 @@ export function buildPrintDoc(course, parts, chapters, scope, options = {}) {
     groups,
     labels,
     chapters: flat,
-    includeFormulas,
+    formulas,
     includeExercises,
     // A table of contents only earns its page once there is more than one chapter.
     showToc: flat.length > 1,
-    // The combined sheet at the back repeats what the per-chapter sections
-    // already show, so it only earns its page once it pulls together formulas
-    // from more than one chapter.
+    showChapterFormulas: formulas === 'per_chapter',
     showCombinedFormulaSheet:
-      includeFormulas && flat.filter(ch => ch.formulas?.length > 0).length > 1,
+      formulas === 'end' && flat.some(ch => ch.formulas?.length > 0),
     title: printTitle(course, groups, scope, labels),
   };
 }
