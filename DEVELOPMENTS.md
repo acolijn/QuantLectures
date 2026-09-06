@@ -28,6 +28,8 @@ Use this table as the single source of truth while we build. Update `Status`, `O
 | Step 9 | Landing page — min (hero + course grid + routing fix) | 🟢 Done | 0.5 day | AI + user | 2026-06-25 | `Landing.jsx` entry page: hero, published-course grid (flag/subtitle/draft badge), feature blurbs. `useCourses` no longer auto-opens first course; sidebar "← All courses" returns home. Brand "MiniLectures.app"; landing forced to English. NL/EN keys added |
 | Step 9a | Landing page — polish (progress bars, resume, blurbs, teacher tile) | ⚪ Planned | 0.5 day | - | 2026-06-25 | Builds on Step 9; ties to Step 3d progress |
 | Step 10 | Topic-based parts (chapter grouping in sidebar) | 🟢 Done | 1-1.5 days | AI + user | 2026-09-03 | `course_parts` collection + nullable `chapters.part_id`. Collapsible groups in the sidebar with per-part progress, drag within/between parts, parts CRUD in course settings, part dropdown in the chapter editor, and a display-only `chapter_numbering` flag (continuous / per-part). Authorship metadata + "only my chapters" filter not built |
+| Step 6a | Figure format normalization (PDF upload → PNG) | 🟡 In progress | 3 hours left | AI + user | 2026-09-06 | Stage 1 (guard) done: PDF removed from both upload accept lists and rejected at runtime with an explanation, since it uploaded fine and then rendered as a broken `<img>`. Stages 2-4 (convert with `pdfjs-dist`, `source` field, backfill) still open |
+| Step 11 | Printable notes / PDF export | 🟢 Done | 0.5 day | AI + user | 2026-09-06 | `PrintDialog` (scope + includes) → `PrintView` full-screen document → browser Save as PDF. Cover, TOC, per-chapter formula sheets, combined sheet at the back, opt-in exercises with hints/solutions inlined. Quizzes never printed. Figures use `fullUrl`; print waits on fonts + `img.decode()`. Paged.js not added |
 
 Status values: `⚪ Planned`, `🟡 In progress`, `🔴 Blocked`, `🟢 Done`.
 Step 1 is intentionally marked as complete because it represents the current app baseline.
@@ -572,6 +574,107 @@ display:  'continuous' → "3"
 **Also unlocks:** per-part progress rollup, shorter sidebar on long courses, and a natural table-of-contents structure for a future course overview page.
 
 **Effort:** ~1-1.5 days. Main cost is the sidebar rewrite (flat map → nested) and cross-part drag logic.
+
+## Step 6a — Figure format normalization (PDF → PNG)
+
+**Problem:** the upload modal accepts `application/pdf` ([`FigureUploadModal.jsx:54`](src/components/FigureUploadModal.jsx#L54)) and the upload succeeds, but nothing renders it. `buildFiguresMap` sets an `isPdf` flag ([`ChapterView.jsx:19`](src/components/ChapterView.jsx#L19)) that no consumer reads, and the renderer puts every figure into a plain `<img src>` ([`MathText.jsx:96-99`](src/components/MathText.jsx#L96-L99)). PocketBase only generates thumbnails for raster images, so the `thumb: '400x0'` request returns the raw PDF bytes and the browser shows a broken image. The teacher gets no warning — the editor shows a 📄 badge instead of a preview and calls it a day.
+
+This matters more once co-teachers upload figures: telling them "convert it yourself first" pushes work onto people who may not know how.
+
+**Storage design — two file fields on `chapter_figures`:**
+
+```
+chapter_figures
+───────────────────────────────
+file      (file) — the display asset, always browser-renderable:
+                   converted PNG for PDF uploads, passthrough for PNG/JPEG/SVG
+source    (file) — the raw original, populated only when a conversion happened
+```
+
+`file` keeps its current meaning, so every existing record and every read path stays valid; `source` is simply empty on old rows.
+
+Keeping the original PDF costs almost nothing (vector PDFs are tens of KB) and buys: re-rendering at a different DPI later without asking teachers for the file again, a path to vector output if print quality disappoints, and letting the teacher download what they actually uploaded. If the field is added later the originals are already gone — cheap now, impossible to retrofit.
+
+**One PNG, not two.** PocketBase generates and caches thumbnails on demand, so a single ~300 DPI PNG covers both uses: the reading view keeps requesting `thumb: '400x0'` (`url`) and students download the same bytes as today, while the print route uses `fullUrl` for the full-resolution original. No second render, no extra field.
+
+**Rollout:**
+1. **Guard (10 min, do first regardless).** Either drop `application/pdf` from the accept list or keep it and show an explicit warning. Silently-broken is the worst state and it is the state today.
+2. **Convert on upload (~3 h).** Lazy-load `pdfjs-dist` inside the upload modal, render page 1 to a canvas at scale ≈ 4, export a PNG blob into `file`, put the original into `source`. Lazy-loading keeps the ~350 KB dependency off the student bundle — it is a teacher-only path.
+3. **Clean up — the guard from step 1 is reverted here.** `application/pdf` goes back into the accept list and the warning text is removed; PDF is a supported upload from this point on. The `isPdf` branches in [`ChapterView.jsx:19`](src/components/ChapterView.jsx#L19), [`FigureUploadModal.jsx:18`](src/components/FigureUploadModal.jsx#L18) and [`ChapterEditor.jsx:458`](src/components/admin/ChapterEditor.jsx#L458) all delete with it: once conversion runs, every stored `file` is renderable and nothing downstream needs to ask what the original was.
+4. **Backfill (~1 h, only if needed).** Query `chapter_figures` for filenames ending in `.pdf` on production first. If any exist, a script in `scripts/` converts and re-uploads them — use `pdftocairo -png -r 300` locally rather than running pdf.js under Node.
+
+**Notes:**
+- SVG is the best format for this app — vector, sharp on screen and in print, small, no conversion. Worth recommending to teachers whose plotting tool can export it (`plt.savefig('fig.svg')`). PocketBase will not thumbnail SVG, so `url` and `fullUrl` return the same file; harmless.
+- `source` should be `maxSelect: 1`, matching `file`.
+
+**Deploy:** `node --env-file=.env scripts/setup-pocketbase.js` to add the `source` field before shipping the frontend.
+
+---
+
+## Step 11 — Printable notes / PDF export
+
+**What:** a way to get a cleanly typeset PDF of the notes for reading on paper. Chapters and formula sheets only — quizzes are never printed, exercises are opt-in.
+
+**Approach: a dedicated print route plus print CSS.** `#/print?…` renders the selected content as one continuous document with no sidebar, no tabs and no app chrome; the user saves it with the browser's own Save as PDF.
+
+Rejected alternatives:
+- *Headless Chrome on the server (Puppeteer).* The backend is PocketBase (Go) behind nginx; this would mean a new Node service plus Chromium in the image (~400 MB) for a feature used occasionally.
+- *LaTeX export.* Best typography, but needs texlive in the image plus a full translation of the markdown/KaTeX subset and the `[fig:ref]` mechanism. Large, and the browser output is good enough.
+
+**Scope picker** (a "Print / PDF" button in the teacher toolbar and the chapter view):
+- whole course / one part / one chapter
+- include formula sheets — default on
+- include exercises — default off
+- quizzes: never
+
+**Document structure:**
+- title page (course name, part or chapter, date)
+- table of contents when the scope covers more than one chapter
+- per chapter: header, then concepts as continuous prose — the `concepts-grid` card layout reads badly on paper — with figures inline and numbered captions
+- formula sheet as a section at the end of each chapter, plus a combined sheet at the back for whole-course scope
+
+**Print CSS essentials:**
+
+```css
+@page { size: A4; margin: 20mm 18mm; }
+.chapter { break-before: page; }
+h2, h3 { break-after: avoid; }
+figure, .formula-card { break-inside: avoid; }
+```
+
+Force the light palette with explicit colors — the screen theme must not leak into print.
+
+**Two things that will otherwise bite:**
+1. **Figure resolution.** The reading view requests `thumb: '400x0'`; at a ~150 mm column that is roughly 68 DPI and plot labels become unreadable. The print route must use `fullUrl` from `buildFiguresMap` instead of `url`. Depends on figures actually being raster or vector images — see Step 6a.
+2. **Load gating.** Printing before images and fonts settle produces blank boxes. Await `document.fonts.ready` and `img.decode()` on every figure before enabling the print action.
+
+**Optional later:** [Paged.js](https://pagedjs.org) adds running headers, real page numbers and a table of contents with page references. ~250 KB, lazy-loaded on the print route only. Add it only if plain print CSS looks too bare.
+
+**Effort:** ~half a day for the route, picker and CSS; ~1 h for the load gating; ~half a day more if Paged.js is added.
+
+**Ordering vs. Step 6a:** ship the Step 6a guard first either way. If co-teachers start uploading figures within weeks, do the rest of Step 6a before this; otherwise print first, since figures work today.
+
+---
+
+### Step 11 status (done, 2026-09-06)
+
+- `src/lib/printDoc.js`: `selectChapters` / `buildPrintDoc` — pure. Reuses `groupChapters` and `buildChapterLabels` so a single-chapter print still carries its course-wide label ("2.1"), and a part scope keeps its part header.
+- `src/components/PrintView.jsx`: full-screen document — cover, TOC (only above one chapter), chapters as continuous prose, per-chapter formula section, opt-in exercises with every step, hint and solution already open, and a combined formula sheet at the back (only when more than one chapter contributes formulas).
+- `src/components/PrintDialog.jsx`: scope (chapter / part / whole course) plus include toggles. Parts with no chapters are not offered.
+- `src/print.css`: A4 `@page`, break rules, orphan/widow control, forced light palette. Table borders and body colour are restated because the App.css table styling uses white borders that vanish on paper.
+- `src/lib/figures.js`: `buildFiguresMap` moved out of `ChapterView` and shared; `full: true` gives print the original file instead of the 400px thumbnail.
+- `api.js` gained `fetchFiguresForChapters`, chunked at 40 ids, so a whole-course print is a couple of requests rather than one per chapter.
+- Entry point is a sidebar button, not the teacher toolbar — students print too.
+
+**Two traps worth remembering:**
+- `.app` is `display: flex`. Once the print root stops being a fixed overlay it becomes a flex item and shrinks to fit, squeezing the document into a narrow column; `@media print` sets `.app { display: block }`.
+- The rules that hide the app around the document are scoped to `body.print-mode`, which `PrintView` adds on mount. Without that scope, an ordinary Cmd+P anywhere else in the app prints a blank page.
+
+**Verified** by rendering the components against fixture data in a scratch Vite harness and driving headless Chrome `--print-to-pdf`: cover, TOC, page breaks between chapters and parts, the combined formula sheet, KaTeX in headings and tables, and the exercises layout. Not yet exercised against production data — figures in particular were only checked through the "figure fetch failed" path, since no local PocketBase was running.
+
+**Optional later:** Paged.js for running headers and real page numbers, lazy-loaded on the print route only.
+
+---
 
 ## Known Issues (Blocking)
 

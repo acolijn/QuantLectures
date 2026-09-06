@@ -5,24 +5,7 @@ import GuidedExercise from './GuidedExercise';
 import FigureUploadModal from './FigureUploadModal';
 import { useLanguage } from '../contexts/LanguageContext';
 import { fetchChapterFigures } from '../lib/api';
-import { pb } from '../lib/pocketbase';
-
-function buildFiguresMap(figures) {
-  if (!figures?.length) return {};
-  const map = {};
-  figures.forEach(fig => {
-    if (fig.filename) {
-      map[fig.ref] = {
-        caption: fig.caption,
-        url: pb.files.getURL({ collectionName: 'chapter_figures', id: fig.id }, fig.filename, { thumb: '400x0' }),
-        fullUrl: pb.files.getURL({ collectionName: 'chapter_figures', id: fig.id }, fig.filename),
-        isPdf: fig.filename.toLowerCase().endsWith('.pdf'),
-        filename: fig.filename,
-      };
-    }
-  });
-  return map;
-}
+import { buildFiguresMap } from '../lib/figures';
 
 export default function ChapterView({ chapter, chapterLabel, progress, onProgressUpdate, isTeacher }) {
   const [tab, setTab] = useState('concepts');

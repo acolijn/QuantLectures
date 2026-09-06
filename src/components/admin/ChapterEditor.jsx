@@ -4,6 +4,7 @@ import { MathBlock } from '../MathText';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { pb } from '../../lib/pocketbase';
 import { hasContent as hasAnswer } from '../../lib/answerCheck';
+import { FIGURE_ACCEPT, unsupportedFigureFile } from '../../lib/figures';
 
 export default function ChapterEditor({ chapter, chapterLabel, courseId, parts, onAssignPart, onClose, onSaved }) {
   const { t } = useLanguage();
@@ -55,6 +56,13 @@ export default function ChapterEditor({ chapter, chapterLabel, courseId, parts, 
 
   // ── Figure helpers ────────────────────────────────────────
   async function handleFigureUpload(i, file) {
+    // accept= is only a hint; a PDF can still arrive and would upload fine and
+    // then render as a broken image, so reject it here where it can be explained.
+    const bad = unsupportedFigureFile(file);
+    if (bad) {
+      setError(bad === 'pdf' ? t('figure_pdf_unsupported') : t('figure_type_unsupported'));
+      return;
+    }
     setUploadingFig(i);
     setError(null);
     try {
@@ -505,7 +513,7 @@ export default function ChapterEditor({ chapter, chapterLabel, courseId, parts, 
                         )}
                         <input
                           type="file"
-                          accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml,application/pdf"
+                          accept={FIGURE_ACCEPT}
                           style={{ display: 'none' }}
                           ref={el => { fileInputRefs.current[i] = el; }}
                           onChange={e => { if (e.target.files[0]) handleFigureUpload(i, e.target.files[0]); }}

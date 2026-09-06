@@ -417,6 +417,29 @@ export async function fetchChapterFigures(chapterId) {
   return records.map(toFigure);
 }
 
+// Figures for many chapters at once, keyed by chapter pbId. The print view can
+// cover a whole course, and one request per chapter would be dozens of
+// round-trips; the filter is chunked so it never grows unbounded.
+export async function fetchFiguresForChapters(chapterIds) {
+  const ids = (chapterIds ?? []).filter(Boolean);
+  if (ids.length === 0) return {};
+
+  const chunks = [];
+  for (let i = 0; i < ids.length; i += 40) chunks.push(ids.slice(i, i + 40));
+
+  const results = await Promise.all(chunks.map(chunk =>
+    pb.collection('chapter_figures').getFullList({
+      filter: chunk.map(id => `chapter_id="${escapeFilterValue(id)}"`).join(' || '),
+    })
+  ));
+
+  const byChapter = {};
+  results.flat().forEach(record => {
+    (byChapter[record.chapter_id] ??= []).push(toFigure(record));
+  });
+  return byChapter;
+}
+
 // Upload/replace a figure. Creates new if figureId not provided, updates if it does.
 export async function uploadChapterFigure(chapterId, ref, caption, file, figureId = null) {
   const formData = new FormData();

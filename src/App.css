@@ -250,6 +250,25 @@ body {
   border-top: 1px solid rgba(255,255,255,0.08);
 }
 
+.sidebar-print-btn {
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  color: var(--color-text-sidebar);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.sidebar-print-btn:hover {
+  background: rgba(255,255,255,0.12);
+  color: #ffffff;
+}
+
 .overall-progress {
   padding: 12px 20px;
   border-top: 1px solid rgba(255,255,255,0.08);
@@ -2434,3 +2453,50 @@ body {
 }
 
 .course-settings-danger { border-color: var(--color-incorrect); }
+
+/* === Print dialog (Step 11) === */
+.printdialog { max-width: 460px; }
+
+.printdialog-section {
+  margin: 1rem 0;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.printdialog-legend {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.printdialog-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+  cursor: pointer;
+}
+
+.printdialog-option select {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.printdialog-note {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  margin-top: 0.5rem;
+}
+
+.printdialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+}

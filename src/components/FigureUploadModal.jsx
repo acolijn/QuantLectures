@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { uploadChapterFigure } from '../lib/api';
 import { useLanguage } from '../contexts/LanguageContext';
 import { pb } from '../lib/pocketbase';
+import { FIGURE_ACCEPT, unsupportedFigureFile } from '../lib/figures';
 
 // Inline upload/edit for a single [fig:ref] placeholder clicked in the reading view.
 // existingFig: figure record matching the ref (may have no file), or null (auto-create).
@@ -19,6 +20,19 @@ export default function FigureUploadModal({ chapterPbId, figRef, existingFig, on
   const currentThumb = hasFile && !isPdf
     ? pb.files.getURL({ collectionName: 'chapter_figures', id: existingFig.id }, existingFig.filename, { thumb: '400x0' })
     : null;
+
+  // accept= is only a hint; a PDF can still arrive and would upload fine and
+  // then render as a broken image, so reject it here where it can be explained.
+  function handlePick(picked) {
+    const bad = picked && unsupportedFigureFile(picked);
+    if (bad) {
+      setFile(null);
+      setError(bad === 'pdf' ? t('figure_pdf_unsupported') : t('figure_type_unsupported'));
+      return;
+    }
+    setFile(picked);
+    setError(null);
+  }
 
   async function handleSubmit() {
     if (!file) { setError(t('figmodal_no_file')); return; }
@@ -51,10 +65,10 @@ export default function FigureUploadModal({ chapterPbId, figRef, existingFig, on
 
         <input
           type="file"
-          accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml,application/pdf"
+          accept={FIGURE_ACCEPT}
           style={{ display: 'none' }}
           ref={fileInputRef}
-          onChange={e => { setFile(e.target.files[0] || null); setError(null); }}
+          onChange={e => handlePick(e.target.files[0] || null)}
         />
         <button className="btn-secondary" onClick={() => fileInputRef.current?.click()}>
           {file ? file.name : (hasFile ? t('editor_figure_replace') : t('editor_figure_upload'))}

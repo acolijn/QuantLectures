@@ -29,6 +29,7 @@ export default function Sidebar({
   onLoginClick,
   onMoveChapter,
   onMovePart,
+  onPrint,
 }) {
   const { user, isTeacher, signOut } = useAuth();
   const { t } = useLanguage();
@@ -239,6 +240,12 @@ export default function Sidebar({
       )}
 
       <div className="sidebar-footer">
+        {onPrint && (
+          <button className="sidebar-print-btn" onClick={onPrint}>
+            {t('sidebar_print')}
+          </button>
+        )}
+
         {/* Auth section */}
         <div className="sidebar-auth">
           {user ? (

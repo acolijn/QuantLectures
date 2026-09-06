@@ -4,6 +4,8 @@ import Landing from './components/Landing';
 import CourseSettings from './components/CourseSettings';
 import AdminPanel from './components/AdminPanel';
 import JoinCourseModal from './components/JoinCourseModal';
+import PrintDialog from './components/PrintDialog';
+import PrintView from './components/PrintView';
 import AppMainContent from './components/app/AppMainContent';
 import AppOverlays from './components/app/AppOverlays';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -23,6 +25,9 @@ function AppContent() {
   const [showCourseSettings, setShowCourseSettings] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [joinCode, setJoinCode] = useState(null); // null = modal closed
+  const [showPrintDialog, setShowPrintDialog] = useState(false);
+  // null = not printing; otherwise { scope, options } chosen in the dialog.
+  const [printJob, setPrintJob] = useState(null);
   const {
     courses,
     activeCourseId,
@@ -197,6 +202,11 @@ function AppContent() {
     if (courseId) handleSelectCourse(courseId);
   }
 
+  function handleStartPrint(scope, options) {
+    setShowPrintDialog(false);
+    setPrintJob({ scope, options });
+  }
+
   async function handleDeleteCourseFromSettings() {
     await handleDeleteCourse();
     setShowCourseSettings(false);
@@ -206,6 +216,28 @@ function AppContent() {
 
   return (
     <div className="app">
+      {printJob && (
+        <PrintView
+          course={course}
+          parts={parts}
+          chapters={chapters}
+          scope={printJob.scope}
+          options={printJob.options}
+          onClose={() => setPrintJob(null)}
+        />
+      )}
+
+      {showPrintDialog && course && (
+        <PrintDialog
+          course={course}
+          parts={parts}
+          chapters={chapters}
+          currentChapter={chapter ?? null}
+          onClose={() => setShowPrintDialog(false)}
+          onPrint={handleStartPrint}
+        />
+      )}
+
       <AppOverlays
         showLogin={showLogin}
         onCloseLogin={() => setShowLogin(false)}
@@ -270,6 +302,7 @@ function AppContent() {
           onLoginClick={() => setShowLogin(true)}
           onMoveChapter={handleMoveChapter}
           onMovePart={movePartTo}
+          onPrint={chapters.length > 0 ? () => setShowPrintDialog(true) : null}
         />
       </div>
       {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}

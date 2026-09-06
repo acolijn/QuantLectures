@@ -1,0 +1,311 @@
+/* === Printable notes (Step 11) ===================================== *
+ * On screen the print view is a full-page overlay so the reader can check
+ * the document before committing paper; @media print then drops the app
+ * chrome and lays the same markup out for A4.
+ * ------------------------------------------------------------------- */
+
+.print-root {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  overflow-y: auto;
+  background: #ffffff;
+  color: #111111;
+}
+
+.print-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: var(--shadow);
+}
+
+.print-toolbar-status {
+  margin-left: auto;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
+/* The document itself. Sized in millimetres so what shows on screen is
+   already the paper measure — a reader checking line breaks here sees
+   roughly what comes out of the printer. */
+.print-doc {
+  width: 170mm;
+  margin: 0 auto;
+  padding: 2rem 0 4rem;
+  font-family: var(--font-serif);
+  font-size: 11pt;
+  line-height: 1.55;
+  color: #111111;
+}
+
+.print-titlepage {
+  padding: 3rem 0 2rem;
+  border-bottom: 2px solid #111111;
+  margin-bottom: 2rem;
+}
+
+.print-course {
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #555555;
+}
+
+.print-titlepage h1 {
+  font-size: 2rem;
+  line-height: 1.2;
+  margin: 0.5rem 0;
+}
+
+.print-subtitle { color: #444444; }
+.print-date {
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  color: #666666;
+  margin-top: 1rem;
+}
+
+/* ── Table of contents ── */
+.print-toc h2 {
+  font-family: var(--font-sans);
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+}
+.print-toc-group { margin-bottom: 1rem; }
+.print-toc-part {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #555555;
+  margin: 1rem 0 0.35rem;
+}
+.print-toc-entry {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.15rem 0;
+}
+.print-toc-number {
+  min-width: 3em;
+  font-variant-numeric: tabular-nums;
+  color: #555555;
+}
+
+/* ── Chapters ── */
+.print-part-title {
+  font-family: var(--font-sans);
+  font-size: 1.8rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #111111;
+  margin-bottom: 1.5rem;
+}
+
+.print-chapter { margin-bottom: 2.5rem; }
+
+.print-chapter-title {
+  font-family: var(--font-sans);
+  font-size: 1.5rem;
+  line-height: 1.25;
+  margin-bottom: 0.35rem;
+}
+.print-chapter-number {
+  display: inline-block;
+  min-width: 2.5em;
+  color: #555555;
+}
+.print-chapter-subtitle {
+  color: #444444;
+  font-style: italic;
+  margin-bottom: 1.25rem;
+}
+
+/* Concepts print as continuous prose. The reading view's card grid is a
+   screen affordance and reads badly on paper. */
+.print-concept { margin-bottom: 1.25rem; }
+.print-concept h2 {
+  font-family: var(--font-sans);
+  font-size: 1.05rem;
+  margin-bottom: 0.35rem;
+}
+.print-concept-body { text-align: justify; hyphens: auto; }
+
+.print-doc .fig-inline {
+  display: block;
+  margin: 1rem auto;
+  text-align: center;
+}
+.print-doc .fig-inline-img {
+  display: block;
+  max-width: 100%;
+  margin: 0 auto;
+}
+.print-doc .fig-inline-caption {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  color: #555555;
+  margin-top: 0.35rem;
+}
+/* A figure whose file was never uploaded must not print as a raw [fig:ref]
+   token — it is noise to a reader holding paper. */
+.print-doc .fig-placeholder { display: none; }
+
+/* The table styling in App.css is built for the dark sidebar-era surfaces:
+   white borders and a muted body colour, both of which disappear on paper. */
+.print-doc .math-table th,
+.print-doc .math-table td {
+  border: 1px solid #bbbbbb;
+  color: #000000;
+}
+.print-doc .math-table th { background: #f0f0f0; }
+.print-doc .math-table tr:nth-child(even) { background: #fafafa; }
+
+/* ── Formulas ── */
+.print-formulas h2,
+.print-exercises h2 {
+  font-family: var(--font-sans);
+  font-size: 1.05rem;
+  margin: 1.5rem 0 0.75rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid #cccccc;
+}
+.print-formula {
+  margin-bottom: 0.75rem;
+  padding-left: 0.75rem;
+  border-left: 2px solid #dddddd;
+}
+.print-formula-name {
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  color: #555555;
+}
+.print-formula-group { margin-bottom: 1.5rem; }
+.print-formula-group h2 {
+  font-family: var(--font-sans);
+  font-size: 1.05rem;
+  margin-bottom: 0.5rem;
+}
+.print-formula-sheet > h1 {
+  font-family: var(--font-sans);
+  font-size: 1.8rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #111111;
+  margin-bottom: 1.5rem;
+}
+
+/* ── Exercises (opt-in) ── */
+.print-exercise {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px dashed #dddddd;
+}
+.print-exercise h3 {
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+.print-exercise-label {
+  display: inline-block;
+  margin-right: 0.5rem;
+  color: #555555;
+}
+.print-exercise-intro { margin-bottom: 0.75rem; }
+.print-step { margin: 0.75rem 0 0.75rem 1.25rem; }
+.print-step-letter {
+  display: inline-block;
+  min-width: 1.5em;
+  font-weight: 600;
+}
+.print-step-hint,
+.print-step-solution {
+  margin: 0.35rem 0 0 1.5rem;
+  font-size: 0.95em;
+  color: #333333;
+}
+.print-step-hint-label,
+.print-step-solution-label {
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #666666;
+  margin-right: 0.4rem;
+}
+
+/* === Paper ========================================================= */
+@media print {
+  @page {
+    size: A4;
+    margin: 20mm 18mm;
+  }
+
+  /* The app is still mounted behind the overlay; none of it belongs on
+     paper, and neither does the print view's own toolbar. Scoped to
+     .print-mode so a plain Cmd+P elsewhere in the app is untouched. */
+  body.print-mode .app > *:not(.print-root) { display: none !important; }
+  .no-print { display: none !important; }
+
+  html, body, .print-root {
+    position: static;
+    overflow: visible;
+    background: #ffffff;
+  }
+
+  /* .app is a flex row for the sidebar layout. Once the print root stops
+     being a fixed overlay it becomes a flex item and shrinks to fit its
+     content, which squeezes the document into a narrow column. */
+  .app { display: block; }
+  .print-root { width: 100%; }
+
+  /* The screen theme must not leak into print — dark surfaces cost ink and
+     light greys vanish on paper. */
+  .print-root, .print-doc { color: #000000; }
+
+  .print-doc {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  .print-titlepage,
+  .print-toc,
+  .print-part,
+  .print-chapter,
+  .print-formula-sheet { break-after: auto; }
+
+  .print-toc,
+  .print-part-title,
+  .print-chapter,
+  .print-formula-sheet { break-before: page; }
+
+  /* The first chapter follows the title page or the contents; it does not
+     need a page break of its own on top of theirs. */
+  .print-part > .print-chapter:first-child,
+  .print-part-title + .print-chapter { break-before: auto; }
+
+  h1, h2, h3 { break-after: avoid; }
+  .print-concept h2 + .print-concept-body { break-before: avoid; }
+
+  .print-formula,
+  .print-exercise,
+  .print-step,
+  .fig-inline,
+  .math-block,
+  .math-table { break-inside: avoid; }
+
+  .print-concept, .print-toc-entry { break-inside: avoid-page; }
+
+  p, .print-concept-body { orphans: 3; widows: 3; }
+
+  /* Figures are laid out for a 170mm measure; let them use it. */
+  .print-doc .fig-inline-img { max-width: 100%; max-height: 90mm; }
+}
