@@ -70,7 +70,7 @@ else
     -v "$PWD":/app \
     -w /app \
     --env-file .env \
-    node:20 \
+    node:22 \
     sh -lc "npm ci && npm run setup"
 fi
 
