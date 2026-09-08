@@ -63,16 +63,16 @@
 }
 
 /* The document itself. Sized in millimetres so what shows on screen is
-   already the paper measure. 145mm at 11.5pt lands near 70 characters a
-   line; the old full-width 174mm ran to about 100, which is what made the
-   first print read like a web page on A4. */
+   already the paper measure. 150mm at 10.5pt lands near 72 characters a
+   line — still inside the readable band, and denser than the 145mm/11.5pt
+   first cut, which left a lot of paper unused. */
 .print-doc {
-  width: 145mm;
+  width: 150mm;
   margin: 0 auto;
   padding: 2rem 0 4rem;
   font-family: var(--font-serif);
-  font-size: 11.5pt;
-  line-height: 1.58;
+  font-size: 10.5pt;
+  line-height: 1.45;
   color: var(--pr-ink);
   hyphens: auto;
 }
@@ -167,18 +167,18 @@
 /* ── Parts and chapters ── */
 .print-part-title {
   font-family: var(--font-sans);
-  font-size: 1.9rem;
+  font-size: 1.75rem;
   color: var(--pr-accent);
   padding-bottom: 0.5rem;
   border-bottom: 2px solid var(--pr-accent);
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.2rem;
 }
 
-.print-chapter { margin-bottom: 2.5rem; }
+.print-chapter { margin-bottom: 1.8rem; }
 
 .print-chapter-opener {
-  margin-bottom: 1.25rem;
-  padding-bottom: 0.6rem;
+  margin-bottom: 0.9rem;
+  padding-bottom: 0.45rem;
   border-bottom: 2px solid var(--pr-accent);
 }
 /* The number sits above the title. Inline with a min-width it opened an
@@ -192,7 +192,7 @@
 }
 .print-chapter-title {
   font-family: var(--font-sans);
-  font-size: 1.65rem;
+  font-size: 1.5rem;
   line-height: 1.2;
   margin-top: 0.15rem;
   color: var(--pr-ink);
@@ -205,26 +205,26 @@
 
 /* Concepts print as continuous prose. The reading view's card grid is a
    screen affordance and reads badly on paper. */
-.print-concept { margin-bottom: 1.4rem; }
+.print-concept { margin-bottom: 1rem; }
 .print-concept h2 {
   font-family: var(--font-sans);
-  font-size: 1.02rem;
+  font-size: 0.98rem;
   color: var(--pr-accent);
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.3rem;
 }
 /* Justification is safe now that MathText emits real paragraphs in blocks
    mode — before, the line ahead of every formula stretched to the measure. */
 .print-concept-body .text-para {
-  margin: 0 0 0.7rem;
+  margin: 0 0 0.55rem;
   text-align: justify;
 }
 .print-concept-body .text-para:last-child { margin-bottom: 0; }
 
-.print-doc .math-block { margin: 0.9rem 0; }
+.print-doc .math-block { margin: 0.65rem 0; }
 
 .print-doc .fig-inline {
   display: block;
-  margin: 1.1rem auto;
+  margin: 0.85rem auto;
   text-align: center;
 }
 .print-doc .fig-inline-img {
@@ -267,7 +267,7 @@
   font-family: var(--font-sans);
   font-size: 1rem;
   color: var(--pr-accent);
-  margin: 1.6rem 0 0.75rem;
+  margin: 1.2rem 0 0.6rem;
   padding-bottom: 0.25rem;
   border-bottom: 1px solid var(--pr-rule);
 }
@@ -307,17 +307,17 @@
 }
 .print-formula-sheet > h1 {
   font-family: var(--font-sans);
-  font-size: 1.9rem;
+  font-size: 1.75rem;
   color: var(--pr-accent);
   padding-bottom: 0.5rem;
   border-bottom: 2px solid var(--pr-accent);
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.2rem;
 }
 
 /* ── Exercises (opt-in) ── */
 .print-exercise {
-  margin-bottom: 1.4rem;
-  padding-bottom: 0.9rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.7rem;
   border-bottom: 1px solid var(--pr-rule-faint);
 }
 .print-exercise h3 {
@@ -331,7 +331,7 @@
   color: var(--pr-accent);
 }
 .print-exercise-intro { margin-bottom: 0.7rem; }
-.print-step { margin: 0.7rem 0 0.7rem 1.2rem; }
+.print-step { margin: 0.55rem 0 0.55rem 1.2rem; }
 .print-step-question { display: flex; gap: 0.5rem; }
 .print-step-letter {
   font-family: var(--font-sans);
@@ -355,7 +355,7 @@
   color: var(--pr-accent);
   margin-right: 0.4rem;
 }
-.print-doc .text-para { margin: 0 0 0.6rem; }
+.print-doc .text-para { margin: 0 0 0.5rem; }
 .print-doc .text-para:last-child { margin-bottom: 0; }
 
 /* === Paper ========================================================= */
@@ -364,7 +364,7 @@
     size: A4;
     /* Wider than the 18mm first draft: the measure, not the paper, decides
        readability, and this leaves room for Paged.js running heads. */
-    margin: 22mm 32mm 24mm;
+    margin: 18mm 30mm 20mm;
   }
 
   /* The app is still mounted behind the overlay; none of it belongs on
@@ -416,5 +416,5 @@
 
   p, .text-para { orphans: 3; widows: 3; }
 
-  .print-doc .fig-inline-img { max-width: 100%; max-height: 95mm; }
+  .print-doc .fig-inline-img { max-width: 100%; max-height: 82mm; }
 }
