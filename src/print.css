@@ -222,6 +222,13 @@
 
 .print-doc .math-block { margin: 0.65rem 0; }
 
+/* App.css sizes display math at 1.15em, tuned for the 11.5pt screen body.
+   Against the smaller print body that reads oversized: on paper an equation
+   should sit level with the prose it belongs to, not tower over it. */
+.print-doc .katex { font-size: 1em; }
+.print-doc .math-block .katex { font-size: 1.02em; }
+.print-doc .math-table .katex { font-size: 0.95em; }
+
 .print-doc .fig-inline {
   display: block;
   margin: 0.85rem auto;
