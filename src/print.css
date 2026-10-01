@@ -220,7 +220,7 @@
 }
 .print-concept-body .text-para:last-child { margin-bottom: 0; }
 
-.print-doc .math-block { margin: 0.65rem 0; }
+.print-doc .math-block { margin: 0.65rem 0; font-size: 1em; }
 
 /* App.css sizes display math at 1.15em, tuned for the 11.5pt screen body.
    Against the smaller print body that reads oversized: on paper an equation
