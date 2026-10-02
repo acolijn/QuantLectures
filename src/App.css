@@ -1672,6 +1672,19 @@ body {
   font-size: 0.84rem;
 }
 
+/* Shown in place of the signup form once an account exists. */
+.auth-done { text-align: center; max-width: 420px; }
+.auth-done h2 { margin-bottom: 12px; }
+.auth-done-icon { font-size: 2.2rem; margin-bottom: 8px; }
+.auth-done-lead { font-size: 0.92rem; margin-bottom: 10px; word-break: break-word; }
+.auth-done-body {
+  font-size: 0.88rem;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+.auth-done .form-actions { justify-content: center; }
+
 .join-modal {
   max-width: 420px;
 }

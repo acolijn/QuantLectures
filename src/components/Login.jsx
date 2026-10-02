@@ -25,6 +25,9 @@ export default function Login({ onClose, link }) {
   const [error, setError] = useState(null);
   const [message, setMessage] = useState(null);
   const [loading, setLoading] = useState(false);
+  // Set after a successful signup: the form gives way to a screen that says
+  // what happens next, instead of a one-line message under a filled-in form.
+  const [signedUp, setSignedUp] = useState(null); // { role, email }
 
   // An emailed verification link needs no input: confirm it as soon as the
   // modal opens and report the outcome above the sign-in form.
@@ -82,14 +85,7 @@ export default function Login({ onClose, link }) {
           signupToken: hasTeacherToken ? tokenFromUrl : '',
         });
         await requestEmailVerification(email);
-
-        if (role === 'teacher') {
-          setMessage(t('auth_signup_teacher_success'));
-        } else if (role === 'pending') {
-          setMessage(t('auth_signup_pending_success'));
-        } else {
-          setMessage(t('auth_signup_student_success'));
-        }
+        setSignedUp({ role, email: email.trim().toLowerCase() });
       } catch (err) {
         setError(err.message ?? t('auth_signup_failed'));
       } finally {
@@ -157,6 +153,46 @@ export default function Login({ onClose, link }) {
     setMessage(null);
   }
 
+  function goToSignIn() {
+    setEmail(signedUp?.email ?? email);
+    setPassword('');
+    setPasswordConfirm('');
+    setSignedUp(null);
+    resetStatus();
+    setMode('signin');
+  }
+
+  if (signedUp) {
+    const pending = signedUp.role === 'pending';
+    const body = pending
+      ? t('auth_done_pending_body')
+      : signedUp.role === 'teacher'
+        ? t('auth_done_teacher_body')
+        : t('auth_done_student_body');
+    return (
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="modal auth-done" onClick={e => e.stopPropagation()}>
+          <div className="auth-done-icon" aria-hidden="true">{pending ? '⏳' : '✉️'}</div>
+          <h2>{pending ? t('auth_done_pending_title') : t('auth_done_title')}</h2>
+          <p className="auth-done-lead">
+            {t('auth_done_sent_to')} <strong>{signedUp.email}</strong>
+          </p>
+          <p className="auth-done-body">{body}</p>
+          <div className="form-actions">
+            {pending ? (
+              <button type="button" className="btn-primary" onClick={onClose}>{t('auth_done_close')}</button>
+            ) : (
+              <>
+                <button type="button" className="btn-secondary" onClick={onClose}>{t('auth_done_close')}</button>
+                <button type="button" className="btn-primary" onClick={goToSignIn}>{t('login_title')}</button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()}>
@@ -172,9 +208,13 @@ export default function Login({ onClose, link }) {
           <button type="button" className={`auth-mode-btn ${mode === 'forgot' ? 'active' : ''}`} onClick={() => { setMode('forgot'); resetStatus(); }}>
             {t('auth_forgot_title')}
           </button>
-          <button type="button" className={`auth-mode-btn ${mode === 'reset' ? 'active' : ''}`} onClick={() => { setMode('reset'); resetStatus(); }}>
-            {t('auth_reset_title')}
-          </button>
+          {/* Reset needs the token from the emailed link, which opens this form
+              by itself — a tab with an empty token field only confuses. */}
+          {mode === 'reset' && (
+            <button type="button" className="auth-mode-btn active">
+              {t('auth_reset_title')}
+            </button>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">

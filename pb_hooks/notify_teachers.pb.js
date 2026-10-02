@@ -63,19 +63,15 @@ onRecordAfterUpdateSuccess((e) => {
     const meta = e.app.settings().meta;
     const name = e.record.getString("name");
     const greeting = name ? `Hi ${esc(name)},` : "Hi,";
-    const greetingNl = name ? `Hoi ${esc(name)},` : "Hoi,";
 
     e.app.newMailClient().send(new MailerMessage({
       from: { address: meta.senderAddress, name: meta.senderName },
       to: [{ address: e.record.email() }],
-      subject: `${meta.appName}: your teacher account is approved / je docentaccount is goedgekeurd`,
+      subject: `${meta.appName}: your teacher account is approved`,
       html:
         `<p>${greeting}</p>` +
         `<p>Your teacher account on ${esc(meta.appName)} has been approved. ` +
         `Sign in to create and edit courses.</p>` +
-        `<p>${greetingNl}</p>` +
-        `<p>Je docentaccount op ${esc(meta.appName)} is goedgekeurd. ` +
-        `Log in om cursussen te maken en te bewerken.</p>` +
         `<p><a href="${meta.appURL}">${esc(meta.appURL)}</a></p>`,
     }));
   } catch (err) {

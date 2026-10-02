@@ -234,32 +234,45 @@ async function setup() {
   // which the app domain does not serve. Point them at the app instead; App.jsx
   // picks the token up from ?reset_token= / ?verify_token=. Managed here, so
   // edits made to these two templates in the dashboard are overwritten.
-  const emailButton = (href, label) =>
-    `<p><a class="btn" href="${href}" target="_blank" rel="noopener">${label}</a></p>`;
+  // One layout for both emails: app name, a short message, one button, the
+  // same link as plain text for clients that strip buttons, and a footer.
+  // Inline styles only — most mail clients ignore <style> blocks.
+  const emailLayout = ({ heading, text, href, label, footer }) => `
+<div style="background:#f4f5f8;padding:32px 16px;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1f2430;">
+  <div style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:10px;padding:32px 28px;">
+    <div style="font-size:15px;font-weight:700;color:#1f3a6e;margin-bottom:24px;">{APP_NAME}</div>
+    <h1 style="font-size:20px;font-weight:600;margin:0 0 12px;color:#1f2430;">${heading}</h1>
+    <p style="font-size:15px;line-height:1.55;margin:0 0 24px;">${text}</p>
+    <a href="${href}" target="_blank" rel="noopener"
+       style="display:inline-block;background:#1f3a6e;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:12px 22px;border-radius:8px;">${label}</a>
+    <p style="font-size:13px;line-height:1.5;color:#6b7280;margin:24px 0 0;">
+      Button not working? Copy this link into your browser:<br>
+      <a href="${href}" style="color:#1f3a6e;word-break:break-all;">${href}</a>
+    </p>
+  </div>
+  <p style="max-width:480px;margin:16px auto 0;font-size:12px;line-height:1.5;color:#8a8f9c;text-align:center;">${footer}</p>
+</div>`;
+
   await pb.collections.update('users', {
     resetPasswordTemplate: {
-      subject: 'Reset your {APP_NAME} password / Wachtwoord herstellen',
-      body:
-        '<p>Hello,</p>'
-        + '<p>Click the button below to choose a new password for {APP_NAME}.</p>'
-        + emailButton('{APP_URL}/?reset_token={TOKEN}', 'Reset password')
-        + '<p>If you did not ask for this, you can ignore this email.</p>'
-        + '<hr>'
-        + '<p>Hallo,</p>'
-        + '<p>Klik op de knop hieronder om een nieuw wachtwoord voor {APP_NAME} te kiezen.</p>'
-        + emailButton('{APP_URL}/?reset_token={TOKEN}', 'Wachtwoord herstellen')
-        + '<p>Heb je dit niet aangevraagd? Dan kun je deze e-mail negeren.</p>',
+      subject: 'Reset your {APP_NAME} password',
+      body: emailLayout({
+        heading: 'Reset your password',
+        text: 'Someone asked to reset the password for your {APP_NAME} account. Click the button to choose a new one. The link is valid for a limited time.',
+        href: '{APP_URL}/?reset_token={TOKEN}',
+        label: 'Choose a new password',
+        footer: 'Did not ask for this? Then you can ignore this email; your password stays the same.',
+      }),
     },
     verificationTemplate: {
-      subject: 'Confirm your {APP_NAME} email / Bevestig je e-mailadres',
-      body:
-        '<p>Hello,</p>'
-        + '<p>Thanks for signing up for {APP_NAME}. Click the button below to confirm your email address.</p>'
-        + emailButton('{APP_URL}/?verify_token={TOKEN}', 'Confirm email')
-        + '<hr>'
-        + '<p>Hallo,</p>'
-        + '<p>Bedankt voor je aanmelding bij {APP_NAME}. Klik op de knop hieronder om je e-mailadres te bevestigen.</p>'
-        + emailButton('{APP_URL}/?verify_token={TOKEN}', 'E-mailadres bevestigen'),
+      subject: 'Confirm your email address for {APP_NAME}',
+      body: emailLayout({
+        heading: 'Confirm your email address',
+        text: 'Thanks for creating a {APP_NAME} account. Click the button to confirm that this is your email address.',
+        href: '{APP_URL}/?verify_token={TOKEN}',
+        label: 'Confirm email address',
+        footer: 'Did not create an account? Then you can ignore this email.',
+      }),
     },
   });
   console.log("  → 'users' reset/verification email templates point at the app.");
