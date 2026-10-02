@@ -16,7 +16,18 @@ export function AuthProvider({ children }) {
   }, []);
 
   async function signIn(email, password) {
-    return pb.collection('users').authWithPassword(email, password);
+    const typed = email.trim();
+    const normalized = typed.toLowerCase();
+    try {
+      // Signup stores emails lowercased, so match that regardless of how
+      // the address is typed at login.
+      return await pb.collection('users').authWithPassword(normalized, password);
+    } catch (err) {
+      // Accounts created outside the signup flow (e.g. the PocketBase
+      // dashboard) may still carry uppercase; retry with the address as typed.
+      if (typed === normalized) throw err;
+      return pb.collection('users').authWithPassword(typed, password);
+    }
   }
 
   async function signUp({ name, email, password, role, signupToken }) {
