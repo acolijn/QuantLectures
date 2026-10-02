@@ -1,28 +1,44 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 
-export default function Login({ onClose }) {
+export default function Login({ onClose, link }) {
   const {
     signIn,
     signUp,
     requestPasswordReset,
     confirmPasswordReset,
     requestEmailVerification,
+    confirmEmailVerification,
   } = useAuth();
   const { t } = useLanguage();
   const tokenFromUrl = new URLSearchParams(window.location.search).get('token') ?? '';
-  const [mode, setMode] = useState('signin');
+  // An emailed reset link opens straight into the reset form, token filled in.
+  const [mode, setMode] = useState(link?.resetToken ? 'reset' : 'signin');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [inviteRole, setInviteRole] = useState(tokenFromUrl ? 'teacher' : 'student');
-  const [resetToken, setResetToken] = useState('');
+  const [resetToken, setResetToken] = useState(link?.resetToken ?? '');
   const [newPassword, setNewPassword] = useState('');
   const [error, setError] = useState(null);
   const [message, setMessage] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  // An emailed verification link needs no input: confirm it as soon as the
+  // modal opens and report the outcome above the sign-in form.
+  // A token is single-use, so guard against StrictMode's double effect run:
+  // the second call would fail and overwrite the success message.
+  const verifyToken = link?.verifyToken;
+  const verifySent = useRef(false);
+  useEffect(() => {
+    if (!verifyToken || verifySent.current) return;
+    verifySent.current = true;
+    confirmEmailVerification(verifyToken)
+      .then(() => setMessage(t('auth_verify_success')))
+      .catch(() => setError(t('auth_verify_failed')));
+  }, [verifyToken]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -108,6 +124,7 @@ export default function Login({ onClose }) {
 
       try {
         await confirmPasswordReset(resetToken, newPassword);
+        setMode('signin');
         setMessage(t('auth_reset_success'));
       } catch (err) {
         setError(err.message ?? t('auth_reset_failed'));

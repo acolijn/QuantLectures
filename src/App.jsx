@@ -21,6 +21,8 @@ function AppContent() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
+  // Token from an emailed reset/verification link; consumed by the login modal.
+  const [loginLink, setLoginLink] = useState(null);
   const [showImport, setShowImport] = useState(false);
   const [showCourseSettings, setShowCourseSettings] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
@@ -102,6 +104,23 @@ function AppContent() {
     const query = params.toString();
     window.history.replaceState({}, '', window.location.pathname + (query ? `?${query}` : ''));
   }, [user]);
+
+  // Links in PocketBase's reset and verification emails land here
+  // (…/?reset_token=… or …/?verify_token=…, set by scripts/setup-pocketbase.js).
+  // Not ?token=, which already means a teacher signup link.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const resetToken = params.get('reset_token');
+    const verifyToken = params.get('verify_token');
+    if (!resetToken && !verifyToken) return;
+
+    setLoginLink({ resetToken, verifyToken });
+    setShowLogin(true);
+    params.delete('reset_token');
+    params.delete('verify_token');
+    const query = params.toString();
+    window.history.replaceState({}, '', window.location.pathname + (query ? `?${query}` : ''));
+  }, []);
 
   function handleProgressUpdate(chapterId, score) {
     updateProgress(chapterId, score);
@@ -241,7 +260,8 @@ function AppContent() {
 
       <AppOverlays
         showLogin={showLogin}
-        onCloseLogin={() => setShowLogin(false)}
+        loginLink={loginLink}
+        onCloseLogin={() => { setShowLogin(false); setLoginLink(null); }}
         showImport={showImport}
         courseId={activeCourseId}
         course={course}

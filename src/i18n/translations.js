@@ -235,6 +235,8 @@ export const translations = {
     auth_new_password: 'Nieuw wachtwoord',
     auth_reset_success: 'Wachtwoord is aangepast. Je kunt nu inloggen.',
     auth_reset_failed: 'Wachtwoord resetten mislukt',
+    auth_verify_success: 'Je e-mailadres is bevestigd. Je kunt nu inloggen.',
+    auth_verify_failed: 'Bevestigen mislukt. De link is mogelijk verlopen of al gebruikt.',
 
     import_title: 'Hoofdstuk importeren',
     import_step1: 'Stap 1 — Kopieer de Claude-prompt',
@@ -566,6 +568,8 @@ export const translations = {
     auth_new_password: 'New password',
     auth_reset_success: 'Password updated. You can now sign in.',
     auth_reset_failed: 'Reset password failed',
+    auth_verify_success: 'Your email address is confirmed. You can now sign in.',
+    auth_verify_failed: 'Confirmation failed. The link may have expired or already been used.',
 
     import_title: 'Import chapter',
     import_step1: 'Step 1 — Copy the Claude prompt',

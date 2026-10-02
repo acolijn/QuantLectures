@@ -230,6 +230,40 @@ async function setup() {
     console.log("  → 'users' fields synced (role options refreshed).");
   }
 
+  // PocketBase's default templates link to its own admin UI (/_/#/auth/…),
+  // which the app domain does not serve. Point them at the app instead; App.jsx
+  // picks the token up from ?reset_token= / ?verify_token=. Managed here, so
+  // edits made to these two templates in the dashboard are overwritten.
+  const emailButton = (href, label) =>
+    `<p><a class="btn" href="${href}" target="_blank" rel="noopener">${label}</a></p>`;
+  await pb.collections.update('users', {
+    resetPasswordTemplate: {
+      subject: 'Reset your {APP_NAME} password / Wachtwoord herstellen',
+      body:
+        '<p>Hello,</p>'
+        + '<p>Click the button below to choose a new password for {APP_NAME}.</p>'
+        + emailButton('{APP_URL}/?reset_token={TOKEN}', 'Reset password')
+        + '<p>If you did not ask for this, you can ignore this email.</p>'
+        + '<hr>'
+        + '<p>Hallo,</p>'
+        + '<p>Klik op de knop hieronder om een nieuw wachtwoord voor {APP_NAME} te kiezen.</p>'
+        + emailButton('{APP_URL}/?reset_token={TOKEN}', 'Wachtwoord herstellen')
+        + '<p>Heb je dit niet aangevraagd? Dan kun je deze e-mail negeren.</p>',
+    },
+    verificationTemplate: {
+      subject: 'Confirm your {APP_NAME} email / Bevestig je e-mailadres',
+      body:
+        '<p>Hello,</p>'
+        + '<p>Thanks for signing up for {APP_NAME}. Click the button below to confirm your email address.</p>'
+        + emailButton('{APP_URL}/?verify_token={TOKEN}', 'Confirm email')
+        + '<hr>'
+        + '<p>Hallo,</p>'
+        + '<p>Bedankt voor je aanmelding bij {APP_NAME}. Klik op de knop hieronder om je e-mailadres te bevestigen.</p>'
+        + emailButton('{APP_URL}/?verify_token={TOKEN}', 'E-mailadres bevestigen'),
+    },
+  });
+  console.log("  → 'users' reset/verification email templates point at the app.");
+
   const teacherSignupToken = String(process.env.TEACHER_SIGNUP_TOKEN ?? '').trim();
   if (teacherSignupToken) {
     console.log('  → TEACHER_SIGNUP_TOKEN detected (enforced in app signup flow).');

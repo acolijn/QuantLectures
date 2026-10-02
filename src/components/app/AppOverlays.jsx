@@ -3,6 +3,7 @@ import Login from '../Login';
 
 export default function AppOverlays({
   showLogin,
+  loginLink,
   onCloseLogin,
   showImport,
   courseId,
@@ -13,7 +14,7 @@ export default function AppOverlays({
 }) {
   return (
     <>
-      {showLogin && <Login onClose={onCloseLogin} />}
+      {showLogin && <Login onClose={onCloseLogin} link={loginLink} />}
       {showImport && (
         <ImportChapter
           courseId={courseId}

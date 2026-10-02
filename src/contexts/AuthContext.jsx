@@ -75,6 +75,10 @@ export function AuthProvider({ children }) {
     return pb.collection('users').requestVerification(email.trim().toLowerCase());
   }
 
+  async function confirmEmailVerification(token) {
+    return pb.collection('users').confirmVerification(token);
+  }
+
   function signOut() {
     pb.authStore.clear();
   }
@@ -95,6 +99,7 @@ export function AuthProvider({ children }) {
         confirmPasswordReset,
         changePassword,
         requestEmailVerification,
+        confirmEmailVerification,
       }}
     >
       {children}
