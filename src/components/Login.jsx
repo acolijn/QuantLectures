@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { gettingStartedUrl } from '../lib/help';
 
 export default function Login({ onClose, link }) {
   const {
@@ -324,6 +325,10 @@ export default function Login({ onClose, link }) {
 
           {error && <p className="form-error">{error}</p>}
           {message && <p className="form-message">{message}</p>}
+
+          <a className="login-help-link" href={gettingStartedUrl} target="_blank" rel="noopener">
+            {t('help_need')}
+          </a>
 
           <div className="form-actions">
             <button type="button" onClick={onClose} className="btn-secondary">{t('common_cancel')}</button>

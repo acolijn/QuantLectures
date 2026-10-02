@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import MathText from './MathText';
 import { useAuth } from '../contexts/AuthContext';
+import { helpUrl } from '../lib/help';
 import { useLanguage } from '../contexts/LanguageContext';
 
 const LANGUAGE_FLAGS = {
@@ -36,6 +37,14 @@ export default function Landing({
       <header className="landing-topbar">
         <div className="landing-brand">📐 MiniLectures.app</div>
         <div className="landing-topbar-actions">
+          <a
+            className="landing-btn landing-btn--ghost"
+            href={helpUrl({ user, isTeacher })}
+            target="_blank"
+            rel="noopener"
+          >
+            {t('help_link')}
+          </a>
           {isAdmin && (
             <button className="landing-btn landing-btn--ghost" onClick={onOpenAdmin}>
               {t('admin_button')}

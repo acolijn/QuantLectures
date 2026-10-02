@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
     "setup": "node --env-file=.env scripts/setup-pocketbase.js",
     "fix:course-membership": "node --env-file=.env scripts/fix-course-membership.js",
     "recover:legacy-course": "node --env-file=.env scripts/recover-legacy-course.js"
@@ -21,6 +23,7 @@
   "devDependencies": {
     "@types/react": "^18.2.43",
     "@vitejs/plugin-react": "^6.1.1",
-    "vite": "^8.2.2"
+    "vite": "^8.2.2",
+    "vitepress": "^1.6.4"
   }
 }

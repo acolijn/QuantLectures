@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import MathText from './MathText';
 import { useAuth } from '../contexts/AuthContext';
+import { helpUrl } from '../lib/help';
 import { useLanguage } from '../contexts/LanguageContext';
 
 const COLLAPSE_KEY_PREFIX = 'minilectures:parts-collapsed:';
@@ -245,6 +246,10 @@ export default function Sidebar({
             {t('sidebar_print')}
           </button>
         )}
+
+        <a className="sidebar-print-btn sidebar-help-link" href={helpUrl({ user, isTeacher })} target="_blank" rel="noopener">
+          {t('help_link')}
+        </a>
 
         {/* Auth section */}
         <div className="sidebar-auth">

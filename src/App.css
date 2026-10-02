@@ -1685,6 +1685,17 @@ body {
 }
 .auth-done .form-actions { justify-content: center; }
 
+.login-help-link {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  align-self: flex-start;
+}
+.login-help-link:hover { color: var(--color-primary); text-decoration: underline; }
+
+/* The Help link sits in the sidebar footer next to Print and looks like it. */
+.sidebar-help-link { display: block; text-align: center; text-decoration: none; }
+
 .join-modal {
   max-width: 420px;
 }

@@ -12,3 +12,6 @@ QM1_syllabus-2.pdf
 pb_migrations/
 AGENTS.md
 CLAUDE.md
+QF1_example.pdf
+docs/.vitepress/dist/
+docs/.vitepress/cache/

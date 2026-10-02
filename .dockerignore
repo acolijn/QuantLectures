@@ -7,3 +7,5 @@ __pycache__
 .DS_Store
 .git/
 QM1_syllabus-2.pdf
+docs/.vitepress/dist/
+docs/.vitepress/cache/
